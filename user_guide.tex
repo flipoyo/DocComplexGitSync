@@ -1,8 +1,15 @@
 % user_guide.tex — complete reference for every user-facing feature
-\chapter{User Guide}
-\label{chap:user-guide}
+\documentclass[11pt,a4paper]{article}
+\input{Setup/Packages}
+\input{Setup/Shortcuts}
+\title{User Guide --- \cgspkg{} \cgsversion}
+\author{Nicolas Flipo}
+\date{\today}
 
-This chapter is the authoritative reference for every user-facing command,
+\begin{document}
+\maketitle
+
+This guide is the authoritative reference for every user-facing command,
 configuration option, document format, and error condition exposed by
 \cgspkg{}.
 
@@ -428,3 +435,5 @@ instead.
   \item[PyYAML import error when using \texttt{.goc} files]
     Install the optional extra: \texttt{uv pip install "ComplexGitSync[yaml]"}.
 \end{description}
+
+\end{document}
