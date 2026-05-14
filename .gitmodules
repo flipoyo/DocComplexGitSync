@@ -1,0 +1,3 @@
+[submodule "DocSpec"]
+	path = DocSpec
+	url = https://github.com/flipoyo/DocSpec
