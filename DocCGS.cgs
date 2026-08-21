@@ -1,0 +1,10 @@
+# CGS integration topology root. Defaults: main, ssh, nested auto, and each
+# repository name as its relative path. ComplexGitSync matches the project name, so
+# normalization mounts it at ".".
+
+project = "DocComplexGitSync"
+
+repos = [  
+    "github:flipoyo/DocComplexGitSync",
+    "github:flipoyo/DocSpec",
+]
