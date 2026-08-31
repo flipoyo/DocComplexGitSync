@@ -1,4 +1,4 @@
-% gittree_nodes.tex — TikZ figure showing GitRepo parent-leaf tree structure
+% gittree_nodes.tex — TikZ figure showing WorkingRepo parent-leaf tree structure
 % Included by docs/architecture.tex (Figure gittree-nodes).
 
 \begin{tikzpicture}[
@@ -18,15 +18,15 @@
 
 % Root
 \node[rootnode] (root) at (0,0) {
-  \textbf{root} (project)\\NodeType = ROOT
+  \textbf{root WorkingRepo}\\NodeType = ROOT
 };
 
 % Two direct children of root
 \node[parentnode] (parent) at (-3,-2) {
-  \textbf{child-repo}\\NodeType = PARENT
+  \textbf{nested WorkingRepo}\\NodeType = PARENT
 };
 \node[leafnode] (lib) at (3,-2) {
-  \textbf{lib}\\NodeType = LEAF
+  \textbf{leaf WorkingRepo}\\NodeType = LEAF
 };
 
 % Children of parent
@@ -44,11 +44,12 @@
 \draw[treearrow] (parent.south) -- (sub2.north);
 
 % Annotations
-\node[label, right=0.3cm of root] {owns nested .cgs (root)};
-\node[label, right=0.2cm of parent] {owns nested .cgs (parent)};
-\node[label, right=0.2cm of lib] {terminal — no nested .cgs};
+\node[label, right=0.3cm of root] {initialise(.cgs) seeds the root runtime entry};
+\node[label, right=0.2cm of parent] {initialise discovers nested repos recursively};
+\node[label, right=0.2cm of lib] {READY tree leaf tracked in the saved .gts};
 \node[label, right=0.2cm of sub1] {nested\_config = "disabled"};
 \node[label, right=0.2cm of sub2] {nested\_config = "disabled"};
+\node[label, below=0.15cm of root] {cross-references are resolved to a DAG by the SCC-based cycle-breaking engine};
 
 % Legend
 \node[rootnode,  minimum width=2.0cm, minimum height=0.6cm]

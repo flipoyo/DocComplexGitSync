@@ -1,23 +1,22 @@
-% getting_started.tex — step-by-step guide from installation to first use
+% getting_started.tex -- CLI-first guide from installation to first sync
 
 \chapter{Getting Started}
 
-This chapter guides a brand-new user from installation through the first
-successful synchronisation of a nested Git repository tree.
+This chapter guides a new user through the Multi-repo Sync CLI. The documented
+entry point is \cgscli{}.
 
-The documented lifecycle is:
+The primary lifecycle is:
 
 \begin{enumerate}
-  \item \texttt{load(.cgs)} $\rightarrow$ \texttt{.gts LOADED}
-  \item \texttt{expand(.cgs|.gts)} $\rightarrow$ \texttt{.gts PENDING}
-  \item \texttt{validate(.cgs|.gts)} $\rightarrow$ \texttt{.gts READY}
-  \item \texttt{clone(.cgs|.gts)}
-  \item \texttt{checkout(.gts)}
-  \item \texttt{add}
-  \item \texttt{git(tree, "commit", msg)}
-  \item \texttt{git(tree, "push")}
-  \item \texttt{git(tree, "tag", name)}
-  \item \texttt{freeze}
+  \item \texttt{initialise(.cgs)} $\rightarrow$ clone all repositories
+        $\rightarrow$ \texttt{READY}
+  \item \texttt{initialise(.gts)} $\rightarrow$ load or restore a saved
+        snapshot $\rightarrow$ \texttt{READY}
+  \item \texttt{pull(.cgs|.gts)} $\rightarrow$ resynchronise an existing tree
+  \item \texttt{checkout} / \texttt{add} / \texttt{commit} / \texttt{push} /
+        \texttt{tag} $\rightarrow$ tree-wide Git operations
+  \item \texttt{freeze} $\rightarrow$ write the next \texttt{.gts} snapshot
+        and update the project-local \texttt{.lgr}
 \end{enumerate}
 
 % -----------------------------------------------------------------------
@@ -26,186 +25,208 @@ The documented lifecycle is:
 \begin{itemize}
   \item Python~3.11 or later.
   \item Git~2.30 or later available on \texttt{PATH}.
-  \item (Optional) PyYAML~6.x for \texttt{.yml} document support.
+  \item Working Git authentication for every remote used by the workspace.
 \end{itemize}
 
 % -----------------------------------------------------------------------
 \section{Installation}
 
-Install \cgspkg{} from source with the Pixi-managed developer environment:
+Install \cgspkg{} from source with the Pixi-managed environment:
 
 \begin{lstlisting}[language=bash]
 $ git clone https://github.com/flipoyo/ComplexGitSync.git
 $ cd ComplexGitSync
 $ pixi install
-\end{lstlisting}
-
-Verify the installation:
-
-\begin{lstlisting}[language=bash]
 $ pixi run cgitsync --help
 \end{lstlisting}
 
 % -----------------------------------------------------------------------
-\section{Creating a Project Spec (\texttt{.cgs})}
+\section{Create or Check a Project Spec}
 
-A \emph{local authoring spec} (\texttt{.cgs}) is a TOML file that describes
-the repository tree you want to manage. For the self-standing
-\texttt{ComplexGitSync} setup, create \texttt{complexgitsync.cgs}:
+A \texttt{.cgs} file is the local authoring spec for the repository tree. It
+normally contains only a project name and repository identifiers:
 
-\begin{lstlisting}[language=toml]
-[document]
-format_version = "1.0"
-
-[project]
-name           = "ComplexGitSync"
-default_branch = "autoTest"
-
-[[repos]]
-gitprovider        = "github"
-project_owner_name = "flipoyo"
-project_name       = "ComplexGitSync"
-default_branch     = "autoTest"
-fallback_branch    = "main"
-relative_path      = "."
-
-[[repos]]
-gitprovider        = "github"
-project_owner_name = "flipoyo"
-project_name       = "DevSpec"
-default_branch     = "autoTest"
-fallback_branch    = "main"
-relative_path      = "DevSpec"
-nested_config      = "disabled"
-
-[[repos]]
-gitprovider        = "github"
-project_owner_name = "flipoyo"
-project_name       = "DocComplexGitSync"
-default_branch     = "autoTest"
-fallback_branch    = "main"
-relative_path      = "docs"
-nested_config      = "doccomplexgitsync.cgs"
+\begin{lstlisting}
+project = "CGSil1"
+repos = [
+  "gitlab:CGS_test/CGSil1",
+  "gitlab:CGS_test/CGSil2",
+  "github:flipoyo/CGSih1",
+]
 \end{lstlisting}
 
-In this topology, \texttt{docs/doccomplexgitsync.cgs} then declares
-\texttt{DocSpec} (resolved as \texttt{docs/DocSpec}
-from the repository root) as a nested documentation dependency.
+Each identifier uses \texttt{provider:owner/repository}.  ComplexGitSync runs
+\texttt{PARSE -> NORMALIZE -> VALIDATE} and supplies deterministic defaults:
+\texttt{main} branches, \texttt{ssh}, \texttt{nested\_config = auto}, and the
+repository name as its path.  A unique repository matching the project name
+is mounted at \texttt{.}.  Advanced tables are reserved for overrides.
 
-This branch policy prefers the shared \texttt{autoTest} branch across the
-whole tree. Each repo also declares \texttt{fallback\_branch = "main"}, so a
-synchronisation run can stay on \texttt{autoTest} when that branch exists and
-fall back to \texttt{main} when a repository has not created it yet.
+Canonical providers are \texttt{github}, \texttt{gitlab},
+\texttt{codeberg}, and \texttt{custom}. Their known hosts are
+\texttt{github.com}, \texttt{gitlab.com}, and \texttt{codeberg.org}; SSH and
+HTTPS remotes are generated automatically. Custom hosting requires an explicit
+\texttt{gitprovider\_url} and never guesses a host. For example,
+\texttt{codeberg:GX4G/GX4G} identifies owner \texttt{GX4G} and repository
+\texttt{GX4G} on Codeberg.
 
-% -----------------------------------------------------------------------
-\section{Read / Expand / Verify}
+Copy \texttt{examples/template.cgs} when starting a specification. It combines
+plain repository identifiers with one inline override. Developers can compare
+it with \texttt{examples/normalized\_template.cgs}, which shows the complete
+canonical document after normalization and is not intended as the usual
+hand-authored form.
 
-Check that \cgscli{} can parse and resolve the spec without errors:
+The common inline options are \texttt{default\_branch},
+\texttt{fallback\_branch}, \texttt{access\_protocol},
+\texttt{relative\_path}, and \texttt{nested\_config}. A relative path is
+resolved from the parent repository. Nested config can be \texttt{auto} to
+load the sole root-level \texttt{*.cgs}, \texttt{disabled} to stop discovery,
+or a relative \texttt{.cgs} path to select an exact file inside the repository.
 
 \begin{lstlisting}[language=bash]
-$ cgitsync validate complexgitsync.cgs
+$ pixi run cgitsync validate examples/complexgitsync.cgs
+$ pixi run cgitsync view-tree examples/complexgitsync.cgs
 \end{lstlisting}
 
-A successful run exits with code~0 and prints the current tree summary, for
-example \texttt{DECLARED ready=false complete=true}.
-
-The canonical step-2 command is \texttt{expand}; \texttt{tree} is kept as a
-backward-compatible alias.  The canonical step-3 command is \texttt{validate}.
-
-% -----------------------------------------------------------------------
-\section{Clone / Checkout}
-
-Once the spec is valid, materialise the full project tree:
+A valid declared tree prints a lifecycle line such as:
 
 \begin{lstlisting}[language=bash]
-$ cgitsync clone complexgitsync.cgs
+DECLARED ready=false complete=true
 \end{lstlisting}
 
-By default, \cgscli{} clones the tree into \texttt{./ComplexGitSync}. If that
-directory already exists and is not empty, the command chooses the next
-available suffixed directory such as \texttt{./ComplexGitSync-1}. To force an
-explicit destination, pass \texttt{--target-dir}.
-
-On success, the command prints the explicit lifecycle workflow
-(\texttt{load -> expand -> validate -> clone}), the command log file path
-(\texttt{log\_file=...}), a minimal repo-only tree view, and a READY summary
-including the chosen root path, for example
-\texttt{READY ready=true complete=true root=/tmp/ComplexGitSync}.
-The clone flow first tries each repo's \texttt{default\_branch} and falls back
-to \texttt{fallback\_branch} when the preferred branch does not exist on the
-remote. It also writes a runtime snapshot to
-\texttt{<project-root>/.cgitsync/state/<spec-name>.gts} so later inspection
-commands can reuse the synchronised state.
-
-Once the tree is materialised, the lifecycle continues with checkout from the
-recorded \texttt{.gts} state.
-
 % -----------------------------------------------------------------------
-\section{Inspecting and Printing Saved State}
+\section{Initialise the Workspace}
 
-Render the dependency graph as text:
+Use \texttt{initialise} as the canonical first command. From a \texttt{.cgs}
+file it clones the full repository tree, validates it, writes the runtime
+snapshot under \texttt{<workspace>/.cgitsync/state/}, and leaves the tree
+\texttt{READY}.
 
 \begin{lstlisting}[language=bash]
-$ cgitsync tree complexgitsync.cgs
+$ pixi run cgitsync initialise examples/complexgitsync.cgs
 \end{lstlisting}
 
-When a newer runtime snapshot exists for the same \texttt{.cgs} file,
-\cgscli{} loads that \texttt{.gts} state automatically before rendering the
-tree. This is why the same command reports a \texttt{READY} tree after a
-successful \texttt{clone} instead of returning to the purely declared
-\texttt{DECLARED}/\texttt{PENDING} view.
+The same canonical project definition can be authored directly. The
+\texttt{--repo} option is repeatable:
 
-The remaining planned user-facing work is to expose a dedicated
-\texttt{print(.gts)} command for saved-state inspection.
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync initialise --project CGSil1 \
+    --repo gitlab:CGS_test/CGSil1 \
+    --repo codeberg:GX4G/GX4G
+\end{lstlisting}
+
+Use either a source file or \texttt{--project} plus \texttt{--repo}, never
+both. To serialize the CLI definition without initializing a workspace, use
+\texttt{create-cgs --project ... --repo ... --output FILE}.
+
+When \texttt{--output-path} is omitted, \cgscli{} uses the workspace-level
+default \texttt{CGSPATH=../..}, then derives
+\texttt{CGSHOME=CGSPATH/<project-name>}. The explicit equivalent is:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync initialise examples/complexgitsync.cgs --output-path "$CGSPATH"
+\end{lstlisting}
+
+From a previously generated snapshot (resolved automatically via the
+project's \texttt{.lgr} register; pass the path explicitly only to override
+that discovery):
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync initialise
+\end{lstlisting}
+
+Successful \texttt{.cgs} initialisation prints a readable operation sequence
+\texttt{GT-LOAD->GT-DISCOVER->GT-VALIDATE->GT-CLONE->GT-GITIGNORE}, the
+explicit workflow \texttt{load->expand->validate->clone->gitignore}, the
+per-repository \texttt{git clone} action, the resolved root path, a report of
+any \texttt{.gitignore} changes, and a compact tree outline. Structured log
+records also put the operation code first, for example \texttt{GT-DISCOVER},
+\texttt{GT-VALIDATE}, \texttt{FS-PURGE}, \texttt{GT-CLONE}, or
+\texttt{GT-GITIGNORE}.
+If a stale partial checkout blocks the clone step,
+\texttt{initialise} fails explicitly and prints
+\texttt{Try clean-init method}.  Use \texttt{clean-init} to insert a purge
+phase between validation and cloning:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync clean-init examples/complexgitsync.cgs
+\end{lstlisting}
+
+The explicit operation sequence is
+\texttt{GT-LOAD->GT-DISCOVER->GT-VALIDATE->FS-PURGE->GT-CLONE->GT-GITIGNORE};
+the matching workflow is \texttt{load->expand->validate->purge->clone->gitignore}.
+The purge phase can also be run on its own:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync purge examples/complexgitsync.cgs
+\end{lstlisting}
+
+\texttt{purge} removes generated clone state from \texttt{CGSHOME}: immediate
+child repository directories declared directly under the project root, and
+project \texttt{*.lgr} files. A persisted Git identity override at
+\texttt{.cgitsync/master.toml} (see the \texttt{initialise} entry in the
+Command Reference chapter for \texttt{--git-user-name}/\texttt{--git-user-email})
+is workspace configuration, not clone state, and is left untouched.
 
 % -----------------------------------------------------------------------
-\section{Preparing an Orchestration Plan (\texttt{.goc})}
+\section{Inspect the Runtime State}
 
-A \texttt{.goc} file records a repeatable command sequence for a project.
-For the self-standing setup, \texttt{deploy.goc} keeps the tree on
-\texttt{autoTest} when possible:
-
-\begin{lstlisting}[language=toml]
-[[actions]]
-command = "checkout"
-[actions.args]
-ref      = "autoTest"
-ref_type = "branch"
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync view-tree
+$ pixi run cgitsync view-tree --depth 2 --collapse parent_2
+$ pixi run cgitsync status
 \end{lstlisting}
 
-Combined with the per-repo \texttt{fallback\_branch = "main"} settings from
-the \texttt{.cgs} file, the same orchestration plan can be used on trees where
-some repositories already expose \texttt{autoTest} and others still only offer
-\texttt{main}. In the current bootstrap release, the \texttt{.goc} file is the
-machine-readable reference for that flow; direct CLI execution of orchestration
-plans is introduced later as \texttt{orchestrate(.goc)}.
+If a command accepts an optional snapshot and none is provided, \cgscli{}
+discovers the latest \texttt{.gts} automatically via the project's
+\texttt{.lgr} register under \texttt{CGSHOME/.cgitsync/}. Each generated
+\texttt{.gts} snapshot actually lives under its own content-addressed
+\texttt{CGSHOME/.cgitsync/state(<hash>)\_<n>/} directory; pass an explicit
+path (e.g. \texttt{--gts FILE}, or a positional source, depending on the
+command) only to override that discovery.
+\texttt{CGSHOME} can be set explicitly; for \texttt{initialise(.cgs)} the
+default is \texttt{CGSPATH=../..}, and later commands can also discover the
+workspace by walking upward from the current directory.
+
+% -----------------------------------------------------------------------
+\section{Run the Git Cycle}
+
+Once the tree is \texttt{READY}, the Multi-repo Sync commands operate on every
+repository in deterministic order:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync pull
+$ pixi run cgitsync checkout feature/my-branch
+$ pixi run cgitsync add
+$ pixi run cgitsync commit "feat: update project CGS#1"
+$ pixi run cgitsync push
+$ pixi run cgitsync freeze-release release-2026.05 "release 2026.05"
+$ pixi run cgitsync freeze release-2026.05
+$ pixi run cgitsync launch-release release-2026.05
+\end{lstlisting}
+
+\texttt{pull} walks the tree parent-first, including the project root:
+\texttt{root -> parent -> leaf}.  Mutation commands such as \texttt{add},
+\texttt{commit}, \texttt{push}, and \texttt{freeze} walk the opposite direction:
+\texttt{leaf -> parent -> root}.
+When local files block the safe pull, the CLI suggests
+\texttt{cgitsync pull-force}; that recovery command is destructive and discards
+local uncommitted/untracked work before force-updating the same tree.
+
+Pass \texttt{--gts <snapshot.gts>} when you want to pin a command to an
+explicit snapshot, and pass \texttt{--dry-run} to \texttt{add},
+\texttt{commit}, \texttt{push}, or \texttt{freeze} to preview
+the plan without mutating repositories.
 
 % -----------------------------------------------------------------------
 \section{Log Files}
 
 Every CLI command writes a timestamped log file. On Linux the default location
 is \texttt{~/.local/state/ComplexGitSync/logs/}; if
-\texttt{XDG\_STATE\_HOME} is set, the logs are written under that state
-directory instead. The logs record command start and end, tree and repo state
-transitions, fallback decisions, nested \texttt{.cgs} discovery, and
-\texttt{.gts} loads and writes. The CLI prints the resolved file path in
-command output as \texttt{log\_file=<path>}.
+\texttt{XDG\_STATE\_HOME} is set, logs are written under that state directory
+instead. The CLI prints the resolved path as \texttt{log\_file=<path>}.
 
 % -----------------------------------------------------------------------
 \section{Next Steps}
 
-Once the tree is cloned you can proceed to:
-\begin{itemize}
-  \item \textbf{checkout} (Python API) — switch the whole tree to a branch or tag,
-    parent-first.
-  \item \textbf{add} / \textbf{commit} (Python API) — stage and commit changes
-    across the tree, leaf-first.
-  \item \textbf{push} (Python API) — push every repository to its configured
-    remote, leaf-first, and refresh stored hashes.
-  \item \textbf{tag} / \textbf{freeze} (Python API) — update recorded tag state
-    and emit the next saved \texttt{.gts}.
-\end{itemize}
-
-All of these synchronisation operations require a \texttt{READY} tree and leave it
-\texttt{READY} after a successful run.  See Chapter~\ref{chap:user-guide} for
-complete command and API documentation.
+See Chapter~\ref{chap:user-guide} for the command reference, document formats,
+preflight checks, and troubleshooting notes.

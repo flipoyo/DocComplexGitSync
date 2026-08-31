@@ -1,66 +1,47 @@
-# AdditionalDocSpecs for Agent configuration
+# AdditionalDocSpecs
 
-# DocSpecs — LaTeX White Book or article
+*Created: 2026-08-31*
 
-## Objective
-This specification describes how to reproduce the current documentation repository layout and build behavior for a White Book project or an article such as getting started
+Project-specific documentation constraints that extend `./DocSpec/DocSpecs.md`
+(project-agnostic, a plain nested clone of `flipoyo/DocSpec` — gitignored,
+not tracked by this repo) for `ComplexGitSync`, per `DevSpecs.md`'s
+Documentation section: the chapter outline and glossary terms below.
 
-## Repository structure to reproduce
-```text
-/
-├── MASTER.tex
-├── getting_started.tex
-├── .gitignore
-├── Setup/
-│   ├── Packages.tex
-│   ├── Shortcuts.tex
-│   └── Messages_pkg/
-├── Backmatter/
-├── Mainmatter/
-├── Bibliography/
-└── Figures/
-```
+## Chapter list (`docs/Text/`, built by `MASTER.tex`)
 
-### Structure rules
-- `MASTER.tex` is the main book entry point.
-- `getting_started.tex` is an article type.
-- `Setup/Packages.tex` centralizes package imports and rendering configuration.
-- `Setup/Shortcuts.tex` centralizes reusable LaTeX commands/macros.
-- `Backmatter/`, `Mainmatter/`, and `Bibliography/` are included from entry points using `\include{...}` or `\input{...}`.
-- `Figures/` stores image assets referenced by LaTeX sources.
+`MASTER.tex` `\input`s these four chapters, in this order:
 
-## LaTeX style and conventions
-- Document classes in use:
-  - `book` for `MASTER.tex`
-  - `article` for standalone documents (`HTAS_user_guide.tex`, `HTAS_FR.tex`)
-- `MASTER.tex` language is configured through `Setup/Packages.tex` (`babel`, UTF-8, and T1 encoding). Standalone `.tex` files may define their own language setup.
-- Shared typography/layout conventions are defined in `Setup/Packages.tex`:
-  - `mathpazo`, `microtype`, `geometry`, `fancyhdr`, `fncychap`, `minitoc`, `listings`, `minted`.
-- Shared semantic shortcuts are defined in `Setup/Shortcuts.tex` (for example `\hydrot`, `\cw`, `\cwv`, `\script{}`).
-- Keep chapter/section hierarchy and formal white-book tone.
+| Order | File | Chapter | Covers |
+|---|---|---|---|
+| 1 | `Text/getting_started.tex` | Getting Started | CLI-first guide from installation to first sync |
+| 2 | `Text/api_python.tex` | Direct Python Object API | Direct object-level Python API usage (`GitTree`/`GitRepo`) without the CLI wrapper |
+| 3 | `Text/architecture.tex` | Architecture Overview | The three-tier architecture (Client/API, Actions, Core Data) and class responsibilities |
+| 4 | `Text/user_guide.tex` | User Guide | Complete reference for every user-facing command, configuration option, document format, and error condition |
 
-## Compiler and build requirements
-- Use `pdflatex` as baseline compiler.
-- Because `minted` is used in shared packages, compilation should support shell escape (`minted` calls the external Pygments process for syntax highlighting).
+`Text/user_guide.tex` itself `\input`s `Text/worked_examples.tex` as its
+closing section — step-by-step runbooks for the checked-in `examples/*`
+topologies. It is not a separate top-level chapter and carries no `MASTER.tex`
+entry of its own.
 
-### Required commands
-```bash
-# Main white book
-pdflatex -shell-escape -interaction=nonstopmode MASTER.tex
-pdflatex -shell-escape -interaction=nonstopmode MASTER.tex
+Each of the four chapters above also has a standalone single-chapter article
+build for independent compilation: `c_getting_started.tex`,
+`c_api_python.tex`, `c_architecture.tex`, `c_user_guide.tex`. There is no
+`c_worked_examples.tex` — that content ships only inside `c_user_guide.tex`.
 
-# Standalone guides
-pdflatex -shell-escape -interaction=nonstopmode HTAS_user_guide.tex
-pdflatex -shell-escape -interaction=nonstopmode HTAS_FR.tex
-```
+## Glossary
 
-> Notes:
-> - Run twice for references/table-of-contents stabilization.
-> - If bibliography is enabled in `MASTER.tex`, run BibTeX in between LaTeX passes.
+| Term | Definition |
+|---|---|
+| `.cgs` | "ComplexGitSync" — hand-written project topology/spec (TOML) |
+| `.gts` | "GitTreeState" — generated workspace state snapshot (TOML) |
+| `.lgr` | "LocalGitRegister" — generated local register / append-only sync ledger (TOML) |
+| `GitTree` | Reference-tree structure containing `GitRepo` objects and format-adapter metadata |
+| `WorkingGitTree` | Authoritative runtime graph; maps repo IDs to mutable `WorkingRepo` records |
+| `TreeLifecycleState` | User-facing lifecycle state: `LOADED` → `PENDING` → `READY` (implementation retains internal readiness states) |
 
-## Multiple `.tex` entry-point support
-The project supports compiling multiple independent entry files:
-- `MASTER.tex` (user_guide),
-- `getting_started.tex` (standalone getting started <= 15 pages).
+## Developer-facing architecture docs
 
-An agent reproducing this repository must keep these entry points independent and compilable separately.
+`docs/DevGuide/` is a separate, small Markdown+Mermaid folder documenting the
+Ring-based import model of `src/ComplexGitSync/` itself, for contributors
+changing that code — it is not part of the chapter list above; see
+`docs/DevGuide/README.md`.
