@@ -7,6 +7,6 @@ project = "docsCGS"
 repos = [  
     
     { repository = "github:flipoyo/DocComplexGitSync", relative_path = "."},
-    "github:flipoyo/DevSpec",
+    "github:flipoyo/DocSpec",
 
 ]
