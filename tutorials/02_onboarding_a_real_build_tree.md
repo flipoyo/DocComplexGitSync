@@ -37,8 +37,9 @@ root project:
 - 17 nested library repositories across the `gutil`, `ghydro`, `gmesh`,
   `gtransp`, and `gmanagement` GitLab groups
 - the required `gitlab:gutil/scripts` helper repo, kept as a plain nested
-  dependency with `nested_config = "disabled"` (it is build tooling, not a
-  library, and has no `.cgs` of its own)
+  dependency (it is build tooling, not a library, and has no `.cgs` of its
+  own — no `nested_config` override is needed for that, the default
+  `"auto"` already resolves it as a normal leaf)
 
 **`cgitsync` is not the `cawaqs` build system.** It replaces only the
 *repository-fetching and branch-selection* half of `cawaqs`'s historical
@@ -69,7 +70,7 @@ repos = [
     { repository = "gitlab:gutil/libpc", fallback_branch = "main" },
     { repository = "gitlab:gutil/libts", fallback_branch = "main" },
     # ... 14 more library entries, identical shape, across gutil/ghydro/gmesh/gtransp/gmanagement ...
-    { repository = "gitlab:gutil/scripts", fallback_branch = "main", nested_config = "disabled" },
+    { repository = "gitlab:gutil/scripts", fallback_branch = "main" },
 ]
 ```
 

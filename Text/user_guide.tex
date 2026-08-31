@@ -173,10 +173,9 @@ canonical \texttt{provider:owner/repository} shorthand through the existing
 \texttt{parse\_repo\_id()} grammar --- this command adds no second parser.
 \texttt{relative\_path} is taken straight from the walk rather than from a
 repository name, so a child mounted at \texttt{external/Thing} is recorded
-there and not at \texttt{Thing}. A repository that contains no
-\texttt{*.cgs} of its own is pinned to \texttt{nested\_config = "disabled"},
-since leaving it on the default \texttt{auto} would make nested discovery
-hunt for a file that does not exist.
+there and not at \texttt{Thing}. \texttt{nested\_config} is left unset on
+every entry: the default \texttt{auto} already resolves cleanly whether or
+not a repository carries its own \texttt{*.cgs}.
 
 Repositories with no \texttt{origin}, or whose remote URL does not resolve
 to a registered provider, are reported as warnings and left out of the
@@ -617,7 +616,7 @@ defaults:
 project = "demo"
 repos = [
   "github:owner/demo",
-  { repository = "github:owner/docs", relative_path = "documentation", nested_config = "disabled" },
+  { repository = "github:owner/docs", relative_path = "documentation", access_protocol = "https" },
 ]
 \end{lstlisting}
 
@@ -657,12 +656,13 @@ several patterns above at once: a nested GitLab subgroup path
 on the root entry rather than relying on the project-name auto-mount rule,
 two GitHub children mounted at non-default relative paths
 (\texttt{external/HydrologicalTwinAlphaSeries} and
-\texttt{docs/CWV\_user\_guide}), and \texttt{nested\_config = "disabled"}
-on both children, since neither has a \texttt{.cgs} of its own --- without
-it, the default \texttt{auto} nested discovery looks for one and fails.
-This file previously shipped with a nonexistent repository identifier, an
-invalid \texttt{default\_branch}, and one missing \texttt{nested\_config}
-override; it was corrected and given real end-to-end test coverage
+\texttt{docs/CWV\_user\_guide}). Neither child has a \texttt{.cgs} of its
+own, but no override is needed for that: the default \texttt{auto} nested
+discovery resolves a repository with zero \texttt{*.cgs} matches as a
+normal leaf.
+This file previously shipped with a nonexistent repository identifier and
+an invalid \texttt{default\_branch}; it was corrected and given real
+end-to-end test coverage
 (\texttt{tests/integration/test\_cgsi\_topology.py}, and one verified run
 against the live repositories) as \texttt{AgentSpec/Onboarding\_DevPlanTicket.md}
 Phase~1. See \texttt{docs/tutorials/03\_configuration\_discovery\_modes.md}
@@ -701,16 +701,18 @@ the repository is available:
 
 \begin{itemize}
   \item \texttt{auto} (default) loads the sole root-level \texttt{*.cgs} file,
-        if one exists; multiple matches are rejected as ambiguous.
+        if one exists; finding none resolves the repository as a normal
+        leaf; multiple matches are rejected as ambiguous.
   \item \texttt{disabled} does not inspect the repository for nested config.
   \item A relative path ending in \texttt{.cgs} loads that exact file inside
-        the repository. It may not escape the repository root.
+        the repository, failing if it does not exist. It may not escape the
+        repository root.
 \end{itemize}
 
 For the integration topology, \texttt{CGSil2.cgs} contains:
 
 \begin{lstlisting}
-{ repository = "github:flipoyo/CGSih1", relative_path = "../CGSih1", nested_config = "disabled" }
+{ repository = "github:flipoyo/CGSih1", relative_path = "../CGSih1" }
 \end{lstlisting}
 
 Because the config describes the tree below \texttt{CGSil2}, the path resolves
@@ -722,9 +724,10 @@ from that directory:
 
 It therefore references the existing sibling declared by \texttt{CGSil1.cgs},
 instead of cloning another \texttt{CGSih1} under \texttt{CGSil2}. Discovery
-recognizes the already-registered absolute path and keeps the canonical entry.
-The cross-reference is \texttt{disabled} because the canonical root-level
-\texttt{CGSih1} entry is responsible for loading \texttt{CGSih1.cgs}.
+recognizes the already-registered absolute path and keeps the canonical
+entry --- this guard runs before \texttt{auto} would ever get a chance to
+reopen \texttt{CGSih1.cgs} through the cross-reference, so no
+\texttt{nested\_config} override is needed here.
 
 \subsection{Git Tree State Snapshot (\texttt{.gts})}
 

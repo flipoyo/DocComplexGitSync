@@ -47,8 +47,8 @@
 \node[label, right=0.3cm of root] {initialise(.cgs) seeds the root runtime entry};
 \node[label, right=0.2cm of parent] {initialise discovers nested repos recursively};
 \node[label, right=0.2cm of lib] {READY tree leaf tracked in the saved .gts};
-\node[label, right=0.2cm of sub1] {nested\_config = "disabled"};
-\node[label, right=0.2cm of sub2] {nested\_config = "disabled"};
+\node[label, right=0.2cm of sub1] {nested\_config = "auto", resolved (no nested .cgs)};
+\node[label, right=0.2cm of sub2] {nested\_config = "auto", resolved (no nested .cgs)};
 \node[label, below=0.15cm of root] {cross-references are resolved to a DAG by the SCC-based cycle-breaking engine};
 
 % Legend

@@ -210,10 +210,12 @@ existing sibling directory. Discovery compares normalized absolute paths and
 keeps an existing registry entry instead of inserting a duplicate.
 
 Placement and traversal are independent. \texttt{nested\_config = auto}
-searches the repository root for exactly one \texttt{*.cgs},
-\texttt{disabled} stops discovery through that reference, and a relative
-\texttt{.cgs} path selects an exact file inside the repository. Explicit paths
-may not escape the repository root.
+searches the repository root for exactly one \texttt{*.cgs} — finding zero
+resolves the repository as a normal leaf, finding more than one raises
+immediately — \texttt{disabled} stops discovery through that reference, and
+a relative \texttt{.cgs} path selects an exact file inside the repository,
+failing if that named file does not exist. Explicit paths may not escape
+the repository root.
 
 The textual \texttt{provider:owner/repository} grammar belongs exclusively to
 \texttt{cgs\_format.py}. Its \texttt{parse\_repo\_id()} function owns syntax validation

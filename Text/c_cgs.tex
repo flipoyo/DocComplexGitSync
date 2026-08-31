@@ -309,14 +309,17 @@ A repository can reference another repository in the same tree using relative pa
 \begin{lstlisting}
 % In CGSil2.cgs (nested under CGSil2/):
 repos = [
-    { repository = "github:flipoyo/CGSih1", 
-      relative_path = "../CGSih1", 
-      nested_config = "disabled" }
+    { repository = "github:flipoyo/CGSih1",
+      relative_path = "../CGSih1" }
 ]
 \end{lstlisting}
 
 Here, \texttt{../CGSih1} resolves from \texttt{<CGSHOME>/CGSil2/} to
-\texttt{<CGSHOME>/CGSih1}, referencing the sibling declared elsewhere.
+\texttt{<CGSHOME>/CGSih1}, referencing the sibling declared elsewhere. No
+\texttt{nested\_config} override is needed: discovery's absolute-path dedup
+guard already skips re-registering \texttt{CGSih1} once it is known under
+its canonical entry, before \texttt{"auto"} ever gets a chance to reopen
+its \texttt{.cgs}.
 
 % =======================================================================
 % NESTED CONFIGURATION DISCOVERY
@@ -329,9 +332,12 @@ additional \texttt{.cgs} files inside each repository.
 
 \begin{description}
   \item[\texttt{auto}] (default) Loads the sole root-level \texttt{*.cgs} file if
-        one exists; multiple matches are rejected.
+        one exists; finding none is a normal leaf, not an error; multiple
+        matches are rejected.
   \item[\texttt{disabled}] Does not inspect the repository for nested config.
-  \item[a relative path] A path ending in \texttt{.cgs} loads that exact file.
+  \item[a relative path] A path ending in \texttt{.cgs} loads that exact file;
+        if the file doesn't exist, this is treated as an error, since an
+        explicit path asserts that a specific file must be there.
 \end{description}
 
 \subsubsection{Example: Multi-Level Nested Topology}
@@ -540,16 +546,20 @@ Based on \texttt{examples/cawaqsviz.cgs}:
 project = { name = "CaWaQS-Viz", default_branch = "main" }
 
 repos = [
-    { repository = "gitlab:cawaqs/gviz/cawaqsviz", 
+    { repository = "gitlab:cawaqs/gviz/cawaqsviz",
       relative_path = ".", fallback_branch = "main" },
-    { repository = "github:flipoyo/HydrologicalTwinAlphaSeries", 
-      relative_path = "external/HydrologicalTwinAlphaSeries", 
-      fallback_branch = "main", nested_config = "disabled" },
-    { repository = "github:flipoyo/user_guide_CaWaQS-Viz", 
-      relative_path = "docs/CWV_user_guide", 
-      fallback_branch = "main", nested_config = "disabled" },
+    { repository = "github:flipoyo/HydrologicalTwinAlphaSeries",
+      relative_path = "external/HydrologicalTwinAlphaSeries",
+      fallback_branch = "main" },
+    { repository = "github:flipoyo/user_guide_CaWaQS-Viz",
+      relative_path = "docs/CWV_user_guide",
+      fallback_branch = "main" },
 ]
 \end{lstlisting}
+
+Neither child has a \texttt{.cgs} of its own, but no \texttt{nested\_config}
+override is written for that: the default \texttt{"auto"} already resolves
+a repository with zero nested \texttt{*.cgs} matches as a normal leaf.
 
 % =======================================================================
 % CLI AUTHORING TOOLS
@@ -660,7 +670,12 @@ $ pixi run cgitsync validate myproject.cgs
   \item \textbf{Keep comments:} Document non-default values.
   \item \textbf{Avoid advanced tables:} Inline tables are more maintainable.
   \item \textbf{Use \texttt{nested\_config = "disabled"} judiciously:}
-        Only when certain repo has no \texttt{.cgs}.
+        The default \texttt{"auto"} already resolves cleanly whether or not
+        a repo has its own \texttt{.cgs} — including cross-references and
+        cycle back-references, which the discovery dedup guard already
+        prevents from re-registering. Reserve \texttt{"disabled"} for the
+        rarer case where a repo does carry a \texttt{.cgs} you explicitly
+        want ComplexGitSync to never open.
   \item \textbf{Prefer SSH:} Works well for most providers.
   \item \textbf{Be explicit with custom:} Always include \texttt{gitprovider\_url}.
 \end{itemize}

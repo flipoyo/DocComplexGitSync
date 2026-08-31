@@ -149,9 +149,8 @@ The most explicit, and most error-prone, route: read the project's own
 \texttt{.gitmodules} and topology, then author \texttt{examples/cawaqsviz.cgs}
 directly. Its corrected content and the exact mistakes the first draft made
 (wrong nested-subgroup identifier, missing \texttt{relative\_path}
-overrides, missing \texttt{nested\_config = "disabled"}) are already spelled
-out in \S\ref{chap:user-guide} ``Local Authoring Spec''; this level is about
-running it, not re-deriving it:
+overrides) are already spelled out in \S\ref{chap:user-guide} ``Local
+Authoring Spec''; this level is about running it, not re-deriving it:
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync validate examples/cawaqsviz.cgs
@@ -187,14 +186,14 @@ $ pixi run cgitsync discover . --write cawaqsviz-discovered.cgs
 $ pixi run cgitsync validate cawaqsviz-discovered.cgs
 \end{lstlisting}
 
-The draft reconstructs 3a's hand-corrected file almost field-for-field: the
-root at \texttt{relative\_path = "."}, both children at their real submodule
+The draft reconstructs 3a's hand-corrected file field-for-field: the root at
+\texttt{relative\_path = "."} and both children at their real submodule
 paths (\texttt{external/HydrologicalTwinAlphaSeries},
-\texttt{docs/CWV\_user\_guide}) rather than their bare repo names, and
-\texttt{nested\_config = "disabled"} on both, since neither has a
-\texttt{.cgs} of its own --- \texttt{discover} derives that last fact from
-the filesystem rather than assuming it, so it cannot omit it the way 3a's
-first draft did. See \texttt{discover} in \S\ref{chap:user-guide} for exactly
+\texttt{docs/CWV\_user\_guide}) rather than their bare repo names. Neither
+child has a \texttt{.cgs} of its own, but \texttt{discover} writes no
+\texttt{nested\_config} override for that: the default \texttt{"auto"}
+already resolves a repository with zero nested \texttt{*.cgs} matches as a
+normal leaf. See \texttt{discover} in \S\ref{chap:user-guide} for exactly
 what is and is not reported (no network calls, unresolvable remotes are
 warned about and left out, never guessed at).
 

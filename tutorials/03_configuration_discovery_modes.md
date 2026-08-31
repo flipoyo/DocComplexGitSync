@@ -47,12 +47,12 @@ CaWaQS-Viz  (GitLab: cawaqs/gviz/cawaqsviz, root, mounted at ".")
   └── user_guide_CaWaQS-Viz        (GitHub, at docs/CWV_user_guide)
 ```
 
-Neither child has a `.cgs` of its own, so both need
-`nested_config = "disabled"` — an easy override to forget, and the mistake
-each mode below is checked against making (see `AgentSpec/Onboarding_DevPlanTicket.md`
-Phase 1: the first hand-authored draft shipped without it, and without it
-`cgitsync` tries to auto-discover a nested `.cgs` that doesn't exist and
-fails).
+Neither child has a `.cgs` of its own — no override is needed for that: the
+default `nested_config = "auto"` already resolves a repository with zero
+nested `*.cgs` matches as a normal leaf. (See
+`AgentSpec/Onboarding_DevPlanTicket.md` Phase 1 for the topology corrections
+this file needed in a different area — a nonexistent repository identifier
+and an invalid `default_branch`.)
 
 ---
 
@@ -67,8 +67,8 @@ project = { name = "CaWaQS-Viz", default_branch = "main" }
 
 repos = [
     { repository = "gitlab:cawaqs/gviz/cawaqsviz", relative_path = ".", fallback_branch = "main" },
-    { repository = "github:flipoyo/HydrologicalTwinAlphaSeries", relative_path = "external/HydrologicalTwinAlphaSeries", fallback_branch = "main", nested_config = "disabled" },
-    { repository = "github:flipoyo/user_guide_CaWaQS-Viz", relative_path = "docs/CWV_user_guide", fallback_branch = "main", nested_config = "disabled" },
+    { repository = "github:flipoyo/HydrologicalTwinAlphaSeries", relative_path = "external/HydrologicalTwinAlphaSeries", fallback_branch = "main" },
+    { repository = "github:flipoyo/user_guide_CaWaQS-Viz", relative_path = "docs/CWV_user_guide", fallback_branch = "main" },
 ]
 ```
 
@@ -81,9 +81,12 @@ repos = [
 2. **`relative_path` must mirror the actual submodule paths** declared in
    `.gitmodules`, not the bare repo name — this is exactly the field
    `discover` (Mode B) derives from the filesystem instead of typing.
-3. **`nested_config = "disabled"` is required** for any child with no
-   `.cgs` of its own; the default `"auto"` discovery fails with
-   `GitSyncError: Nested configuration … is not resolved: MISSING`.
+3. **You do not need `nested_config` on a child with no `.cgs` of its
+   own** — the default `"auto"` already resolves that as a normal leaf.
+   Reserve an explicit `nested_config` for the cases that are still real:
+   `"disabled"` when a repo does carry a `.cgs` you want to skip, or a
+   named path when its nested `.cgs` isn't at the default location (a
+   named path that doesn't exist there is still an error).
 
 Run it the same way as Tutorial 1's Quickstart, but with `bootstrap` (see
 the README's Standalone mode section), since this example doesn't require
@@ -126,8 +129,8 @@ Expected report (three repositories, no warnings):
 
 ```
 root:  gitlab:cawaqs/gviz/cawaqsviz          .
-child: github:flipoyo/HydrologicalTwinAlphaSeries   external/HydrologicalTwinAlphaSeries  nested_config=disabled
-child: github:flipoyo/user_guide_CaWaQS-Viz         docs/CWV_user_guide                   nested_config=disabled
+child: github:flipoyo/HydrologicalTwinAlphaSeries   external/HydrologicalTwinAlphaSeries  nested: auto (no .cgs of its own)
+child: github:flipoyo/user_guide_CaWaQS-Viz         docs/CWV_user_guide                   nested: auto (no .cgs of its own)
 ```
 
 Satisfied with the report, save the draft and check it:
@@ -137,12 +140,12 @@ pixi run cgitsync discover . --write cawaqsviz-discovered.cgs
 pixi run cgitsync validate cawaqsviz-discovered.cgs
 ```
 
-The draft reconstructs Mode A's file almost field-for-field: the root at
-`relative_path = "."`, both children at their real submodule paths rather
-than their bare repo names, and `nested_config = "disabled"` on both —
-`discover` derives that last fact from the filesystem (no `.cgs` found
-inside either child), so it cannot omit it the way Mode A's first draft
-did.
+The draft reconstructs Mode A's file field-for-field: the root at
+`relative_path = "."` and both children at their real submodule paths
+rather than their bare repo names. `nested_config` is left unset on both
+children (the `discover` report above shows they have no `.cgs` of their
+own, but that's informational only — the default `"auto"` already resolves
+cleanly either way, so `discover` writes no override for it).
 
 `discover` is read-only and offline: it clones nothing, changes nothing,
 and contacts no remote. It reports only what is **checked out at scan

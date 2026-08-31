@@ -92,7 +92,7 @@ the option places a repository at its repository name.
 For example, `CGSil2.cgs` contains:
 
 ```toml
-{ repository = "github:flipoyo/CGSih1", relative_path = "../CGSih1", nested_config = "disabled" }
+{ repository = "github:flipoyo/CGSih1", relative_path = "../CGSih1" }
 ```
 
 The file describes children of `CGSil2`, so if `CGSil2` is at
@@ -109,15 +109,19 @@ absolute path is recognized and the canonical root-level entry is retained.
 `nested_config` controls whether discovery continues inside the referenced
 repository:
 
-- `"auto"` (default) loads the sole root-level `*.cgs` file, if present; more
-  than one is ambiguous and rejected.
+- `"auto"` (default) loads the sole root-level `*.cgs` file, if present;
+  finding none resolves the repository as a normal leaf; more than one is
+  ambiguous and rejected.
 - `"disabled"` does not inspect that repository for another `.cgs` file.
-- A relative `.cgs` path, such as `"config/children.cgs"`, loads that exact file
-  from inside the repository and may not escape it.
+- A relative `.cgs` path, such as `"config/children.cgs"`, loads that exact
+  file from inside the repository, failing if it does not exist there, and
+  may not escape it.
 
-Thus the CGSil2 cross-reference uses `"disabled"`: the canonical `CGSih1`
-entry from `CGSil1.cgs`, not this duplicate route, owns discovery of
-`CGSih1.cgs` and its `CGSih2` child.
+The CGSil2 cross-reference above needs no `nested_config` override at all:
+discovery's absolute-path dedup guard already recognizes `CGSih1`'s
+absolute path as already registered (by `CGSil1.cgs`'s own entry) and
+retains that canonical entry before `"auto"` ever gets a chance to reopen
+`CGSih1.cgs` through this duplicate route.
 
 For a new project, the interactive equivalent is:
 
