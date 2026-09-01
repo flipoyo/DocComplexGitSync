@@ -207,6 +207,35 @@ entirely to local git config. This file is workspace-local configuration,
 not part of the \texttt{.cgs}/\texttt{.gts} project spec, and is preserved
 (not deleted) by \texttt{purge}/\texttt{clean-init}.
 
+\section{Forcing a Clone Protocol}
+
+\texttt{initialise\_cgs}, \texttt{initialise\_cgs\_document},
+\texttt{clean\_initialise\_cgs}, \texttt{clean\_init}, \texttt{bootstrap},
+and \texttt{clone\_cgs} additionally accept \texttt{force\_access\_protocol},
+mirroring the CLI's \texttt{--force-protocol} flag on \texttt{initialise},
+\texttt{bootstrap}, and \texttt{clean-init} (\texttt{restart}/\texttt{pull}
+do not accept it):
+
+\begin{lstlisting}[language=Python]
+# Every repo this run clones -- root siblings and any child discovered
+# later from a nested .cgs in a different repo -- is cloned over https,
+# regardless of what its own .cgs entry says. No .cgs file is read
+# differently or written.
+client.initialise_cgs(
+    "../CGSil1.cgs",
+    output_path=cgspath,
+    force_access_protocol="https",
+)
+\end{lstlisting}
+
+\texttt{"ssh"} or \texttt{"https"}; \texttt{None} (the default) leaves every
+entry's own \texttt{.cgs}-declared \texttt{access\_protocol} untouched. The
+override lives only in memory for the duration of the call -- it is applied
+at the single point every clone's remote URL is built
+(\texttt{ComplexGitSyncClient.\_build\_remote\_url}), so it reaches root
+siblings and nested-discovered children alike without \texttt{cgs\_format.py}
+parsing, or any \texttt{.cgs} file on disk, ever being touched differently.
+
 
 \section{Repository Discovery: \texttt{discover\_repos}}
 

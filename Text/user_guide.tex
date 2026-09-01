@@ -67,6 +67,7 @@ inspection aliases such as \texttt{print}, \texttt{view-operation}, and
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync initialise <spec.cgs> [--output-path DIR] [--commit-gitignore]
     [--force-gitignore-sync] [--git-user-name NAME] [--git-user-email EMAIL]
+    [--force-protocol {ssh,https}]
 $ pixi run cgitsync initialise <snapshot.gts>
 $ pixi run cgitsync initialise --project NAME --repo PROVIDER:OWNER/REPO [--repo ...] [--output-path DIR]
 \end{lstlisting}
@@ -115,10 +116,24 @@ the override to \texttt{CGSHOME/.cgitsync/master.toml} via
 \texttt{MasterConfig}, so later invocations on the same workspace pick it up
 without repeating the flags.
 
+\texttt{--force-protocol \{ssh,https\}} is an expert option, typically used
+systematically in CI rather than for everyday development. It overrides
+\texttt{access\_protocol} in memory for every repository this run clones ---
+including ones discovered later from a nested \texttt{.cgs} living in a
+different, separately-cloned repository --- so no \texttt{.cgs} file is ever
+read differently or written to. Forcing \texttt{https} is the usual CI case:
+it removes the dependency on an SSH key or agent being present on the
+runner, a dependency that otherwise differs between a \texttt{push} run and
+a \texttt{pull\_request} run (GitHub Actions withholds repository secrets
+from a pull request opened from a fork). Omitted (the default), each
+repository follows whatever protocol its own \texttt{.cgs} entry declares,
+exactly as without the flag.
+
 \subsection{\texttt{bootstrap}}
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync bootstrap <spec.cgs> <project_name> [--cgs-path DIR]
+    [--force-protocol {ssh,https}]
 \end{lstlisting}
 
 Clones the full repository tree from a \texttt{.cgs} source into an
@@ -142,6 +157,12 @@ differs from both \texttt{clone} and \texttt{initialise} in two ways:
     automatically if it does not exist, so a bootstrapped project can never
     land inside \cgspkg{}'s own clone.
 \end{itemize}
+
+\texttt{--force-protocol \{ssh,https\}} behaves exactly as described under
+\texttt{initialise} above, applying here to every repository the run
+clones --- including the root, which \texttt{bootstrap} (unlike
+\texttt{initialise}) also clones from scratch rather than assuming already
+checked out.
 
 \subsection{\texttt{discover}}
 
@@ -221,12 +242,13 @@ and serializes concise \texttt{.cgs} TOML. It performs no Git or network work.
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync clean-init <spec.cgs> [--output-path DIR] [--commit-gitignore]
     [--force-gitignore-sync] [--git-user-name NAME] [--git-user-email EMAIL]
+    [--force-protocol {ssh,https}]
 \end{lstlisting}
 
 Recovery-oriented initialisation for a \texttt{.cgs} source. It follows the
 same high-level pipeline as \texttt{initialise(.cgs)} (including the
-\texttt{.gitignore} lifecycle sync described there), but inserts a cleanup
-phase before cloning:
+\texttt{.gitignore} lifecycle sync and \texttt{--force-protocol} behaviour
+described there), but inserts a cleanup phase before cloning:
 
 \begin{center}
 \texttt{load->expand->validate->purge->clone->gitignore}
