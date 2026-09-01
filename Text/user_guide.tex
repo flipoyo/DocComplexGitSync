@@ -398,6 +398,14 @@ order: \texttt{add -> commit -> pull -> push -> freeze}. The force variant uses
 shared tag and freeze snapshot label; the message is used for the release
 commit.
 
+The \texttt{pull}/\texttt{pull-force} step is skipped (not attempted) when
+the current branch has no upstream configured yet — e.g. a branch just
+created and checked out this same session, never pushed before. There is
+nothing to pull in that case; \texttt{push} (already upstream-aware, adding
+\texttt{-u} automatically the same way plain \texttt{git push -u} would)
+publishes the branch on its own. On any branch that already has an
+upstream, the workflow is unchanged.
+
 \subsection{\texttt{freeze}}
 
 \begin{lstlisting}[language=bash]
