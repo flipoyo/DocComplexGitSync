@@ -329,3 +329,12 @@ TSWLatexianTemp*
 # option is specified. Footnotes are the stored in a file with suffix Notes.bib.
 # Uncomment the next line to have this generated file ignored.
 #*Notes.bib
+
+# Nested repo declared in DocComplexGitSync's own DocCGS.cgs (plain clone,
+# not a submodule).
+/DocSpec/
+
+# Generated ComplexGitSync runtime state (.gts snapshots, .lgr hash-chained
+# registers, run logs, workspace-local master.toml) — not part of the
+# .cgs/.gts project spec, never meant to be committed.
+.cgitsync/
