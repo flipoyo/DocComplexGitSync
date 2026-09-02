@@ -687,7 +687,7 @@ Two checked-in files document this boundary. Copy
 provided as a developer reference for the canonical \texttt{CgsDocument}
 shape. The two files are regression-tested for semantic equivalence.
 
-The repository also keeps three checked-in, didactically ordered tutorials
+The repository also keeps four checked-in, didactically ordered tutorials
 under \texttt{docs/tutorials/} --- easiest first, see
 \texttt{docs/tutorials/README.md} for the guided order --- exercising this
 authoring surface end to end:
@@ -697,13 +697,19 @@ lifecycle;
 \texttt{docs/tutorials/02\_onboarding\_a\_real\_build\_tree.md} hand-authors
 a \texttt{.cgs} for the larger, real-world \texttt{cawaqs} tree and the
 point where \cgscli{} hands off to the project's existing
-\texttt{make}-based build workflow; and
+\texttt{make}-based build workflow;
 \texttt{docs/tutorials/03\_configuration\_discovery\_modes.md} covers the
-real-world \texttt{cawaqsviz} project (not synthetic) through all three
-ways \cgspkg{} can arrive at a working \texttt{.cgs} for a project it does
-not already control the source of.
+real-world \texttt{cawaqsviz} project (not synthetic) through two of the
+three ways \cgspkg{} can arrive at a working \texttt{.cgs} for a project it
+does not already control the source of (hand-authored, and
+\texttt{discover}); and
+\texttt{docs/tutorials/04\_submodules\_to\_ready.md} covers the
+third way (\texttt{import-submodules}, for a project that already tracks
+its children as git submodules), then takes any of the three resulting
+\texttt{.cgs} files to a working \texttt{READY} tree.
 
-\texttt{examples/cawaqsviz.cgs}, one of that third tutorial's routes,
+\texttt{examples/cawaqsviz.cgs}, the hand-authored route from
+\texttt{docs/tutorials/03\_configuration\_discovery\_modes.md} above,
 describes \url{https://gitlab.com/cawaqs/gviz/cawaqsviz} and exercises
 several patterns above at once: a nested GitLab subgroup path
 (\texttt{cawaqs/gviz/cawaqsviz}, three segments rather than a plain

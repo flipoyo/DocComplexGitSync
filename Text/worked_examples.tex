@@ -9,12 +9,14 @@
 \section{Worked Examples: From \texttt{CGSil1} to \texttt{cawaqsviz}}
 \label{sec:worked-examples}
 
-\cgspkg{} ships four checked-in \texttt{examples/} topologies, and a
-same-numbered tutorial under \texttt{docs/tutorials/} for each level below
-(\texttt{docs/tutorials/README.md} lists all three in order). Run through
-them in order: each one adds exactly one new idea on top of the last, so
-together they form a guided path from the simplest possible \texttt{.cgs}
-to a real project with no \texttt{.cgs} of its own at all.
+\cgspkg{} ships four checked-in \texttt{examples/} topologies. Levels~1
+and~2 each have one matching tutorial under \texttt{docs/tutorials/};
+Level~3's three routes span two more, since the third route
+(\texttt{import-submodules}) also covers reaching a \texttt{READY} tree
+(\texttt{docs/tutorials/README.md} lists all four tutorials in order). Run
+through the levels in order: each one adds exactly one new idea on top of
+the last, so together they form a guided path from the simplest possible
+\texttt{.cgs} to a real project with no \texttt{.cgs} of its own at all.
 
 \textbf{Every command below is a Pixi task.} \cgscli{} is not a globally
 installed executable --- always run \texttt{pixi run cgitsync ...}, never a
@@ -141,7 +143,8 @@ showing all three ways \cgspkg{} can produce a working \texttt{.cgs} for a
 project it does not already control the source of, ordered here by how much
 the operator has to already know about the tree before running the command.
 Full narrative in
-\texttt{docs/tutorials/03\_configuration\_discovery\_modes.md}.
+\texttt{docs/tutorials/03\_configuration\_discovery\_modes.md} (routes 3a--3b)
+and \texttt{docs/tutorials/04\_submodules\_to\_ready.md} (route 3c).
 
 \subsubsection{3a --- Write it by hand}
 
@@ -174,9 +177,11 @@ falls out of the walk directly instead of being typed.
 
 \begin{lstlisting}[language=bash]
 # A plain clone leaves submodule paths empty; initialise them first so
-# discover has something to find at those paths.
+# discover has something to find at those paths. --init only (not
+# --recursive): a nested submodule one level deeper would otherwise show
+# up as a fourth repository discover has no use for here.
 $ git clone https://gitlab.com/cawaqs/gviz/cawaqsviz cawaqsviz-scan
-$ cd cawaqsviz-scan && git submodule update --init --recursive
+$ cd cawaqsviz-scan && git submodule update --init
 
 # Dry run: report what discover sees, write nothing.
 $ pixi run cgitsync discover . --max-depth 3
@@ -221,8 +226,8 @@ $ git commit -m "chore: retire git submodules in favour of ComplexGitSync"
 
 The full before/after picture (index, \texttt{.gitmodules},
 \texttt{.gitignore}) and the automated test that proves it against fixture
-repositories are in \texttt{docs/tutorials/03\_configuration\_discovery\_modes.md}
-\S4 --- this level is the condensed command sequence, not a restatement of
+repositories are in \texttt{docs/tutorials/04\_submodules\_to\_ready.md}
+\S1 --- this level is the condensed command sequence, not a restatement of
 that walkthrough. \texttt{import-submodules} and \texttt{discover} answer
 different questions about the same tree: \texttt{discover} reports what is
 \emph{checked out}, \texttt{import-submodules} reads what git
