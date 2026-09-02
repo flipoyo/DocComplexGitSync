@@ -25,6 +25,20 @@ $ pixi run cgitsync <command> [options]
 Running \cgscli{} without a command prints a help summary and exits with
 code~0.
 
+\cgspkg{} stores no credentials of its own and has no private-repository
+authentication story: every git operation --- \texttt{clone}, \texttt{pull},
+\texttt{push}, and the remote lookups behind \texttt{checkout}'s branch/tag
+fallback --- runs against whatever the ambient environment already has
+cached (\texttt{ssh-agent}, an HTTPS credential helper, a stored
+personal-access-token). When that ambient credential is missing or stale,
+the operation fails immediately with a normal, catchable error rather than
+sitting silently on a terminal or GUI credential prompt that will never
+arrive --- every git subprocess \cgspkg{} runs sets
+\texttt{GIT\_TERMINAL\_PROMPT=0} and a no-op \texttt{GIT\_ASKPASS} for
+exactly this reason. Fix the ambient credential (switch the remote to
+\texttt{ssh}, refresh the token) and re-run the command; nothing needs to
+be undone first.
+
 % -----------------------------------------------------------------------
 \section{Lifecycle Contract}
 
