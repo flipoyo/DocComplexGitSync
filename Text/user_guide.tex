@@ -457,16 +457,20 @@ for the loaded workspace without mutating it.
 \subsection{\texttt{import-submodules}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync import-submodules REPO_ROOT [--apply] [--output FILE]
+$ pixi run cgitsync import-submodules REPO_ROOT [--apply]
 \end{lstlisting}
 
 Reads \texttt{REPO\_ROOT/.gitmodules} and reports (or converts) every declared
-git submodule to a plain ComplexGitSync nested clone.
+git submodule to a plain ComplexGitSync nested clone. This is the whole job:
+turning gitlinks into plain clones on disk. It does not author a
+\texttt{.cgs} --- \texttt{.gitmodules} never records the root's own identity,
+and a checkout worth importing already has a \texttt{.cgs} (hand-authored)
+or can get one from \texttt{discover} (\S\ref{chap:user-guide}
+``\texttt{discover}''), before or after applying.
 
 Without \texttt{--apply} (the default), the command performs a
-\emph{dry run}: it prints each submodule's name, path, URL, and branch, and
-the \texttt{.cgs} entry that would be generated, without touching the
-repository.
+\emph{dry run}: it prints each submodule's name, path, URL, and branch,
+without touching the repository.
 
 With \texttt{--apply}:
 \begin{itemize}
@@ -480,11 +484,6 @@ With \texttt{--apply}:
   \item Appends \texttt{<path>} to the parent's \texttt{.gitignore} using the
         same helper that the \texttt{.gitignore} lifecycle sync uses.
 \end{itemize}
-
-The \texttt{--output FILE} option (only effective with \texttt{--apply})
-writes a validated \texttt{.cgs} snippet containing the converted submodule
-entries to \texttt{FILE}, suitable for integration into the project's main
-\texttt{.cgs} file.
 
 After applying, review and commit the staged changes manually:
 \begin{lstlisting}[language=bash]
@@ -687,7 +686,7 @@ Two checked-in files document this boundary. Copy
 provided as a developer reference for the canonical \texttt{CgsDocument}
 shape. The two files are regression-tested for semantic equivalence.
 
-The repository also keeps four checked-in, didactically ordered tutorials
+The repository also keeps three checked-in, didactically ordered tutorials
 under \texttt{docs/tutorials/} --- easiest first, see
 \texttt{docs/tutorials/README.md} for the guided order --- exercising this
 authoring surface end to end:
@@ -697,19 +696,17 @@ lifecycle;
 \texttt{docs/tutorials/02\_onboarding\_a\_real\_build\_tree.md} hand-authors
 a \texttt{.cgs} for the larger, real-world \texttt{cawaqs} tree and the
 point where \cgscli{} hands off to the project's existing
-\texttt{make}-based build workflow;
-\texttt{docs/tutorials/03\_configuration\_discovery\_modes.md} covers the
-real-world \texttt{cawaqsviz} project (not synthetic) through two of the
-three ways \cgspkg{} can arrive at a working \texttt{.cgs} for a project it
-does not already control the source of (hand-authored, and
-\texttt{discover}); and
-\texttt{docs/tutorials/04\_submodules\_to\_ready.md} covers the
-third way (\texttt{import-submodules}, for a project that already tracks
-its children as git submodules), then takes any of the three resulting
-\texttt{.cgs} files to a working \texttt{READY} tree.
+\texttt{make}-based build workflow; and
+\texttt{docs/tutorials/03\_adopting\_a\_real\_project.md} covers the
+real-world \texttt{cawaqsviz} project (not synthetic), which has no
+\texttt{.cgs} of its own and still tracks two children as git submodules,
+as one verified ten-step procedure: clone, convert the submodules,
+\texttt{discover}, \texttt{import-submodules}, reach \texttt{READY} with
+\texttt{initialise}, then \texttt{branch}/\texttt{checkout}/\texttt{add}/
+\texttt{commit}/\texttt{push}.
 
-\texttt{examples/cawaqsviz.cgs}, the hand-authored route from
-\texttt{docs/tutorials/03\_configuration\_discovery\_modes.md} above,
+\texttt{examples/cawaqsviz.cgs}, the hand-authored alternative mentioned in
+\texttt{docs/tutorials/03\_adopting\_a\_real\_project.md} above,
 describes \url{https://gitlab.com/cawaqs/gviz/cawaqsviz} and exercises
 several patterns above at once: a nested GitLab subgroup path
 (\texttt{cawaqs/gviz/cawaqsviz}, three segments rather than a plain
@@ -726,7 +723,7 @@ an invalid \texttt{default\_branch}; it was corrected and given real
 end-to-end test coverage
 (\texttt{tests/integration/test\_cgsi\_topology.py}, and one verified run
 against the live repositories) as \texttt{AgentSpec/Onboarding\_DevPlanTicket.md}
-Phase~1. See \texttt{docs/tutorials/03\_configuration\_discovery\_modes.md}
+Phase~1. See \texttt{docs/tutorials/03\_adopting\_a\_real\_project.md}
 for the full worked example, and \texttt{bootstrap} above for running
 \cgspkg{} against it without cloning \cgspkg{} inside the tree it manages.
 
