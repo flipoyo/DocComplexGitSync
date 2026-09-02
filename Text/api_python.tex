@@ -159,6 +159,37 @@ client.git(registry, "tag", "v1.2.3")
 client.freeze("release-2026.05")
 \end{lstlisting}
 
+\section{Targeting a Single Path: \texttt{add} and \texttt{remove}}
+
+\texttt{add(paths=None)} and \texttt{remove(paths)} accept one or more
+filesystem paths (each relative to the current directory, or absolute)
+instead of operating on the whole tree:
+
+\begin{lstlisting}[language=Python]
+# Stage only these two files, each in the repo that owns it -- every
+# other repo in the tree is untouched.
+client.add(paths=["notes.md", "deps/leaf/src/main.py"])
+
+# Remove a single tracked file: deleted from disk, removal staged.
+client.remove(["deps/leaf/obsolete.txt"])
+\end{lstlisting}
+
+Both resolve each path to its owning repo through the same helper,
+\texttt{resolve\_repo\_for\_path(tree, path)} (\texttt{git\_tree.py}) ---
+the deepest (most specific) repo whose \texttt{absolute\_path} contains the
+resolved path wins, so a nested child is correctly preferred over its
+parent. A path outside every repo in the tree raises
+\texttt{GitSyncError} immediately, before anything is staged or removed;
+for \texttt{remove}, a path that resolves to a directory or does not exist
+raises the same way rather than partially applying. \texttt{add()} with no
+\texttt{paths} keeps today's exact behaviour: every repo staged in full,
+leaf-first.
+
+\texttt{remove} is a plain \texttt{git rm} (deletes from disk, stages the
+removal) --- unrelated to \texttt{GitRunner.rm\_cached} (index-only, used
+internally by \texttt{import\_submodules} to drop a gitlink while keeping
+the child's working tree); the two are not interchangeable.
+
 \section{\texttt{.gitignore} Lifecycle Sync and Commit Identity}
 
 \texttt{initialise\_cgs}, \texttt{initialise\_cgs\_document},

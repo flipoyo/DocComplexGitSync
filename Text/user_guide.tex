@@ -342,13 +342,38 @@ On success the tree remains \texttt{READY} and a new \texttt{.gts} snapshot is w
 \subsection{\texttt{add}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync add [--gts <snapshot.gts>] [--dry-run]
+$ pixi run cgitsync add [PATH ...] [--gts <snapshot.gts>] [--dry-run]
 \end{lstlisting}
 
-Stages all changes across the tree (\texttt{git add --all}), leaf-first.
-Requires \texttt{READY}; tree stays \texttt{READY}. With
-\texttt{--dry-run}, \cgscli{} prints the leaf-first execution plan and does not
-mutate repositories.
+With no \texttt{PATH} arguments (the default), stages all changes across the
+tree (\texttt{git add --all}), leaf-first. Requires \texttt{READY}; tree
+stays \texttt{READY}. With \texttt{--dry-run}, \cgscli{} prints the
+leaf-first execution plan and does not mutate repositories.
+
+With one or more \texttt{PATH} arguments, each is resolved (relative to the
+current directory, or absolute) to the one repo in the tree that owns it and
+staged there individually (\texttt{git add -- <path>}), leaving every other
+repo untouched. A path outside every repo in the tree raises an error
+immediately, before anything is staged.
+
+\subsection{\texttt{rm}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync rm PATH [PATH ...] [--gts <snapshot.gts>] [--dry-run]
+\end{lstlisting}
+
+Removes one or more tracked files, each resolved the same way as
+\texttt{add}'s targeted form: to the one repo in the tree that owns it,
+where it is deleted from disk and the removal staged (\texttt{git rm --
+<path>}). A plain tracked file only --- a path that resolves to a directory,
+or that does not exist, raises an error rather than partially applying, and
+a path outside every repo in the tree raises before anything is removed.
+Requires \texttt{READY}; tree stays \texttt{READY}. With \texttt{--dry-run},
+\cgscli{} prints the plan without mutating repositories.
+
+Distinct from and unrelated to \texttt{import-submodules}' internal use of
+\texttt{git rm --cached} (index-only, dropping a gitlink while keeping the
+child's working tree) --- \texttt{rm} deletes the file from disk.
 
 \subsection{\texttt{commit}}
 
