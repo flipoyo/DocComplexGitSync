@@ -350,8 +350,8 @@ tree (\texttt{git add --all}), leaf-first. Requires \texttt{READY}; tree
 stays \texttt{READY}. With \texttt{--dry-run}, \cgscli{} prints the
 leaf-first execution plan and does not mutate repositories.
 
-With one or more \texttt{PATH} arguments, each is resolved (relative to the
-current directory, or absolute) to the one repo in the tree that owns it and
+With one or more \texttt{PATH} arguments, each is resolved (relative to
+\texttt{CGSHOME}, or absolute) to the one repo in the tree that owns it and
 staged there individually (\texttt{git add -- <path>}), leaving every other
 repo untouched. A path outside every repo in the tree raises an error
 immediately, before anything is staged.

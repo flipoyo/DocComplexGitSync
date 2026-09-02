@@ -162,7 +162,7 @@ client.freeze("release-2026.05")
 \section{Targeting a Single Path: \texttt{add} and \texttt{remove}}
 
 \texttt{add(paths=None)} and \texttt{remove(paths)} accept one or more
-filesystem paths (each relative to the current directory, or absolute)
+filesystem paths (each relative to \texttt{CGSHOME}, or absolute)
 instead of operating on the whole tree:
 
 \begin{lstlisting}[language=Python]
