@@ -176,7 +176,9 @@ falls out of the walk directly instead of being typed.
 # A plain clone leaves submodule paths empty; initialise them first so
 # discover has something to find at those paths. --init only (not
 # --recursive): a nested submodule one level deeper would otherwise show
-# up as a fourth repository discover has no use for here.
+# up as a fourth repository discover has no use for here. (Want that
+# nested submodule too? Use --init --recursive here and
+# import-submodules --recursive --apply in 3c.)
 $ git clone https://gitlab.com/cawaqs/gviz/cawaqsviz cawaqsviz
 $ cd cawaqsviz && git submodule update --init
 
