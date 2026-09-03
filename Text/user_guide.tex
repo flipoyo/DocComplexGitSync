@@ -130,6 +130,15 @@ the override to \texttt{CGSHOME/.cgitsync/master.toml} via
 \texttt{MasterConfig}, so later invocations on the same workspace pick it up
 without repeating the flags.
 
+The root's own \texttt{.gitignore} additionally always gains
+\texttt{.cgitsync/} (the generated runtime-state directory --- snapshots,
+register, run logs, never part of the \texttt{.cgs}/\texttt{.gts} project
+spec) and its \texttt{<project-name>.lgr} register file, whether or not the
+tree has any nested repositories at all --- that state is written under the
+root regardless of tree shape, so it is excluded the same idempotent way,
+via the same underlying write \texttt{sync\_gitignore()} already uses for
+child mount points.
+
 \texttt{--force-protocol \{ssh,https\}} is an expert option, typically used
 systematically in CI rather than for everyday development. It overrides
 \texttt{access\_protocol} in memory for every repository this run clones ---
@@ -290,6 +299,7 @@ are not immediate root children, and \texttt{.cgitsync/master.toml} (see
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync pull [spec.cgs|snapshot.gts] [--commit-gitignore]
     [--force-gitignore-sync] [--git-user-name NAME] [--git-user-email EMAIL]
+    [--force-protocol {ssh,https}]
 \end{lstlisting}
 
 Resynchronises the project tree.  \texttt{.cgs} sources reload the source,
@@ -312,10 +322,24 @@ so there is nothing new for the sync to find. \texttt{pull-force} does not
 run this sync at all; it is a destructive recovery command, not a lifecycle
 path the sync is wired into.
 
+\texttt{--force-protocol \{ssh,https\}} rewrites every repo's remote to
+that protocol before pulling, persisting the change (\texttt{git remote
+set-url}, a no-op when the URL already matches) rather than a one-off
+override --- the switch sticks for every command after this one too, the
+same way a repo's protocol at clone time sticks for everything downstream
+of it. Same meaning as \texttt{initialise}/\texttt{bootstrap}'s
+\texttt{--force-protocol}, applied to an already-cloned tree instead of at
+clone time --- useful when a repo was adopted rather than cloned by
+\cgspkg{} (\texttt{initialise} never touches an adopted root's remote) and
+its remote's protocol does not match what the ambient environment can
+actually authenticate with. On a failure that looks like an SSH or HTTPS
+auth problem, the error gains an actionable hint naming
+\texttt{--force-protocol <the other one>} even without the flag.
+
 \subsection{\texttt{pull-force}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync pull-force [spec.cgs|snapshot.gts]
+$ pixi run cgitsync pull-force [spec.cgs|snapshot.gts] [--force-protocol {ssh,https}]
 \end{lstlisting}
 
 Destructively resynchronises the same tree.  Every repository --- root,
@@ -323,6 +347,8 @@ parent, and leaf alike --- is forced to the selected remote branch,
 parent-first, with \texttt{git fetch}, \texttt{git checkout -B <branch>
 FETCH\_HEAD}, and \texttt{git clean -fd}.  This command can discard local
 uncommitted changes and untracked files; it never force-pushes.
+\texttt{--force-protocol} behaves exactly as described under \texttt{pull}
+above.
 
 \subsection{\texttt{clone}}
 
@@ -410,7 +436,7 @@ The commit message conventionally ends with \texttt{CGS\#VERSION}.
 \subsection{\texttt{push}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync push [--gts <snapshot.gts>] [--dry-run]
+$ pixi run cgitsync push [--gts <snapshot.gts>] [--dry-run] [--force-protocol {ssh,https}]
 \end{lstlisting}
 
 Pushes all repositories to their configured remotes, leaf-first.  Loads the
@@ -422,13 +448,16 @@ blocks detached HEADs, missing remotes, unresolved merges, and
 behind/diverged branches; it warns when the local branch is ahead or when
 the loaded snapshot records an older \texttt{commit\_sha}.
 With \texttt{--dry-run}, \cgscli{} prints the push plan without mutating any
-repository.
+repository. \texttt{--force-protocol} behaves exactly as described under
+\texttt{pull} above.
 
 \subsection{\texttt{freeze-release}}
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync freeze-release <name> <message> [--gts <snapshot.gts>] [--dry-run]
+    [--force-protocol {ssh,https}]
 $ pixi run cgitsync freeze-release-force <name> <message> [--gts <snapshot.gts>] [--dry-run]
+    [--force-protocol {ssh,https}]
 \end{lstlisting}
 
 Minimalist release workflow from a READY tree. It chains public operations in
@@ -444,6 +473,12 @@ nothing to pull in that case; \texttt{push} (already upstream-aware, adding
 \texttt{-u} automatically the same way plain \texttt{git push -u} would)
 publishes the branch on its own. On any branch that already has an
 upstream, the workflow is unchanged.
+
+\texttt{--force-protocol} is forwarded to the \texttt{pull}/\texttt{pull-force}
+and \texttt{push} steps above, behaving exactly as described under
+\texttt{pull}; the remote rewrite it makes persists, so the final
+\texttt{freeze} step's own tag push picks it up too without needing the
+flag itself.
 
 \subsection{\texttt{freeze}}
 
@@ -471,7 +506,7 @@ for the loaded workspace without mutating it.
 \subsection{\texttt{import-submodules}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync import-submodules REPO_ROOT [--apply]
+$ pixi run cgitsync import-submodules REPO_ROOT [--apply] [--recursive]
 \end{lstlisting}
 
 Reads \texttt{REPO\_ROOT/.gitmodules} and reports (or converts) every declared
@@ -485,6 +520,23 @@ or can get one from \texttt{discover} (\S\ref{chap:user-guide}
 Without \texttt{--apply} (the default), the command performs a
 \emph{dry run}: it prints each submodule's name, path, URL, and branch,
 without touching the repository.
+
+\texttt{--recursive} (same name and meaning as \texttt{git submodule
+update}'s own flag) also converts any submodule that itself has its own
+checked-out \texttt{.gitmodules}, at any depth --- root first, not leaf
+first: converting a submodule stages changes in its own working tree, and
+converting a deeper level first would make the shallower level's own
+preflight check (is the submodule's working tree clean?) see that staged
+dirt and reject its own conversion; converting the shallower level first
+avoids this, since \texttt{git rm --cached <path>} only ever touches the
+parent's own index, never the submodule's working tree. A submodule path
+that was never checked out (\texttt{git submodule update --init} not run
+for it) has no \texttt{.git} to read a nested \texttt{.gitmodules} from and
+is invisible either way --- the same ceiling \texttt{discover} already has
+for itself. Without \texttt{--recursive}, behavior is unchanged: exactly
+\texttt{REPO\_ROOT/.gitmodules}, one level. The dry-run report is one flat
+list combining every level, each entry independent of how deep it was
+found --- the same shape \texttt{discover}'s own report already uses.
 
 With \texttt{--apply}:
 \begin{itemize}
