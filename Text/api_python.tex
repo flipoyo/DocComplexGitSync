@@ -309,8 +309,9 @@ draft is never written.
 
 \section{Submodule Migration: \texttt{import\_submodules}}
 
-\texttt{import\_submodules(repo\_root, *, apply=False, output=None)} converts
-git submodules in a local repository to plain ComplexGitSync nested clones:
+\texttt{import\_submodules(repo\_root, *, apply=False, recursive=False)}
+converts git submodules in a local repository to plain ComplexGitSync
+nested clones:
 
 \begin{lstlisting}[language=python]
 from ComplexGitSync.orchestre import ComplexGitSyncClient
@@ -322,11 +323,11 @@ report = client.import_submodules("/path/to/repo")
 for sub in report.submodules:
     print(sub.name, sub.path, sub.url)
 
-# Apply - convert and optionally emit a .cgs snippet
+# Apply - convert every level, root first
 report = client.import_submodules(
     "/path/to/repo",
     apply=True,
-    output="imported_submodules.cgs",
+    recursive=True,
 )
 print(report.converted)   # tuple of converted submodule names
 \end{lstlisting}
@@ -334,13 +335,64 @@ print(report.converted)   # tuple of converted submodule names
 The method returns an \texttt{ImportSubmodulesReport} dataclass with fields
 \texttt{submodules} (all entries found), \texttt{applied} (whether the
 conversion ran), \texttt{converted} (names of converted submodules), and
-\texttt{cgs\_entries} (authoring-form repo tables ready for
-\texttt{configure()}).  When \texttt{apply=False} (the default), no files
-are modified.  When \texttt{apply=True}, each submodule is removed from the
-index (\texttt{git rm --cached}), its stanza is removed from
-\texttt{.gitmodules}, and the parent's \texttt{.gitignore} is updated to
-ignore the child path.  The staged changes should then be reviewed and
+\texttt{scan\_root} (the repository the call was pointed at, which every
+reported path can be expressed from).  When \texttt{apply=False} (the
+default), no files are modified.  When \texttt{apply=True}, each submodule
+is removed from the index (\texttt{git rm --cached}), its stanza is removed
+from \texttt{.gitmodules}, and the parent's \texttt{.gitignore} is updated
+to ignore the child path.  The staged changes should then be reviewed and
 committed manually.
+
+\texttt{recursive=True} also converts any submodule that has its own
+checked-out \texttt{.gitmodules}, at any depth.  That walk follows the
+submodule graph declared by \texttt{repo\_root}'s own \texttt{.gitmodules},
+so a repository whose holder has already been converted is no longer
+reachable --- which is why the conversion of a whole tree happens once, and
+last (see \texttt{init\_from\_submodules} below).
+
+\section{Adopting a Submodule Tree: \texttt{init\_from\_submodules}}
+
+\texttt{init\_from\_submodules(repo\_root, *, cgs\_path=None,
+max\_depth=5, dry\_run=False, force=False, force\_access\_protocol=None)}
+performs the whole adoption of a submodule-based checkout, in the one order
+that works:
+
+\begin{lstlisting}[language=python]
+from ComplexGitSync.orchestre import ComplexGitSyncClient
+
+client = ComplexGitSyncClient()
+
+# Report the plan without writing, cloning, or converting anything
+plan = client.init_from_submodules("/work/project", dry_run=True)
+
+# Adopt: discover -> write .cgs -> initialise -> convert every submodule
+report = client.init_from_submodules("/work/project")
+print(report.cgs_path)                     # the .cgs used
+print(report.tree.is_ready())              # True
+print(report.import_report.converted)      # converted submodule names
+\end{lstlisting}
+
+Each step delegates to the method that already owns it
+(\texttt{discover\_repos}, \texttt{initialise\_cgs},
+\texttt{import\_submodules}); the value this method adds is the ordering
+and the preconditions.  \texttt{initialise\_cgs} adopts the root in place
+but deletes and re-clones every other repository from its remote, where the
+submodules are still declared --- so converting first is undone for every
+non-root repository, and a repair pass cannot reach any deeper level once
+the root's \texttt{.gitmodules} is gone.
+
+The method returns an \texttt{InitFromSubmodulesReport} with fields
+\texttt{root} (which is also \texttt{CGSHOME}), \texttt{discover} (the
+\texttt{DiscoverReport} from step~1), \texttt{cgs\_path},
+\texttt{cgs\_written}, \texttt{import\_report}, \texttt{tree}, and
+\texttt{dry\_run}.  Nothing is committed: the conversion touches every
+repository that held a submodule, so \texttt{branch}, \texttt{checkout},
+\texttt{add}, and \texttt{commit} stay explicit, separate calls.  A
+\texttt{GitSyncError} is raised before anything is written when the
+discovery resolved nothing, when the project name does not match the
+directory name (\texttt{CGSHOME} is \texttt{<parent>/<project-name>}), or
+when \texttt{repo\_root} has no \texttt{.gitmodules} to convert
+(\texttt{force=True} overrides the last one).
 
 \section{Register Integrity: \texttt{verify}}
 

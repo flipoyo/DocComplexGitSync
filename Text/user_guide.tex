@@ -69,7 +69,8 @@ The minimalist level is \texttt{initialise}, \texttt{bootstrap},
 the individual operations: \texttt{branch}, \texttt{checkout}, \texttt{purge},
 \texttt{validate}, \texttt{clone}, \texttt{pull}, \texttt{pull-force},
 \texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag}, \texttt{freeze},
-\texttt{import-submodules}, and \texttt{verify}.  The configuration level, \texttt{discover},
+\texttt{import-submodules}, \texttt{init-from-submodules}, and
+\texttt{verify}.  The configuration level, \texttt{discover},
 \texttt{configure} and
 \texttt{create-cgs}, authors a \texttt{.cgs} specification without requiring
 existing state.  Redundant
@@ -561,7 +562,13 @@ submodules are called \texttt{docs/...} by their own repository.
 With \texttt{--apply}:
 \begin{itemize}
   \item Verifies every submodule's working tree is clean (\texttt{git status
-        --porcelain} must be empty); rejects dirty trees immediately.
+        --porcelain} must be empty apart from that repository's own
+        \texttt{.gitignore}); rejects dirty trees immediately.  The
+        \texttt{.gitignore} exemption exists because \cgscli{} writes that
+        one file itself in every repository holding a child, so it is
+        routinely dirty in exactly the tree being converted; no conversion
+        can harm it, since \texttt{git rm --cached} never touches the
+        child's working tree.
   \item Runs \texttt{git rm --cached <path>} per submodule, dropping the
         gitlink from the index while leaving the child's working tree and
         \texttt{.git} directory intact (no re-clone, no local history lost).
@@ -583,6 +590,59 @@ environment lacks access, the subsequent \cgscli{} \texttt{initialise} or
 \texttt{pull} will fail at the clone step.  The \texttt{import-submodules}
 step itself (which only touches the local index and working tree) will still
 succeed.
+
+\subsection{\texttt{init-from-submodules}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync init-from-submodules REPO_ROOT [--cgs FILE]
+      [--max-depth N] [--dry-run] [--force] [--force-protocol {ssh,https}]
+\end{lstlisting}
+
+Adopts a submodule-based checkout in one command: \texttt{discover} the
+repositories under \texttt{REPO\_ROOT}, write the drafted \texttt{.cgs},
+\texttt{initialise} the tree in place, then convert every submodule with
+\texttt{import-submodules --recursive --apply}.  \texttt{REPO\_ROOT} is a
+project cloned and \texttt{git submodule update --init --recursive}'d by
+hand; the command performs no clone of the root itself.
+
+\textbf{The conversion must come last, and this command is the reason
+why.}  \texttt{initialise} adopts the root in place but deletes and
+re-clones every \emph{other} repository straight from its remote, and those
+remotes still declare submodules --- so a conversion run first is undone
+for every repository except the root.  Nor can a second pass repair that:
+\texttt{import-submodules --recursive} follows the submodule graph declared
+by the root's own \texttt{.gitmodules}, which the first pass removed, so no
+deeper level stays reachable.  Running the two commands in the other order
+by hand produces a half-converted tree that looks finished.
+
+Three conditions are checked before anything is written, so a run that
+cannot work fails while the checkout is still untouched:
+
+\begin{itemize}
+  \item the discovery resolved at least one repository (skipped when
+        \texttt{--cgs} supplies a file, which is then the authority);
+  \item the project name matches the directory name --- \texttt{CGSHOME} is
+        resolved as \texttt{<parent>/<project-name>}, so a mismatch would
+        send \texttt{initialise} to a sibling directory that does not
+        exist;
+  \item \texttt{REPO\_ROOT} has a \texttt{.gitmodules}.  Without one there
+        is nothing to convert, while the clone step would still delete and
+        re-clone every non-root repository, discarding any uncommitted work
+        in them.  \texttt{--force} overrides this one.
+\end{itemize}
+
+\texttt{--dry-run} prints the discovery and the submodules that would be
+converted without writing a \texttt{.cgs}, cloning, or touching any
+repository.  \texttt{--cgs FILE} uses an existing \texttt{.cgs} instead of
+writing one (or writes the draft there, when \texttt{FILE} does not exist).
+\texttt{--force-protocol} applies to the clone step only; discovery reads
+each repository's configured remote as it is.
+
+The command stops at a \texttt{READY} tree with the conversion staged but
+not committed --- it touches every repository that held a submodule, and
+some of those may belong to other people --- and prints the
+\texttt{branch}/\texttt{checkout}/\texttt{add}/\texttt{commit} sequence to
+run next.
 
 \subsection{\texttt{verify}}
 
@@ -787,10 +847,10 @@ point where \cgscli{} hands off to the project's existing
 real-world \texttt{cawaqsviz} project (not synthetic), which has no
 \texttt{.cgs} of its own and still tracks three repositories on two levels
 as git submodules,
-as one verified ten-step procedure: clone, convert the submodules,
-\texttt{discover}, \texttt{import-submodules}, reach \texttt{READY} with
-\texttt{initialise}, then \texttt{branch}/\texttt{checkout}/\texttt{add}/
-\texttt{commit}/\texttt{push}.
+as one verified procedure: clone, check out the submodules, adopt the whole
+tree with \texttt{init-from-submodules} (\texttt{discover} +
+\texttt{initialise} + \texttt{import-submodules}, in that order), then
+\texttt{branch}/\texttt{checkout}/\texttt{add}/\texttt{commit}/\texttt{push}.
 
 \texttt{examples/cawaqsviz.cgs}, the hand-authored alternative mentioned in
 \texttt{docs/tutorials/03\_adopting\_a\_real\_project.md} above,
