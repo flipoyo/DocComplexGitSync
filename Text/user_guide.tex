@@ -227,10 +227,25 @@ draft. They are never guessed at: a draft that silently invented an address
 would be worse than one that states what it could not determine. Always
 review the generated file, then \texttt{validate} it.
 
+A repository found \emph{inside} another repository is drafted as that
+repository's child, not the project root's. Nesting is worked out by
+comparing paths: every path in a \texttt{.cgs} is written from the project
+root, so a repository whose path lies under another's sits inside it, and
+the innermost one wins. The report marks such an entry
+\texttt{inside: <path>} and prints the resulting tree, and
+\texttt{build\_registry\_from\_cgs\_document()} reads the drafted file back
+the same way --- the holding repository becomes a \texttt{PARENT} and keeps
+its own \texttt{.gitignore} entry for the repository it holds, which is
+what stops a later \texttt{add} from restaging that repository as a
+submodule.
+
 Only what is \emph{checked out at scan time} can be found. A repository
 cloned without \texttt{--recurse-submodules} leaves its submodule paths as
 empty directories, and those are correctly not reported; recovering them
-from git metadata instead is \texttt{import-submodules}' job.
+from git metadata instead is \texttt{import-submodules}' job. The same
+applies to depth: when \texttt{--max-depth} stops the walk while
+directories are still left to look into, the report says so in a warning
+rather than presenting a partial answer as a complete one.
 
 \subsection{\texttt{configure}}
 
@@ -534,9 +549,14 @@ that was never checked out (\texttt{git submodule update --init} not run
 for it) has no \texttt{.git} to read a nested \texttt{.gitmodules} from and
 is invisible either way --- the same ceiling \texttt{discover} already has
 for itself. Without \texttt{--recursive}, behavior is unchanged: exactly
-\texttt{REPO\_ROOT/.gitmodules}, one level. The dry-run report is one flat
-list combining every level, each entry independent of how deep it was
-found --- the same shape \texttt{discover}'s own report already uses.
+\texttt{REPO\_ROOT/.gitmodules}, one level.
+
+The report lists every level together. Each entry's \texttt{path} is
+counted from \texttt{REPO\_ROOT}, and \texttt{declared in} names the
+\texttt{.gitmodules} file it was read from. A submodule's own
+\texttt{.gitmodules} path means nothing on its own once more than one
+repository is involved --- in \texttt{cawaqsviz}, two of the three
+submodules are called \texttt{docs/...} by their own repository.
 
 With \texttt{--apply}:
 \begin{itemize}
@@ -765,7 +785,8 @@ point where \cgscli{} hands off to the project's existing
 \texttt{make}-based build workflow; and
 \texttt{docs/tutorials/03\_adopting\_a\_real\_project.md} covers the
 real-world \texttt{cawaqsviz} project (not synthetic), which has no
-\texttt{.cgs} of its own and still tracks two children as git submodules,
+\texttt{.cgs} of its own and still tracks three repositories on two levels
+as git submodules,
 as one verified ten-step procedure: clone, convert the submodules,
 \texttt{discover}, \texttt{import-submodules}, reach \texttt{READY} with
 \texttt{initialise}, then \texttt{branch}/\texttt{checkout}/\texttt{add}/

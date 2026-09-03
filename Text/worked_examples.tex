@@ -135,7 +135,10 @@ only available route.
 
 \texttt{cawaqsviz} (\url{https://gitlab.com/cawaqs/gviz/cawaqsviz}) is a
 real GitLab project, nested three path segments deep, with two GitHub
-children that were, until recently, plain git submodules. It has no
+children that were, until recently, plain git submodules. One of those
+children, \texttt{HydrologicalTwinAlphaSeries}, holds a submodule of its
+own at \texttt{docs/hydrological\_twin}: four repositories on two levels,
+which is why every command below uses \texttt{--recursive}. It has no
 \texttt{.cgs} of its own anywhere upstream. That makes it a good vehicle for
 showing all three ways \cgspkg{} can produce a working \texttt{.cgs} for a
 project it does not already control the source of, ordered here by how much
@@ -174,13 +177,11 @@ falls out of the walk directly instead of being typed.
 
 \begin{lstlisting}[language=bash]
 # A plain clone leaves submodule paths empty; initialise them first so
-# discover has something to find at those paths. --init only (not
-# --recursive): a nested submodule one level deeper would otherwise show
-# up as a fourth repository discover has no use for here. (Want that
-# nested submodule too? Use --init --recursive here and
-# import-submodules --recursive --apply in 3c.)
+# discover has something to find at those paths. --recursive reaches the
+# second level too: without it, hydrological_twin stays an empty
+# directory and discover cannot see a repository that is not there.
 $ git clone https://gitlab.com/cawaqs/gviz/cawaqsviz cawaqsviz
-$ cd cawaqsviz && git submodule update --init
+$ cd cawaqsviz && git submodule update --init --recursive
 
 # Dry run: report what discover sees, write nothing.
 $ pixi run cgitsync discover . --max-depth 3
@@ -191,32 +192,40 @@ $ pixi run cgitsync validate cawaqsviz-discovered.cgs
 \end{lstlisting}
 
 The draft reconstructs 3a's hand-corrected file field-for-field: the root at
-\texttt{relative\_path = "."} and both children at their real submodule
-paths (\texttt{external/HydrologicalTwinAlphaSeries},
-\texttt{docs/CWV\_user\_guide}) rather than their bare repo names. Neither
-child has a \texttt{.cgs} of its own, but \texttt{discover} writes no
+\texttt{relative\_path = "."} and every other repository at its real
+submodule path (\texttt{external/HydrologicalTwinAlphaSeries},
+\texttt{docs/CWV\_user\_guide},
+\texttt{external/HydrologicalTwinAlphaSeries/docs/hydrological\_twin})
+rather than their bare repo names. That last path lies inside
+\texttt{HydrologicalTwinAlphaSeries}, so the report marks it
+\texttt{inside: external/HydrologicalTwinAlphaSeries} and the file is read
+back with \texttt{HydrologicalTwinAlphaSeries} as its parent. No repository
+here has a \texttt{.cgs} of its own, and \texttt{discover} writes no
 \texttt{nested\_config} override for that: the default \texttt{"auto"}
-already resolves a repository with zero nested \texttt{*.cgs} matches as a
-normal leaf. See \texttt{discover} in \S\ref{chap:user-guide} for exactly
+already resolves a repository with zero nested \texttt{*.cgs} matches
+cleanly. See \texttt{discover} in \S\ref{chap:user-guide} for exactly
 what is and is not reported (no network calls, unresolvable remotes are
 warned about and left out, never guessed at).
 
 \subsubsection{3c --- Migrate it with \texttt{import-submodules}}
 
 The historical route: before either \texttt{.cgs} above existed,
-\texttt{cawaqsviz} tracked both children as real git submodules. This mode
+\texttt{cawaqsviz} tracked its children as real git submodules. This mode
 starts from that state and converts it, rather than describing a tree that
 is assumed to already be plain clones.
 
 \begin{lstlisting}[language=bash]
 # Dry run against a real cawaqsviz checkout that still has submodules:
-# reports name, path, URL, branch per submodule; changes nothing.
-$ pixi run cgitsync import-submodules /path/to/cawaqsviz
+# reports name, path, URL, branch and declaring .gitmodules per submodule;
+# changes nothing. --recursive reaches HydrologicalTwinAlphaSeries' own
+# submodule; without it, only the root's two are converted.
+$ pixi run cgitsync import-submodules /path/to/cawaqsviz --recursive
 
 # Convert: drop the gitlinks, retire .gitmodules, extend .gitignore.
-$ pixi run cgitsync import-submodules /path/to/cawaqsviz --apply
+$ pixi run cgitsync import-submodules /path/to/cawaqsviz --recursive --apply
 
-# Review and commit the resulting working-tree changes as usual.
+# Review and commit the resulting working-tree changes as usual. Two
+# repositories have changes here, one per converted level.
 $ cd /path/to/cawaqsviz && git status
 $ git commit -m "chore: retire git submodules in favour of ComplexGitSync"
 \end{lstlisting}

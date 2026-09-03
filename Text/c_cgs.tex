@@ -551,15 +551,26 @@ repos = [
     { repository = "github:flipoyo/HydrologicalTwinAlphaSeries",
       relative_path = "external/HydrologicalTwinAlphaSeries",
       fallback_branch = "main" },
+    { repository = "github:flipoyo/hydrological_twin",
+      relative_path = "external/HydrologicalTwinAlphaSeries/docs/hydrological_twin",
+      fallback_branch = "main" },
     { repository = "github:flipoyo/user_guide_CaWaQS-Viz",
       relative_path = "docs/CWV_user_guide",
       fallback_branch = "main" },
 ]
 \end{lstlisting}
 
-Neither child has a \texttt{.cgs} of its own, but no \texttt{nested\_config}
-override is written for that: the default \texttt{"auto"} already resolves
-a repository with zero nested \texttt{*.cgs} matches as a normal leaf.
+Four repositories on two levels. The third entry's path lies inside the
+second's, which is how a \texttt{.cgs} says that one repository holds
+another: every path is written from the project root, so nesting shows up
+as one path lying inside another, and the innermost holder wins.
+\texttt{HydrologicalTwinAlphaSeries} is therefore read back as a
+\texttt{PARENT} with \texttt{hydrological\_twin} as its child.
+
+No repository here has a \texttt{.cgs} of its own, but no
+\texttt{nested\_config} override is written for that: the default
+\texttt{"auto"} already resolves a repository with zero nested
+\texttt{*.cgs} matches cleanly.
 
 % =======================================================================
 % CLI AUTHORING TOOLS
