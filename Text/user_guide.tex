@@ -206,12 +206,13 @@ call is made. Without \texttt{--write} it only prints what it found,
 matching the ``report first, write only when asked'' posture of
 \texttt{--commit-gitignore} and \texttt{import-submodules --apply}.
 
-The walk descends up to \texttt{--max-depth} levels (default~5;
-\texttt{ROOT} itself is depth~0), treating every directory that contains a
-\texttt{.git} entry as a repository. It never descends \emph{into} a
-\texttt{.git} directory: for a submodule the real git directory lives at
-\texttt{<parent>/.git/modules/<name>} while the child's own \texttt{.git} is
-a file, so walking into it would report the same repository twice.
+The walk descends with no depth limit by default, treating every directory
+that contains a \texttt{.git} entry as a repository. Pass
+\texttt{--max-depth N} (\texttt{ROOT} itself is depth~0) to bound it. It
+never descends \emph{into} a \texttt{.git} directory: for a submodule the
+real git directory lives at \texttt{<parent>/.git/modules/<name>} while the
+child's own \texttt{.git} is a file, so walking into it would report the
+same repository twice.
 
 For each repository, \texttt{origin}'s URL is read and converted to the
 canonical \texttt{provider:owner/repository} shorthand through the existing
@@ -244,9 +245,10 @@ Only what is \emph{checked out at scan time} can be found. A repository
 cloned without \texttt{--recurse-submodules} leaves its submodule paths as
 empty directories, and those are correctly not reported; recovering them
 from git metadata instead is \texttt{import-submodules}' job. The same
-applies to depth: when \texttt{--max-depth} stops the walk while
+applies when \texttt{--max-depth} is given: if it stops the walk while
 directories are still left to look into, the report says so in a warning
-rather than presenting a partial answer as a complete one.
+rather than presenting a partial answer as a complete one. Without the
+flag, the walk cannot stop early --- there is nothing to stop it at.
 
 \subsection{\texttt{configure}}
 
@@ -635,8 +637,10 @@ cannot work fails while the checkout is still untouched:
 converted without writing a \texttt{.cgs}, cloning, or touching any
 repository.  \texttt{--cgs FILE} uses an existing \texttt{.cgs} instead of
 writing one (or writes the draft there, when \texttt{FILE} does not exist).
-\texttt{--force-protocol} applies to the clone step only; discovery reads
-each repository's configured remote as it is.
+\texttt{--max-depth N} bounds the discovery step, which is otherwise
+unbounded --- most trees never need it.  \texttt{--force-protocol} applies
+to the clone step only; discovery reads each repository's configured
+remote as it is.
 
 The command stops at a \texttt{READY} tree with the conversion staged but
 not committed --- it touches every repository that held a submodule, and
