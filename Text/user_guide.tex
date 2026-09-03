@@ -354,6 +354,22 @@ actually authenticate with. On a failure that looks like an SSH or HTTPS
 auth problem, the error gains an actionable hint naming
 \texttt{--force-protocol <the other one>} even without the flag.
 
+The rewrite reads the repository's \emph{actual current} remote URL and
+only swaps its scheme --- \texttt{ssh} (\texttt{user@host:path}) to/from
+\texttt{https}/\texttt{http} (\texttt{scheme://host/path}) --- keeping the
+host and path exactly as they already are. It does \emph{not} rebuild the
+URL from the repository's stored identity fields
+(\texttt{gitprovider}/\texttt{project\_owner\_name}/\dots{}): those can be
+missing or stale for a repository loaded from an older \texttt{.gts}
+snapshot (see the ``Formal \texttt{.gts} snapshot specification'' section
+of the architecture reference), and rebuilding from a wrong or
+default-GitHub provider would silently aim the pull at the wrong host.
+Converting the URL that is already configured never has that failure mode.
+A remote in neither recognised form (a bare local filesystem path, for
+instance) cannot have its protocol converted; \texttt{--force-protocol}
+then fails with an explicit error naming the repository, rather than
+guessing.
+
 \subsection{\texttt{pull-force}}
 
 \begin{lstlisting}[language=bash]

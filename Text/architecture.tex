@@ -260,6 +260,24 @@ excluding volatile generation metadata (\texttt{generated\_at} and
 This makes \texttt{.gts} a stable checkpoint primitive for repeatable workspace
 state comparison.
 
+Each \texttt{repo\_state} record also carries the repository's provider
+identity: \texttt{gitprovider}, \texttt{group\_name}, and
+\texttt{gitprovider\_url} (mirroring the same fields a \texttt{.cgs} repo
+entry carries — \S\ref{chap:user-guide} ``Local Authoring Spec''), plus
+\texttt{access\_protocol}. \texttt{gitprovider}/\texttt{group\_name}/
+\texttt{gitprovider\_url} are part of the canonical hashed payload:
+they say \emph{which repository this is}, so two snapshots pointing at
+different hosts are not the same state. \texttt{access\_protocol} is
+deliberately excluded from the hash — it records only how the repository
+was last reached (ssh or https), not what it is, and a tree cloned entirely
+over ssh must hash identically to the same tree cloned over https. A
+\texttt{.gts} written before this schema addition has no
+\texttt{gitprovider} field at all; every command that would otherwise
+derive a clone URL from it (only the missing-repository restore path —
+\texttt{push}/\texttt{pull} instead convert the repository's actual
+existing remote in place, never rebuilding it from identity) refuses with
+an explicit error instead of silently defaulting to GitHub.
+
 Figure~\ref{fig:ops-sequence} shows the internal sequence of the four
 tree-wide synchronisation actions implemented in \texttt{operations.py}.
 
