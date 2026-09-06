@@ -441,6 +441,43 @@ repos = [
 % =======================================================================
 % COMPLETE FIELD REFERENCE
 % =======================================================================
+\subsection{Pinned Repositories}
+\label{subsec:cgs-pinned}
+
+Tree-wide commands --- \texttt{branch}, \texttt{checkout}, \texttt{pull} and
+\texttt{pull-force} --- normally drive every repository in the tree onto one
+branch. That is the right behaviour when every repository belongs to the
+project. It is the wrong behaviour when a repository is \emph{shared}: a
+specification repository mounted by several projects, or one whose branch
+carries a single project's identity. Creating a project's feature branch
+inside a repository that other projects also mount pollutes them all.
+
+Setting \texttt{pinned = true} keeps a repository on its own
+\texttt{default\_branch}:
+
+\begin{lstlisting}
+repos = [
+    "github:flipoyo/ComplexGitSync",
+    { repository = "github:flipoyo/.agentSpec", default_branch = "main",
+      nested_config = "auto", pinned = true },
+    { repository = "github:flipoyo/.localSpec", default_branch = "MyProject",
+      fallback_branch = "main", pinned = true },
+]
+\end{lstlisting}
+
+With that in place, \texttt{cgitsync branch feature-x} creates
+\texttt{feature-x} in the project's own repositories and in neither mount;
+\texttt{cgitsync checkout} leaves both on their declared branch; and
+\texttt{cgitsync pull} still updates them, on that branch rather than the
+tree's.
+
+Two limits are worth knowing. Pinning governs \emph{branch} propagation
+only: restoring a frozen release with \texttt{launch-release} puts every
+repository back on the commit the snapshot records, pinned or not, so a
+release stays reproducible. And a repository declared in a \emph{nested}
+\.cgs is pinned by that file, which lives in the repository that owns it ---
+pinning it means publishing that change there, not in the parent project.
+
 \subsection{Complete Reference: All Recognized Fields}
 \label{subsec:cgs-fields}
 
@@ -480,6 +517,7 @@ repos = [
 \texttt{access\_protocol} & string & no & \texttt{"ssh"} \\
 \texttt{relative\_path} & string & no & repo name (or "." if matches project) \\
 \texttt{nested\_config} & string & no & \texttt{"auto"} \\
+\texttt{pinned} & boolean & no & \texttt{false} \\
 \texttt{gitprovider\_url} & string & no** & — \\ \hline
 \end{tabular}
 \end{center}
