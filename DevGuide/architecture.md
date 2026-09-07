@@ -27,7 +27,9 @@ graph of every current module, grouped by ring (§2); a one-row-per-module
 contract table pulled from each module's own docstring header (§3); and a
 condensed pointer to `AgentSpec/AdditionalSpecs.md`'s four import rules and
 ceiling ratchet (§4) — `AgentSpec/AdditionalSpecs.md` stays authoritative
-for those, this file only summarizes.
+for those, this file only summarizes; and one worked example of the
+"one owner per decision" rule, the path a branch takes from a `.cgs` to a
+repository on disk (§5).
 
 **Who it is for.** Contributors and coding agents about to add, move, or
 re-rank a module in `src/ComplexGitSync/` — read this before deciding which
@@ -92,8 +94,8 @@ false 1:1 impression:
   cross-cutting layer is Ring 0 today (`errors.py`, `config_document.py`)
   plus the two modules that carry a co-located Ring-1 I/O adapter on the
   same class (`cgs_format.py`, `gts_document.py` — see §3 for why).
-- **Six Ring 0–2 modules postdate the book chapter entirely** and have no
-  Tier counterpart to map to at all: `integrity.py`, `ledger_entry.py`,
+- **Seven Ring 0–2 modules postdate the book chapter entirely** and have no
+  Tier counterpart to map to at all: `git_branch.py` (§5), `integrity.py`, `ledger_entry.py`,
   `ledger_store.py` (the `.lgr` hash-chained register behind `cgitsync
   verify`), and `status_render.py`, `snapshot_resolver.py`,
   `config_document_io.py` (extractions that used to be inline in the old
@@ -159,6 +161,7 @@ graph TD
         ledger_entry["ledger_entry.py"]
         status_render["status_render.py"]
         git_repo["git_repo.py"]
+        git_branch["git_branch.py"]
         cgs_format["cgs_format.py<br/><i>(+ Ring-1 I/O adapter)</i>"]
         gts_document["gts_document.py<br/><i>(+ Ring-1 I/O adapter)</i>"]
     end
@@ -186,6 +189,7 @@ graph TD
     orchestre --> cgs_format
     orchestre --> discovery
     orchestre --> errors
+    orchestre --> git_branch
     orchestre --> git_repo
     orchestre --> git_runner
     orchestre --> git_tree
@@ -203,11 +207,13 @@ graph TD
     git_runner --> errors
     git_runner --> git_repo
     registry --> cgs_format
+    registry --> git_branch
     registry --> errors
     registry --> git_repo
     registry --> git_tree
     registry --> gts_document
     operations --> errors
+    operations --> git_branch
     operations --> git_repo
     operations --> git_tree
 
@@ -215,12 +221,15 @@ graph TD
     cgs_format --> config_document
     cgs_format --> config_document_io
     cgs_format --> errors
+    cgs_format --> git_branch
     cgs_format --> git_repo
     git_tree --> cgs_format
     git_tree --> errors
+    git_tree --> git_branch
     git_tree --> git_repo
     discovery --> cgs_format
     discovery --> errors
+    discovery --> git_branch
     discovery --> git_repo
     discovery --> git_tree
     paths --> cgs_format
@@ -231,13 +240,14 @@ graph TD
     gts_document --> git_repo
     ledger_store --> ledger_entry
     status_render --> git_repo
+    git_branch --> git_repo
 
     classDef r0 fill:#2E7D32,color:#fff,stroke:#111;
     classDef r1 fill:#00838F,color:#fff,stroke:#111;
     classDef r2 fill:#1565C0,color:#fff,stroke:#111;
     classDef r3 fill:#6A1B9A,color:#fff,stroke:#111;
     classDef r4 fill:#B71C1C,color:#fff,stroke:#111;
-    class errors,config_document,integrity,ledger_entry,status_render,git_repo,cgs_format,gts_document r0;
+    class errors,config_document,integrity,ledger_entry,status_render,git_repo,git_branch,cgs_format,gts_document r0;
     class config_document_io,master,git_tree,snapshot_resolver,paths,discovery,state_store,ledger_store r1;
     class git_runner,registry,operations r2;
     class orchestre r3;
@@ -267,6 +277,7 @@ of truth — update the module's docstring first, this table second.
 | `ledger_entry.py` | 0 | Given the previous chain entry (or none, for genesis) and the facts of one operation, deterministically construct the next `LedgerEntry` — computing `prev`/`entry_hash` correctly. Chain *verification* across many entries is `integrity.py`'s contract, not this module's. |
 | `status_render.py` | 0 | Given already-computed values (a `WorkingRepo` entry plus a root path, a `git status --porcelain` line, or a list of pre-built row tuples), format or classify them as text/paths — never runs `git`, never reads a file or the clock, and never mutates its input. |
 | `git_repo.py` | 0 | Define per-repository identity types, state enumerations, and remote-URL construction; parse nothing (textual repository-ID authoring syntax is parsed only by `cgs_format.parse_repo_id`). |
+| `git_branch.py` | 0 | Given already-read declared fields (a `.cgs`/`.gts` repository mapping, or a live `WorkingRepo`), return the branch or tag the repository targets together with the reason that branch was chosen. Decides nothing about the filesystem, the remote, or the tree's shape. |
 | `cgs_format.py` | 0 core + Ring-1 I/O adapter, co-located | Own the textual `provider:owner/repository` authoring grammar and the `.cgs` parse/normalize/validate/serialize pipeline; deterministic and offline. |
 | `gts_document.py` | 0 core + Ring-1 I/O adapter, co-located | Parse, validate, and compute the canonical SHA-256 content hash of a `.gts` Git Tree State snapshot; the sole builder of that canonical payload (one hash code path, no fork). |
 | `config_document_io.py` | 1 | Read/write a `ConfigDocument`-shaped object to TOML/JSON/YAML. |
@@ -311,3 +322,78 @@ baseline in `scripts/ceiling_baseline.json`, and may always shrink one.
 Directional targets: ≤500 LOC hard / ≤350 target per module, ≤7 public
 symbols, ≤6 internal imports. Cyclomatic complexity is enforced separately
 via `ruff`'s `C90` selector (max 12).
+
+---
+
+## 5. How a branch reaches a repository
+
+Added when `git_branch.py` landed (the MultiBranchSync ticket). It is the
+one worked example of the "one owner per decision" rule this document's
+ring model exists to protect, so it is written out rather than left to the
+reader.
+
+**The problem it fixed.** The `.cgs` fallback chain —
+`fallback_branch → default_branch → project.default_branch → "main"` — was
+written out by hand in six places across five modules, and not one of them
+read the `DEFAULT_BRANCH` constant. Each was a private copy that stopped at
+a different link, so changing the constant moved only one of them. This is
+the same failure `parse_repo_id()` is protected from by `CLAUDE.md`'s rule
+that it is the *only* repository-identifier parser; `git_branch.py` is that
+rule applied to branches.
+
+**Where the value lives.** `git_branch.py` holds no tree and no pinning
+state — `git_tree.py` owns those. It is a pure resolver: declared fields
+in, a `BranchResolution` out, carrying the branch, its `RefKind`, and a
+`BranchSource` saying which link of the chain answered. Nothing was added
+to `WorkingRepo`: it already carries `target_ref_name` (what the tree aims
+at), `resolved_ref_name` (what it landed on), `default_branch`,
+`fallback_branch`, and the `fallback_applied`/`fallback_reason` pair. A
+sixth name for the same idea would have made the confusion worse; what was
+missing was a single owner computing those fields, not another field.
+
+**The path a branch takes:**
+
+```mermaid
+graph LR
+    CGS[".cgs / .gts<br/>declared fields"] --> RES["git_branch.py<br/>resolve_declared_ref"]
+    RES --> ENTRY["WorkingRepo.target_ref_name<br/>+ target_ref_kind"]
+    MOVE["cgitsync branch / checkout"] --> PROP["operations.propagate_global_branch"]
+    PROP --> PIN["git_branch.resolve_propagated_ref<br/><i>the pinning rule</i>"]
+    PIN --> ENTRY
+    ENTRY --> OPS["operations.py / orchestre.py<br/>checkout, clone, pull"]
+    OPS --> LANDED["BranchResolution.from_landed_ref<br/>fallback_applied + reason"]
+    LANDED --> ENTRY
+
+    classDef owner fill:#2E7D32,color:#fff,stroke:#111,stroke-width:2px;
+    class RES,PIN,LANDED owner;
+```
+
+1. `registry.py` and `discovery.py` call `resolve_declared_ref` when
+   translating a document into a `WorkingGitTree`, and store the answer as
+   the entry's `target_ref_kind`/`target_ref_name`.
+2. `cgs_format.py` calls `apply_declared_defaults` during normalization, so
+   a normalized document states every entry's `default_branch` and
+   `fallback_branch` in full rather than leaving them implicit.
+3. A tree-wide move (`cgitsync branch`, `cgitsync checkout`) runs
+   `operations.propagate_global_branch`, which asks
+   `resolve_propagated_ref` per entry. That function holds the pinning
+   rule: **a pinned repository keeps its own `default_branch` under a
+   branch move, and takes a tag like everyone else.** It returns
+   `kind = None` for a pinned entry so the move cannot rewrite the kind of
+   ref that entry already carries.
+4. `operations.py` and `orchestre.py` read `target_ref_name` to decide what
+   to check out, clone, or pull. After a clone,
+   `BranchResolution.from_landed_ref` compares the ref actually landed on
+   against the one targeted and fills `fallback_applied`/`fallback_reason`
+   — the Git work stays in the caller, the *comparison* is pure and lives
+   here, so the reason is recorded once instead of recomputed per reader.
+
+**Four sites deliberately still spell `"main"`**, each carrying a comment
+saying why: `discovery.py`'s `.gitmodules` parser and `orchestre.py`'s
+`.gitmodules` writer (Git's own submodule default, not ours),
+`git_runner.py`'s `force_pull` last resort (it must work on a bare
+repository path with no tree behind it), and `gts_document.py`'s canonical
+hash builder (a frozen wire-format input — tying it to a movable constant
+would rehash every snapshot ever written).
+`tests/unit/test_git_branch.py` counts those literals and fails if a new
+one appears.

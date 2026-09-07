@@ -398,7 +398,8 @@ derive the project root.
 
 For each repository, \cgscli{} tries the repo target branch first and falls
 back to the repo fallback branch when the preferred branch does not exist on
-the remote. Nested \texttt{.cgs} files are discovered after parent repositories
+the remote. The section ``Branches in a \texttt{.cgs}'' sets out which branch
+each repository targets and why. Nested \texttt{.cgs} files are discovered after parent repositories
 are cloned, so explicit and automatic nested trees are materialised during the
 same command.
 
@@ -719,10 +720,23 @@ $ pixi run cgitsync view-tree [spec.cgs|snapshot.gts] [--depth N] [--collapse RE
 \end{lstlisting}
 
 Renders a deterministic terminal tree that focuses on repository topology and
-operational state:
-\texttt{name [branch] local\_state sync\_state}. Use \texttt{--depth} to
-limit visible levels and repeat \texttt{--collapse} to hide selected
-subtrees.
+operational state. Each line reads:
+
+\begin{center}
+\texttt{name (node\_type) [sync\_state] @sha br=<branch> [fb=<fallback>]}
+\end{center}
+
+\texttt{br=} is printed for \emph{every} repository, including the common
+case where the branch is simply the tree's default, so that reading
+\texttt{view-tree} tells you the branch each repository targets without
+opening the \texttt{.cgs}. \texttt{fb=} appears only when the declared
+fallback branch differs from that target, since a fallback equal to the
+target says nothing. Use \texttt{--depth} to limit visible levels and repeat
+\texttt{--collapse} to hide selected subtrees.
+
+On a tree with pinned mounts, \texttt{br=} is where you see pinning at work:
+the unpinned repositories carry the branch you moved the tree to, and each
+pinned mount still shows its own.
 
 \textbf{Branch Topology Propagation Rules (T35):}
 
@@ -823,7 +837,8 @@ valid repository may therefore reference a host, owner, branch, or tag that is
 not currently reachable. Remote existence and reference availability are checked
 only by explicit Git operations during runtime resolution and execution.
 
-Normalization supplies \texttt{default\_branch = main}, makes
+Normalization supplies \texttt{default\_branch = main} (see ``Branches in a
+\texttt{.cgs}'' below for the full chain), makes
 \texttt{fallback\_branch} equal to that default, selects
 \texttt{access\_protocol = ssh}, enables \texttt{nested\_config = auto}, and
 uses the repository name as \texttt{relative\_path}. If exactly one repository
@@ -912,6 +927,132 @@ Parsing and normalizing the generated file must reproduce the initial
 canonical document. Whitespace, comments, and TOML table layout need not be
 byte-for-byte identical.
 
+\subsection{Branches in a \texttt{.cgs}}
+
+Four fields decide which branch a repository lands on. Three of them fall
+back to each other, so a \texttt{.cgs} that names no branch at all still
+sends every repository somewhere.
+
+\begin{center}
+\begin{tabular}{lll}
+\textbf{Field} & \textbf{Where it is written} & \textbf{Default} \\
+\hline
+\texttt{project.default\_branch}  & the \texttt{project} table & \texttt{main} \\
+\texttt{repos[].default\_branch}  & one repository entry & the project's \\
+\texttt{repos[].fallback\_branch} & one repository entry & that repository's own \\
+\texttt{repos[].pinned}           & one repository entry & \texttt{false} \\
+\texttt{repos[].writable}         & one repository entry & \texttt{false} \\
+\end{tabular}
+\end{center}
+
+Read the first three as one chain, longest reach first:
+
+\begin{center}
+\texttt{fallback\_branch -> default\_branch -> project.default\_branch -> main}
+\end{center}
+
+\texttt{project.default\_branch} is the tree's branch: every repository
+inherits it unless the repository says otherwise.
+\texttt{repos[].default\_branch} is the branch that one repository targets.
+\texttt{repos[].fallback\_branch} is used when the target branch does not
+exist on the remote --- \cgscli{} clones the fallback instead and records
+that it did so, rather than failing.
+
+Each link is silent. Nothing warns you that a decision was made, so
+\textbf{state \texttt{project.default\_branch} in every \texttt{.cgs} you
+write}, even when the answer is \texttt{main}. A reader of the file can then
+see the branch the tree lands on without knowing what \cgscli{}'s built-in
+default happens to be. Every \texttt{.cgs} shipped with ComplexGitSync does
+this, and a test enforces it.
+
+\subsubsection{What \texttt{pinned} means}
+
+A repository is \texttt{pinned} when it is \textbf{shared with other
+projects} and must stay on its own branch.
+
+\begin{center}
+\emph{Branch moves stop at a pinned repository. Tags do not.}
+\end{center}
+
+\texttt{cgitsync branch <name>} and \texttt{cgitsync checkout <name>} skip
+a pinned repository and leave it on its declared
+\texttt{default\_branch}, because moving it would drag every other project
+that mounts it onto your branch.
+
+\subsubsection{Read-only and writable configuration repositories}
+
+A pinned repository is a \textbf{configuration repository}: shared with
+other projects rather than owned by this one. \texttt{pinned = true} alone
+means \textbf{read-only} --- \cgscli{} will not write to it. Add
+\texttt{writable = true} for the case where the repository lives outside
+your project but the part you use is yours, normally because it sits on a
+branch named after your project that nobody else reads:
+
+\begin{lstlisting}
+{ repository = "github:you/.sharedSpec", default_branch = "main", pinned = true },
+{ repository = "github:you/.myNotes", default_branch = "MyProject", pinned = true, writable = true },
+\end{lstlisting}
+
+Read-only is the default because the expensive mistake is writing to
+something shared by accident, never the reverse. \texttt{writable = true}
+on an unpinned repository is rejected at validation: an unpinned repository
+is this project's own and is always writable.
+
+This is a \textbf{safety rail, not a permission system}. It stops a
+tree-wide sweep from writing where you did not mean; it cannot stop anyone
+running \texttt{git} in that directory by hand, and it is no substitute
+for branch protection on the remote.
+
+\subsubsection{Which repositories each command touches}
+
+\begin{center}
+\begin{tabular}{lll}
+\textbf{Command} & \textbf{Reaches} & \textbf{Why} \\
+\hline
+\texttt{add}, \texttt{commit}, \texttt{push}    & this project's own     & they write this project's history \\
+the same, \texttt{--private}                   & writable config repos  & shared, but on your own branch \\
+\texttt{branch}, \texttt{checkout}              & this project's own     & a branch must not spread \\
+\texttt{tag}, \texttt{freeze-release}           & everything writable    & they create \emph{and push} a tag \\
+\texttt{clone}, \texttt{pull}, \texttt{status}  & everything             & reading a shared repo is the point \\
+\end{tabular}
+\end{center}
+
+\texttt{--private} is exclusive, not additive: it selects \emph{only} the
+writable configuration repositories, so a shared repository gets its own
+command and its own commit message rather than being swept into this
+project's. Asking for it in a tree with no writable configuration
+repository is an error naming the read-only ones, not a silent no-op. Every
+scoped command reports what it left alone:
+
+\begin{lstlisting}[language=bash]
+scope=project skipped=5 configuration repo(s) (.claude, .localSpec with --private)
+\end{lstlisting}
+
+\texttt{tag} and \texttt{freeze-release} stop at read-only repositories
+because they push. Nothing is lost: a \texttt{.gts} snapshot records every
+repository's exact \texttt{commit\_sha}, read-only ones included, so an
+exact tree is rebuilt from the snapshot rather than from tags.
+
+In practice shared config mounts are usually dot-named
+(\texttt{.agentSpec}, \texttt{.localSpec}), and \texttt{cgitsync discover}
+drafts a dot-named repository with \texttt{pinned = true} for that reason.
+The rule is \emph{shared}, not \emph{hidden}, though: a plainly named
+repository that two projects mount should be pinned too.
+
+\textbf{The branch a repository is pinned to decides who sees your commits.}
+A mount pinned to a branch named after your own project is yours to push
+freely. A mount pinned to \texttt{main} is read by every project that mounts
+it, so a commit there is published the moment it is pushed --- no branch, no
+pull request, no review. Check which of the two you are looking at before
+committing to a pinned mount.
+
+\subsubsection{The two meanings of ``force''}
+
+\texttt{pull-force} is destructive: it discards local changes.
+\texttt{--force-protocol} is not: it only switches a remote between
+\texttt{ssh} and \texttt{https}. The two are unrelated despite the shared
+word.
+
 \subsection{Repository Placement and Nested Discovery}
 
 For every non-root entry, \texttt{relative\_path} is relative to the parent
@@ -928,6 +1069,14 @@ the repository is available:
   \item \texttt{auto} (default) loads the sole root-level \texttt{*.cgs} file,
         if one exists; finding none resolves the repository as a normal
         leaf; multiple matches are rejected as ambiguous.
+
+        A consequence worth knowing before you publish a repository: \textbf{a
+        repository that other people may mount inside their tree must keep
+        exactly one \texttt{.cgs} at its root}, because \texttt{auto} has no
+        way to choose between two. The tree's own root is exempt --- it is
+        never scanned for its own \texttt{.cgs}, since that would recurse ---
+        so a root holding two \texttt{.cgs} files works fine until the day
+        someone mounts it. The error names both files and how to resolve it.
   \item \texttt{disabled} does not inspect the repository for nested config.
   \item A relative path ending in \texttt{.cgs} loads that exact file inside
         the repository, failing if it does not exist. It may not escape the

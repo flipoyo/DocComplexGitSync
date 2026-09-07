@@ -1,8 +1,12 @@
-# CGS integration topology root. Defaults: main, ssh, nested auto, and each
+# CGS integration topology root. Defaults: ssh, nested auto, and each
 # repository name as its relative path. ComplexGitSync matches the project name, so
 # normalization mounts it at ".".
+#
+# default_branch is stated rather than inherited from DEFAULT_BRANCH in the
+# source: DocSpec below is pinned to whatever this line says, and a reader of
+# this file alone must be able to tell which branch that is.
 
-project = "docsCGS"
+project = { name = "docsCGS", default_branch = "main" }
 
 repos = [  
     
