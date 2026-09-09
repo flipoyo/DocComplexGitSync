@@ -734,9 +734,9 @@ fallback branch differs from that target, since a fallback equal to the
 target says nothing. Use \texttt{--depth} to limit visible levels and repeat
 \texttt{--collapse} to hide selected subtrees.
 
-On a tree with pinned mounts, \texttt{br=} is where you see pinning at work:
-the unpinned repositories carry the branch you moved the tree to, and each
-pinned mount still shows its own.
+On a tree with private mounts, \texttt{br=} is where you see pinning at work:
+the unprivate repositories carry the branch you moved the tree to, and each
+private mount still shows its own.
 
 \textbf{Branch Topology Propagation Rules (T35):}
 
@@ -773,9 +773,9 @@ of repository each row is and whether you may write to it:
 \begin{tabular}{lll}
 \textbf{Shown} & \textbf{Means} & \textbf{In the \texttt{.cgs}} \\
 \hline
-\texttt{project}         & this project's own; write freely       & no \texttt{pinned} \\
-\texttt{private/local}   & shared, and yours to write             & \texttt{pinned, writable} \\
-\texttt{private/distant} & shared, read-only                      & \texttt{pinned} alone \\
+\texttt{project}         & this project's own; write freely       & no \texttt{private} \\
+\texttt{private/local}   & shared, and yours to write             & \texttt{private, writable} \\
+\texttt{private/distant} & shared, read-only                      & \texttt{private} alone \\
 \end{tabular}
 \end{center}
 
@@ -1018,7 +1018,7 @@ sends every repository somewhere.
 \texttt{project.default\_branch}  & the \texttt{project} table & \texttt{main} \\
 \texttt{repos[].default\_branch}  & one repository entry & the project's \\
 \texttt{repos[].fallback\_branch} & one repository entry & that repository's own \\
-\texttt{repos[].pinned}           & one repository entry & \texttt{false} \\
+\texttt{repos[].private}           & one repository entry & \texttt{false} \\
 \texttt{repos[].writable}         & one repository entry & \texttt{false} \\
 \end{tabular}
 \end{center}
@@ -1043,37 +1043,37 @@ see the branch the tree lands on without knowing what \cgscli{}'s built-in
 default happens to be. Every \texttt{.cgs} shipped with ComplexGitSync does
 this, and a test enforces it.
 
-\subsubsection{What \texttt{pinned} means}
+\subsubsection{What \texttt{private} means}
 
-A repository is \texttt{pinned} when it is \textbf{shared with other
+A repository is \texttt{private} when it is \textbf{shared with other
 projects} and must stay on its own branch.
 
 \begin{center}
-\emph{Branch moves stop at a pinned repository. Tags do not.}
+\emph{Branch moves stop at a private repository. Tags do not.}
 \end{center}
 
 \texttt{cgitsync branch <name>} and \texttt{cgitsync checkout <name>} skip
-a pinned repository and leave it on its declared
+a private repository and leave it on its declared
 \texttt{default\_branch}, because moving it would drag every other project
 that mounts it onto your branch.
 
 \subsubsection{Read-only and writable configuration repositories}
 
-A pinned repository is a \textbf{configuration repository}: shared with
-other projects rather than owned by this one. \texttt{pinned = true} alone
+A private repository is a \textbf{configuration repository}: shared with
+other projects rather than owned by this one. \texttt{private = true} alone
 means \textbf{read-only} --- \cgscli{} will not write to it. Add
 \texttt{writable = true} for the case where the repository lives outside
 your project but the part you use is yours, normally because it sits on a
 branch named after your project that nobody else reads:
 
 \begin{lstlisting}
-{ repository = "github:you/.sharedSpec", default_branch = "main", pinned = true },
-{ repository = "github:you/.myNotes", default_branch = "MyProject", pinned = true, writable = true },
+{ repository = "github:you/.sharedSpec", default_branch = "main", private = true },
+{ repository = "github:you/.myNotes", default_branch = "MyProject", private = true, writable = true },
 \end{lstlisting}
 
 Read-only is the default because the expensive mistake is writing to
 something shared by accident, never the reverse. \texttt{writable = true}
-on an unpinned repository is rejected at validation: an unpinned repository
+on an unprivate repository is rejected at validation: an unprivate repository
 is this project's own and is always writable.
 
 This is a \textbf{safety rail, not a permission system}. It stops a
@@ -1124,7 +1124,7 @@ configuration repository is read-only, even when its own entry says
 nothing about it}. One inside a writable configuration repository is
 writable, and \texttt{--private} reaches it.
 
-A nested entry may restrict itself further --- writing \texttt{pinned =
+A nested entry may restrict itself further --- writing \texttt{private =
 true} on its own line, with no \texttt{writable}, makes it read-only
 inside a writable parent. It cannot go the other way: \texttt{writable =
 true} inside a read-only configuration repository is ignored, because a
@@ -1149,7 +1149,7 @@ the repositories it is about to touch. A configuration repository that is
 behind its upstream, or sitting on its own branch, never blocks a
 \texttt{commit} of this project's own work --- that repository is not part
 of the commit. Under \texttt{--private} it is in scope, and its branch is
-then checked against the branch it is \emph{pinned} to, not against the
+then checked against the branch it is \emph{private} to, not against the
 one the project is on.
 
 \texttt{--private} is exclusive, not additive: it selects \emph{only} the
@@ -1170,16 +1170,16 @@ exact tree is rebuilt from the snapshot rather than from tags.
 
 In practice shared config mounts are usually dot-named
 (\texttt{.agentSpec}, \texttt{.localSpec}), and \texttt{cgitsync discover}
-drafts a dot-named repository with \texttt{pinned = true} for that reason.
+drafts a dot-named repository with \texttt{private = true} for that reason.
 The rule is \emph{shared}, not \emph{hidden}, though: a plainly named
-repository that two projects mount should be pinned too.
+repository that two projects mount should be private too.
 
-\textbf{The branch a repository is pinned to decides who sees your commits.}
-A mount pinned to a branch named after your own project is yours to push
-freely. A mount pinned to \texttt{main} is read by every project that mounts
+\textbf{The branch a repository is private to decides who sees your commits.}
+A mount private to a branch named after your own project is yours to push
+freely. A mount private to \texttt{main} is read by every project that mounts
 it, so a commit there is published the moment it is pushed --- no branch, no
 pull request, no review. Check which of the two you are looking at before
-committing to a pinned mount.
+committing to a private mount.
 
 \subsubsection{The two meanings of ``force''}
 

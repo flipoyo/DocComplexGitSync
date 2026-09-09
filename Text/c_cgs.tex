@@ -441,27 +441,29 @@ repos = [
 % =======================================================================
 % COMPLETE FIELD REFERENCE
 % =======================================================================
-\subsection{Pinned Repositories}
-\label{subsec:cgs-pinned}
+\subsection{Private Repositories}
+\label{subsec:cgs-private}
 
-Tree-wide commands --- \texttt{branch}, \texttt{checkout}, \texttt{pull} and
-\texttt{pull-force} --- normally drive every repository in the tree onto one
-branch. That is the right behaviour when every repository belongs to the
-project. It is the wrong behaviour when a repository is \emph{shared}: a
-specification repository mounted by several projects, or one whose branch
-carries a single project's identity. Creating a project's feature branch
-inside a repository that other projects also mount pollutes them all.
+A tree holds two kinds of repository. \textbf{Project repos} are the work
+itself and follow the project's branch. \textbf{Private repos} are how the
+project is run --- pipelines, agent instructions, house rules --- and are
+shared with the author's other projects, so they must not follow it:
+creating a project's feature branch inside a repository other projects also
+mount pollutes them all.
 
-Setting \texttt{pinned = true} keeps a repository on its own
-\texttt{default\_branch}:
+Setting \texttt{private = true} keeps a repository off the project's
+branch. Adding \texttt{writable = true} makes it \textbf{private/local} ---
+this project's own settings, on a branch named after the project, which
+\cgscli{} may write to. Without it the repository is
+\textbf{private/distant}: read-only, because it belongs to someone else.
 
 \begin{lstlisting}
 repos = [
     "github:flipoyo/ComplexGitSync",
     { repository = "github:flipoyo/.agentSpec", default_branch = "main",
-      nested_config = "auto", pinned = true },
+      nested_config = "auto", private = true },
     { repository = "github:flipoyo/.localSpec", default_branch = "MyProject",
-      fallback_branch = "main", pinned = true },
+      fallback_branch = "main", private = true, writable = true },
 ]
 \end{lstlisting}
 
@@ -473,9 +475,9 @@ tree's.
 
 Two limits are worth knowing. Pinning governs \emph{branch} propagation
 only: restoring a frozen release with \texttt{launch-release} puts every
-repository back on the commit the snapshot records, pinned or not, so a
+repository back on the commit the snapshot records, private or not, so a
 release stays reproducible. And a repository declared in a \emph{nested}
-\.cgs is pinned by that file, which lives in the repository that owns it ---
+\.cgs is private by that file, which lives in the repository that owns it ---
 pinning it means publishing that change there, not in the parent project.
 
 \subsection{Complete Reference: All Recognized Fields}
@@ -517,7 +519,7 @@ pinning it means publishing that change there, not in the parent project.
 \texttt{access\_protocol} & string & no & \texttt{"ssh"} \\
 \texttt{relative\_path} & string & no & repo name (or "." if matches project) \\
 \texttt{nested\_config} & string & no & \texttt{"auto"} \\
-\texttt{pinned} & boolean & no & \texttt{false} \\
+\texttt{private} & boolean & no & \texttt{false} \\
 \texttt{gitprovider\_url} & string & no** & — \\ \hline
 \end{tabular}
 \end{center}

@@ -11,5 +11,5 @@ project = { name = "docsCGS", default_branch = "main" }
 repos = [  
     
     { repository = "github:flipoyo/DocComplexGitSync", relative_path = "."},
-    { repository = "github:flipoyo/DocSpec", nested_config = "disabled", pinned = true },
+    { repository = "github:flipoyo/DocSpec", nested_config = "disabled", private = true },
 ]
