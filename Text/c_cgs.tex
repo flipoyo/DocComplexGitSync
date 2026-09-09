@@ -473,12 +473,13 @@ With that in place, \texttt{cgitsync branch feature-x} creates
 \texttt{cgitsync pull} still updates them, on that branch rather than the
 tree's.
 
-Two limits are worth knowing. Pinning governs \emph{branch} propagation
+Two limits are worth knowing. Privacy governs \emph{branch} propagation
 only: restoring a frozen release with \texttt{launch-release} puts every
 repository back on the commit the snapshot records, private or not, so a
 release stays reproducible. And a repository declared in a \emph{nested}
 \.cgs is private by that file, which lives in the repository that owns it ---
-pinning it means publishing that change there, not in the parent project.
+making it private means publishing that change there, not in the parent
+project.
 
 \subsection{Complete Reference: All Recognized Fields}
 \label{subsec:cgs-fields}

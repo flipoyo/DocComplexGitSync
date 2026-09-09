@@ -734,9 +734,9 @@ fallback branch differs from that target, since a fallback equal to the
 target says nothing. Use \texttt{--depth} to limit visible levels and repeat
 \texttt{--collapse} to hide selected subtrees.
 
-On a tree with private mounts, \texttt{br=} is where you see pinning at work:
-the unprivate repositories carry the branch you moved the tree to, and each
-private mount still shows its own.
+On a tree with private mounts, \texttt{br=} is where you see privacy at
+work: the project's own repositories carry the branch you moved the tree to,
+and each private mount still shows its own.
 
 \textbf{Branch Topology Propagation Rules (T35):}
 
@@ -1073,8 +1073,8 @@ branch named after your project that nobody else reads:
 
 Read-only is the default because the expensive mistake is writing to
 something shared by accident, never the reverse. \texttt{writable = true}
-on an unprivate repository is rejected at validation: an unprivate repository
-is this project's own and is always writable.
+on a repository that is not private is rejected at validation: such a
+repository is this project's own and is always writable.
 
 This is a \textbf{safety rail, not a permission system}. It stops a
 tree-wide sweep from writing where you did not mean; it cannot stop anyone
@@ -1107,16 +1107,17 @@ Without this, one settings branch serves every branch of the project, and
 documentation written for an unfinished feature is live on the default
 branch describing code that is not there.
 
-\paragraph{\texttt{--private} everywhere.} Every command that touches Git
-takes it: \texttt{clone} aside, that is \texttt{pull},
-\texttt{pull-force}, \texttt{checkout}, \texttt{branch}, \texttt{add},
-\texttt{rm}, \texttt{commit}, \texttt{push}, \texttt{merge},
-\texttt{tag} and \texttt{freeze}. It narrows the command to the writable
+\paragraph{Which commands take \texttt{--private}.} Eleven of them:
+\texttt{pull}, \texttt{pull-force}, \texttt{checkout}, \texttt{branch},
+\texttt{add}, \texttt{rm}, \texttt{commit}, \texttt{merge},
+\texttt{push}, \texttt{tag} and \texttt{freeze}. The commands that act on
+the tree as a whole --- \texttt{clone}, \texttt{initialise},
+\texttt{freeze-release} and \texttt{launch-release} --- do not take it. It narrows the command to the writable
 configuration repositories alone, so they can be worked on without
 reaching for plain \texttt{git}. Read-only configuration repositories are
 never written to, with or without it.
 
-\paragraph{A pin covers everything inside it.} A configuration repository
+\paragraph{Privacy covers everything inside it.} A private repository
 often holds repositories of its own, reached through its nested
 \texttt{.cgs}. Those are just as shared as the repository holding them, so
 they inherit its state: \textbf{a repository inside a read-only

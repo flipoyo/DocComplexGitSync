@@ -159,6 +159,47 @@ client.git(registry, "tag", "v1.2.3")
 client.freeze("release-2026.05")
 \end{lstlisting}
 
+\section{The Minimalist Workflow and the Read-Only Views}
+
+The CLI's minimalist commands are client methods too, so a script can run
+the same release in one call and print the same views.
+
+\texttt{freeze\_release(release\_name, commit\_message=None, output\_gts=None,
+message=None, stage\_all=True, force=False, force\_access\_protocol=None)}
+runs add, commit, pull, push and freeze in that order from a READY tree and
+returns the resulting \texttt{WorkingGitTree}.  It is what
+\texttt{cgitsync freeze-release} calls.  There is no separate
+\texttt{freeze\_release\_force} method: \texttt{force=True} selects the
+destructive \texttt{pull-force} in the middle of the sequence, which is
+exactly what \texttt{cgitsync freeze-release-force} passes.
+
+\texttt{launch\_release(release\_name)} checks out a frozen release tag
+across the current READY tree and returns the tree.  Because a tag reaches
+every repository, private ones included, the tree it restores is the tree
+the snapshot recorded.
+
+\texttt{status()} and \texttt{view\_tree(depth=None, collapse=())} return
+their reports as strings rather than printing them, so a caller can assert
+on them or route them somewhere other than a terminal.  \texttt{status()}
+returns the readiness and sync table; \texttt{view\_tree()} returns the
+topology outline, with \texttt{depth} limiting visible levels and
+\texttt{collapse} naming subtrees to hide.  Neither writes to any
+repository, so both are safe to call at any point.
+
+\begin{lstlisting}[language=Python]
+client = ComplexGitSyncClient()
+client.load("install.cgs")
+
+print(client.status())
+print(client.view_tree(depth=2))
+
+client.freeze_release("2026.05", "feat: spring release")
+# The destructive variant, matching 'cgitsync freeze-release-force':
+client.freeze_release("2026.06", "fix: resync", force=True)
+
+client.launch_release("2026.05")
+\end{lstlisting}
+
 \section{Landing a Branch: \texttt{merge} and \texttt{refresh\_private}}
 
 \texttt{merge(project\_branch, private=False, ff\_only=False, no\_ff=False)}
