@@ -1089,25 +1089,32 @@ it holds settings that configure \emph{your} project and you commit to it,
 so it needs somewhere to record them per project branch.
 
 \begin{center}
-\texttt{<the branch the entry declares>\_<the branch the project is on>}
+\texttt{<project name>} on \texttt{main}, \quad
+\texttt{<project name>\_<branch>} on any other branch
 \end{center}
 
-With the project on \texttt{multi-branch}, an entry declaring
-\texttt{default\_branch = "ComplexGitSync"} is checked out on
-\texttt{ComplexGitSync\_multi-branch}. The separator is an underscore
-because hyphens already occur inside branch names.
+The base is the **project's** name. \texttt{main} takes no suffix, because
+the project's main line's settings branch is simply the project's name ---
+which is what every existing tree already has, so nothing has to move. The
+separator is an underscore because hyphens already occur inside branch
+names.
+
+A user never types the derived name. \texttt{cgitsync checkout <branch>}
+puts the project's own repositories on that branch and each private/local
+one on the branch this rule names, creating it when it is missing.
 
 Without this, one settings branch serves every branch of the project, and
 documentation written for an unfinished feature is live on the default
 branch describing code that is not there.
 
-The derived branch is a \textbf{target, not a demand}: until it exists,
-resolution falls back through the entry's own chain, so an existing tree
-behaves exactly as it did.
-
-\texttt{cgitsync branch <name>} is the only command that creates it.
-\texttt{cgitsync checkout} deliberately does not: moving a tree must never
-quietly create a branch in a repository shared with other projects.
+\paragraph{\texttt{--private} everywhere.} Every command that touches Git
+takes it: \texttt{clone} aside, that is \texttt{pull},
+\texttt{pull-force}, \texttt{checkout}, \texttt{branch}, \texttt{add},
+\texttt{rm}, \texttt{commit}, \texttt{push}, \texttt{merge},
+\texttt{tag} and \texttt{freeze}. It narrows the command to the writable
+configuration repositories alone, so they can be worked on without
+reaching for plain \texttt{git}. Read-only configuration repositories are
+never written to, with or without it.
 
 \paragraph{A pin covers everything inside it.} A configuration repository
 often holds repositories of its own, reached through its nested
