@@ -1003,6 +1003,20 @@ tree-wide sweep from writing where you did not mean; it cannot stop anyone
 running \texttt{git} in that directory by hand, and it is no substitute
 for branch protection on the remote.
 
+\paragraph{A pin covers everything inside it.} A configuration repository
+often holds repositories of its own, reached through its nested
+\texttt{.cgs}. Those are just as shared as the repository holding them, so
+they inherit its state: \textbf{a repository inside a read-only
+configuration repository is read-only, even when its own entry says
+nothing about it}. One inside a writable configuration repository is
+writable, and \texttt{--private} reaches it.
+
+A nested entry may restrict itself further --- writing \texttt{pinned =
+true} on its own line, with no \texttt{writable}, makes it read-only
+inside a writable parent. It cannot go the other way: \texttt{writable =
+true} inside a read-only configuration repository is ignored, because a
+repository can never be more open than the one that contains it.
+
 \subsubsection{Which repositories each command touches}
 
 \begin{center}
@@ -1016,6 +1030,14 @@ the same, \texttt{--private}                   & writable config repos  & shared
 \texttt{clone}, \texttt{pull}, \texttt{status}  & everything             & reading a shared repo is the point \\
 \end{tabular}
 \end{center}
+
+\paragraph{Preflight follows the same scope.} Each command checks only
+the repositories it is about to touch. A configuration repository that is
+behind its upstream, or sitting on its own branch, never blocks a
+\texttt{commit} of this project's own work --- that repository is not part
+of the commit. Under \texttt{--private} it is in scope, and its branch is
+then checked against the branch it is \emph{pinned} to, not against the
+one the project is on.
 
 \texttt{--private} is exclusive, not additive: it selects \emph{only} the
 writable configuration repositories, so a shared repository gets its own
