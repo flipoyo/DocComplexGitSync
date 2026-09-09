@@ -159,6 +159,34 @@ client.git(registry, "tag", "v1.2.3")
 client.freeze("release-2026.05")
 \end{lstlisting}
 
+\section{Landing a Branch: \texttt{merge} and \texttt{refresh\_private}}
+
+\texttt{merge(project\_branch, private=False, ff\_only=False, no\_ff=False)}
+merges a branch across the tree, leaf-first, and returns one
+\texttt{(repo\_name, merged\_ref)} pair per repository a merge moved.
+
+The argument is always the \textbf{project's} branch name. Each repository
+resolves what that means for itself, so a private/local configuration
+repository merges \texttt{<its default\_branch>\_<project\_branch>} rather
+than a branch of the project's name, which it does not have.
+\texttt{merge\_plan(project\_branch, private=False)} returns the same pairs
+without merging anything --- what the CLI's \texttt{--dry-run} prints.
+
+Every repository in scope is checked before any is merged, so a conflict
+anywhere leaves the whole tree untouched.
+
+\texttt{refresh\_private()} is the other direction, and what
+\texttt{pull --private} runs: it fetches and merges each private/local
+repository's base branch into the derived branch it is on, so a settings
+branch does not drift behind the project's while a feature branch is open.
+
+\begin{lstlisting}[language=Python]
+client.merge("multi-branch")                  # the project's own repos
+client.merge("multi-branch", private=True)    # ComplexGitSync_multi-branch
+                                              #   -> ComplexGitSync
+client.refresh_private()                      # the other way round
+\end{lstlisting}
+
 \section{Targeting a Single Path: \texttt{add} and \texttt{remove}}
 
 \texttt{add(paths=None)} and \texttt{remove(paths)} accept one or more

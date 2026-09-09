@@ -790,6 +790,52 @@ private one is shown the same way, because it is just as shared.
 to a \texttt{private/distant} row. When any private row is present, the
 table prints a legend saying so.
 
+\subsection{\texttt{merge}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync merge <branch> [--private] [--ff-only|--no-ff] [--dry-run]
+\end{lstlisting}
+
+Merges a branch across the tree, leaf-first. The argument is always the
+\textbf{project's} branch; each repository works out what that means for
+itself. A project-owned repository merges that branch. A private/local
+repository merges the branch derived from it
+(\texttt{<base>\_<branch>}), because that is where its settings for that
+project branch live --- it has no branch of the project's own name at all.
+
+\texttt{--private} merges the writable configuration repositories instead
+of the project's own. Read-only ones are never merged.
+
+\begin{center}
+\emph{A conflict in any repository leaves no repository merged.}
+\end{center}
+
+Every repository in scope is checked before any is merged, using a
+read-only test that touches neither worktree nor index. A tree-wide merge
+that stopped halfway would leave a workspace no \texttt{.gts} describes
+and no command undoes, so it is prevented rather than reported.
+\texttt{--dry-run} prints the plan --- and, importantly, the branch each
+repository would actually merge.
+
+Landing a feature branch is therefore two commands:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync merge multi-branch
+$ pixi run cgitsync merge --private multi-branch
+\end{lstlisting}
+
+\subsection{\texttt{pull --private}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync pull --private
+\end{lstlisting}
+
+The other direction. While a project feature branch is open, work lands on
+a private/local repository's base branch and its derived branch does not
+see it. This fetches and merges the base branch into each one, so a
+settings branch does not drift behind the project's. A repository already
+on its base branch has nothing to take.
+
 % -----------------------------------------------------------------------
 \section{Document Formats}
 
@@ -1027,6 +1073,31 @@ This is a \textbf{safety rail, not a permission system}. It stops a
 tree-wide sweep from writing where you did not mean; it cannot stop anyone
 running \texttt{git} in that directory by hand, and it is no substitute
 for branch protection on the remote.
+
+\paragraph{A private/local repository gets a branch per project branch.}
+A private/distant repository is private to its owner: you read it, only that
+owner writes to it, and nothing you do moves it --- so a branch move leaves
+it exactly where it is. A private/local repository is the opposite case:
+it holds settings that configure \emph{your} project and you commit to it,
+so it needs somewhere to record them per project branch.
+
+\begin{center}
+\texttt{<the branch the entry declares>\_<the branch the project is on>}
+\end{center}
+
+With the project on \texttt{multi-branch}, an entry declaring
+\texttt{default\_branch = "ComplexGitSync"} is checked out on
+\texttt{ComplexGitSync\_multi-branch}. The separator is an underscore
+because hyphens already occur inside branch names.
+
+Without this, one settings branch serves every branch of the project, and
+documentation written for an unfinished feature is live on the default
+branch describing code that is not there.
+
+The derived branch is a \textbf{target, not a demand}: until it exists,
+resolution falls back through the entry's own chain, so an existing tree
+behaves exactly as it did. \texttt{cgitsync branch} creates it
+deliberately.
 
 \paragraph{A pin covers everything inside it.} A configuration repository
 often holds repositories of its own, reached through its nested
