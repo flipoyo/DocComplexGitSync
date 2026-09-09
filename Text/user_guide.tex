@@ -815,7 +815,14 @@ read-only test that touches neither worktree nor index. A tree-wide merge
 that stopped halfway would leave a workspace no \texttt{.gts} describes
 and no command undoes, so it is prevented rather than reported.
 \texttt{--dry-run} prints the plan --- and, importantly, the branch each
-repository would actually merge.
+repository would actually merge, and whether it would merge at all.
+
+\paragraph{Check out the target first.} \texttt{merge} brings a branch
+\emph{into} the one the tree is on, exactly as \texttt{git merge} does.
+Running \texttt{cgitsync merge multi-branch} while the tree is still on
+\texttt{multi-branch} would merge it into itself --- which Git reports as
+success while doing nothing --- so \cgscli{} refuses and says to check out
+the target branch first.
 
 Landing a feature branch is therefore two commands:
 
@@ -1096,8 +1103,11 @@ branch describing code that is not there.
 
 The derived branch is a \textbf{target, not a demand}: until it exists,
 resolution falls back through the entry's own chain, so an existing tree
-behaves exactly as it did. \texttt{cgitsync branch} creates it
-deliberately.
+behaves exactly as it did.
+
+\texttt{cgitsync branch <name>} is the only command that creates it.
+\texttt{cgitsync checkout} deliberately does not: moving a tree must never
+quietly create a branch in a repository shared with other projects.
 
 \paragraph{A pin covers everything inside it.} A configuration repository
 often holds repositories of its own, reached through its nested
