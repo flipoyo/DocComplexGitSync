@@ -82,7 +82,7 @@ inspection aliases such as \texttt{print}, \texttt{view-operation}, and
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync initialise <spec.cgs> [--output-path DIR] [--commit-gitignore]
     [--force-gitignore-sync] [--git-user-name NAME] [--git-user-email EMAIL]
-    [--force-protocol {ssh,https}]
+    [--force-protocol {ssh,https}] [--force-reclone]
 $ pixi run cgitsync initialise <snapshot.gts>
 $ pixi run cgitsync initialise --project NAME --repo PROVIDER:OWNER/REPO [--repo ...] [--output-path DIR]
 \end{lstlisting}
@@ -109,6 +109,24 @@ Unified initialisation entry point.  Dispatches on file extension:
 \end{itemize}
 
 All initialization paths end in a \texttt{READY} tree or fail explicitly.
+
+\paragraph{\texttt{initialise} re-clones your dependencies.} Only the root
+repository at \texttt{CGSHOME} is kept as it is. Every repository below it
+whose directory already holds files is \textbf{deleted and cloned again}. The
+old \texttt{.git} goes with it, so nothing in that directory can be recovered
+once the run has passed that point.
+
+Before deleting anything, \texttt{initialise} inspects each destination and
+stops the whole run when one of them holds work that exists nowhere else:
+uncommitted changes, commits that have not been pushed to the branch's
+upstream, or a branch with no upstream at all. It names every repository that
+blocked it, in one message, and deletes none of them. The two ways forward
+are to commit and push that work, or to pass \texttt{--force-reclone} and
+delete it deliberately.
+
+A destination that is not a Git checkout at all --- what a clone interrupted
+halfway leaves behind --- is still cleared without any flag. That is the case
+the deletion was written for, and it still works.
 
 Before a \texttt{.cgs} source is confirmed ready, every repository with
 children (root, or any nested repository that itself has further nested
