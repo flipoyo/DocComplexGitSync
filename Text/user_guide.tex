@@ -811,7 +811,7 @@ table prints a legend saying so.
 \subsection{\texttt{merge}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync merge <branch> [--private] [--ff-only|--no-ff] [--dry-run]
+$ pixi run cgitsync merge <branch> [--private] [--ff-only|--no-ff] [--dry-run] [--resolve]
 \end{lstlisting}
 
 Merges a branch across the tree, leaf-first. The argument is always the
@@ -834,6 +834,38 @@ that stopped halfway would leave a workspace no \texttt{.gts} describes
 and no command undoes, so it is prevented rather than reported.
 \texttt{--dry-run} prints the plan --- and, importantly, the branch each
 repository would actually merge, and whether it would merge at all.
+
+\paragraph{The refusal names the files.} When \cgscli{} refuses, it names
+every blocked repository and, under each, every file that conflicts:
+
+\begin{lstlisting}[language=bash]
+merge refused; no repository was merged: ComplexGitSync: tests/unit/test_documents.py
+\end{lstlisting}
+
+A file that both branches changed is only listed when it genuinely
+conflicts. Binary files count: a tracked PDF changed on both sides
+conflicts just as a source file does, and is reported the same way.
+\texttt{--dry-run} shows the same list without merging.
+
+\paragraph{\texttt{--resolve}: fix the conflict instead of reading about
+it.} \texttt{--resolve} merges one repository at a time and stops at the
+first that conflicts, then opens that repository in your merge tool.
+
+\begin{center}
+\emph{\texttt{--resolve} gives up the guarantee above.}
+\end{center}
+
+Repositories merged before the conflict stay merged, so the tree can be
+left partly merged. That is the price of reaching a conflicted worktree at
+all, and it is why this is opt-in: the command prints the warning before it
+writes anything, then names what it merged, where it stopped, and which
+repositories it never reached.
+
+Your own \texttt{merge.tool} is used whenever you have configured one.
+Otherwise VS Code is suggested when it is available, passed for that one
+call --- your Git configuration is never written. With no merge tool
+available at all, the command prints the command to run by hand and stops,
+rather than failing.
 
 \paragraph{Check out the target first.} \texttt{merge} brings a branch
 \emph{into} the one the tree is on, exactly as \texttt{git merge} does.

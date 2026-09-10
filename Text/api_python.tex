@@ -169,11 +169,31 @@ The argument is always the \textbf{project's} branch name. Each repository
 resolves what that means for itself, so a private/local configuration
 repository merges \texttt{<its default\_branch>\_<project\_branch>} rather
 than a branch of the project's name, which it does not have.
-\texttt{merge\_plan(project\_branch, private=False)} returns the same pairs
-without merging anything --- what the CLI's \texttt{--dry-run} prints.
+\texttt{merge\_plan(project\_branch, private=False)} returns one
+\texttt{(repo\_name, source\_ref, status, conflicting\_paths)} row per
+repository without merging anything --- what the CLI's \texttt{--dry-run}
+prints. \texttt{status} is \texttt{"merge"}, \texttt{"already-on-it"},
+\texttt{"no-branch"} or \texttt{"conflicts"}, and the last one carries the
+files that block it.
 
 Every repository in scope is checked before any is merged, so a conflict
-anywhere leaves the whole tree untouched.
+anywhere leaves the whole tree untouched. The check names the conflicting
+files, and counts binary files: a tracked PDF changed on both sides
+conflicts just as a source file does.
+
+\texttt{merge\_resolve(project\_branch, private=False, ff\_only=False,
+no\_ff=False)} is the opt-in alternative. It merges one repository at a
+time, stops at the first that conflicts, and returns a
+\texttt{ResolveOutcome} naming what it merged, where it stopped, the files
+that stopped it, and the repositories it never reached. It gives up the
+all-or-nothing guarantee on purpose: that is the only way to reach the
+conflicted worktree a merge tool needs.
+
+\texttt{open\_merge\_tool(repo\_name)} then opens one repository's conflicts
+in a merge tool. It returns \texttt{None} once the tool has run, or the
+command to run by hand when no tool is available --- a missing editor is a
+normal outcome, not an error. A \texttt{merge.tool} you configured always
+wins, and your Git configuration is never written.
 
 \texttt{refresh\_private()} is the other direction, and what
 \texttt{pull --private} runs: it fetches and merges each private/local
