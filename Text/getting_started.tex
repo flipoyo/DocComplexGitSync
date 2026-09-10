@@ -83,8 +83,8 @@ load the sole root-level \texttt{*.cgs}, \texttt{disabled} to stop discovery,
 or a relative \texttt{.cgs} path to select an exact file inside the repository.
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync validate examples/complexgitsync.cgs
-$ pixi run cgitsync view-tree examples/complexgitsync.cgs
+$ pixi run cgitsync validate install.cgs
+$ pixi run cgitsync view-tree install.cgs
 \end{lstlisting}
 
 A valid declared tree prints a lifecycle line such as:
@@ -102,7 +102,7 @@ snapshot under \texttt{<workspace>/.cgitsync/state/}, and leaves the tree
 \texttt{READY}.
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync initialise examples/complexgitsync.cgs
+$ pixi run cgitsync initialise install.cgs
 \end{lstlisting}
 
 The same canonical project definition can be authored directly. The
@@ -123,7 +123,7 @@ default \texttt{CGSPATH=../..}, then derives
 \texttt{CGSHOME=CGSPATH/<project-name>}. The explicit equivalent is:
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync initialise examples/complexgitsync.cgs --output-path "$CGSPATH"
+$ pixi run cgitsync initialise install.cgs --output-path "$CGSPATH"
 \end{lstlisting}
 
 From a previously generated snapshot (resolved automatically via the
@@ -148,7 +148,7 @@ If a stale partial checkout blocks the clone step,
 phase between validation and cloning:
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync clean-init examples/complexgitsync.cgs
+$ pixi run cgitsync clean-init install.cgs
 \end{lstlisting}
 
 The explicit operation sequence is
@@ -157,7 +157,7 @@ the matching workflow is \texttt{load->expand->validate->purge->clone->gitignore
 The purge phase can also be run on its own:
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync purge examples/complexgitsync.cgs
+$ pixi run cgitsync purge install.cgs
 \end{lstlisting}
 
 \texttt{purge} removes generated clone state from \texttt{CGSHOME}: immediate

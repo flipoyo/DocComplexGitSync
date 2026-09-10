@@ -1,7 +1,7 @@
 % worked_examples.tex — step-by-step runbooks for the checked-in examples/*
 % topologies, ordered from the easiest to the most advanced. Companion to,
 % not a repeat of, the per-command reference in Text/user_guide.tex and the
-% narrative tutorials under docs/tutorials/: this section gives the exact
+% narrative tutorials under tutorials/: this section gives the exact
 % command sequence for each topology and explains what changes between
 % them, and points to those other documents for flag semantics and full
 % expected-output transcripts.
@@ -9,12 +9,16 @@
 \section{Worked Examples: From \texttt{CGSil1} to \texttt{cawaqsviz}}
 \label{sec:worked-examples}
 
-\cgspkg{} ships four checked-in \texttt{examples/} topologies, and a
-same-numbered tutorial under \texttt{docs/tutorials/} for each level below
-(\texttt{docs/tutorials/README.md} lists all three in order). Run through
-them in order: each one adds exactly one new idea on top of the last, so
-together they form a guided path from the simplest possible \texttt{.cgs}
-to a real project with no \texttt{.cgs} of its own at all.
+\cgspkg{} ships a same-numbered tutorial under \texttt{tutorials/} for
+each level below (\texttt{tutorials/README.md} lists them in order). Run
+through them in order: each one adds exactly one new idea on top of the
+last, so together they form a guided path from the simplest possible
+\texttt{.cgs} to a real project with no \texttt{.cgs} of its own at all.
+
+Levels~2 and~3 have their \texttt{.cgs} checked in under
+\texttt{examples/}. Level~1 does not: \texttt{CGSil1.cgs} lives in the
+\texttt{CGSil1} repository itself, which is what the transcript below
+clones.
 
 \textbf{Every command below is a Pixi task.} \cgscli{} is not a globally
 installed executable --- always run \texttt{pixi run cgitsync ...}, never a
@@ -50,7 +54,7 @@ level, it has no \texttt{.cgs} anywhere upstream to copy from.
 mixed-provider tree with every field left at its default. Its full
 \texttt{.cgs} and the rationale for each line are in \S\ref{chap:user-guide}
 ``Local Authoring Spec'' above;
-\texttt{docs/tutorials/01\_first\_multi\_repo\_workspace.md} carries the
+\texttt{tutorials/01\_first\_multi\_repo\_workspace.md} carries the
 full transcript with expected output for every step. What follows is the
 command sequence itself.
 
@@ -101,7 +105,7 @@ GitLab groups + one required build-tooling repo), instead of a synthetic
 \texttt{relative\_path = <repo\_name>}, so not a single \texttt{relative\_path}
 override is written anywhere in \texttt{examples/cawaqs.cgs} --- only the
 shared branch-fallback convention. Full narrative in
-\texttt{docs/tutorials/02\_onboarding\_a\_real\_build\_tree.md}.
+\texttt{tutorials/02\_onboarding\_a\_real\_build\_tree.md}.
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync validate examples/cawaqs.cgs
@@ -144,7 +148,7 @@ showing all three ways \cgspkg{} can produce a working \texttt{.cgs} for a
 project it does not already control the source of, ordered here by how much
 the operator has to already know about the tree before running the command.
 Full narrative, as one combined ten-step procedure rather than three
-independent routes, in \texttt{docs/tutorials/03\_adopting\_a\_real\_project.md}.
+independent routes, in \texttt{tutorials/03\_adopting\_a\_real\_project.md}.
 
 \subsubsection{3a --- Write it by hand}
 
@@ -237,7 +241,7 @@ root's own identity, and a checkout worth converting already has a
 or after \texttt{--apply}. The full before/after picture (index,
 \texttt{.gitmodules}, \texttt{.gitignore}) and the automated test that
 proves it against fixture repositories are in
-\texttt{docs/tutorials/03\_adopting\_a\_real\_project.md} \S4 --- this
+\texttt{tutorials/03\_adopting\_a\_real\_project.md} \S4 --- this
 level is the condensed command sequence, not a restatement of that
 walkthrough. \texttt{import-submodules} and \texttt{discover} answer
 different questions about the same tree: \texttt{discover} reports what is
