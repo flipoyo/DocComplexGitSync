@@ -148,6 +148,9 @@ registry = client.get_dependency_registry()
 # a command's snapshot argument is omitted) -- unlike a .cgs source, there is
 # no fixed, predictable filename to hard-code here.
 client.pull("../CGSil1.cgs")
+# pull() fetches every branch of each remote, so checkout() can join a branch
+# somebody else pushed: it starts the local branch from the remote-tracking
+# ref when one exists, and only otherwise from the current HEAD.
 client.checkout("feature/my-branch")
 # Mutations use LEAF -> PARENT -> ROOT.
 client.add()

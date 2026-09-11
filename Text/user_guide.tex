@@ -349,6 +349,12 @@ check out a frozen recorded release state instead of pulling current
 remotes.  If local changes block this safe pull, the CLI prints
 \texttt{You can try cgitsync pull-force command}.
 
+Before pulling your own branch, \texttt{pull} fetches \emph{every} branch
+of each remote. That is what lets \texttt{checkout} join a branch somebody
+else pushed rather than starting a new one of the same name (see
+\texttt{checkout} below). It also repairs a workspace whose clone left a
+single-branch fetch refspec behind, described under \texttt{clone}.
+
 For a \texttt{.cgs} source, \texttt{pull} also runs the same
 \texttt{.gitignore} lifecycle sync described under \texttt{initialise} ---
 including \texttt{--commit-gitignore}, \texttt{--force-gitignore-sync}, and
@@ -421,6 +427,15 @@ each repository targets and why. Nested \texttt{.cgs} files are discovered after
 are cloned, so explicit and automatic nested trees are materialised during the
 same command.
 
+\paragraph{What the clone leaves behind.} A clone still downloads one
+branch --- that is what keeps it quick. What it no longer does is
+\emph{remember} that restriction: it leaves no single-branch fetch refspec
+in \texttt{.git/config}, so a later \texttt{fetch} sees the whole remote
+rather than the one branch cloned. A workspace cloned before this still
+carries the narrow refspec; the first \texttt{pull} or \texttt{push} widens
+it, with no re-clone needed. \texttt{status} deliberately does not: it is a
+read-only command and never rewrites \texttt{.git/config}.
+
 \subsection{\texttt{checkout}}
 
 \begin{lstlisting}[language=bash]
@@ -431,6 +446,29 @@ Checks out a branch or tag across the whole tree, parent-first.
 Loads the READY registry from \texttt{--gts}, then propagates the ref,
 creates missing local branches, and runs \texttt{git checkout} in every repo.
 On success the tree remains \texttt{READY} and a new \texttt{.gts} snapshot is written.
+
+\paragraph{A branch this workspace already knows is joined, not recreated.}
+When the repository holds a remote-tracking ref for the branch --- because
+some earlier \texttt{pull} downloaded it --- \cgscli{} creates the local
+branch \emph{from that ref}, with tracking set. You land on your
+colleague's commits. Only when no such ref exists does it create a new
+branch where you currently stand.
+
+This is a change of behaviour, and the reason for it is the failure it
+removes. \cgscli{} used to create the branch at the current \texttt{HEAD}
+in every case and report \texttt{READY}/\texttt{ALIGNED} --- so typing a
+colleague's branch name gave you a branch of that name holding commits
+that had nothing to do with theirs, and nothing in the output said so.
+
+\texttt{pull} is what puts those refs on disk: it now fetches every branch
+of each remote before pulling your own. \texttt{checkout} itself still
+never touches the network, and still works offline --- it reads what the
+last \texttt{pull} brought.
+
+\begin{center}
+\emph{To join somebody else's branch: \texttt{pull}, then \texttt{checkout
+<their branch>}.}
+\end{center}
 
 \subsection{\texttt{add}}
 
@@ -807,6 +845,47 @@ private one is shown the same way, because it is just as shared.
 \texttt{--private} reaches the \texttt{private/local} rows; nothing writes
 to a \texttt{private/distant} row. When any private row is present, the
 table prints a legend saying so.
+
+\paragraph{The \texttt{SYNC} column.} It says how the branch a repository
+is on stands against the branch it tracks --- the one named in
+\texttt{UPSTREAM\_BRANCH}, which reads \texttt{-} when there is none. There
+are six values:
+
+\begin{center}
+\begin{tabular}{lp{10.5cm}}
+\textbf{Shown} & \textbf{Means} \\
+\hline
+\texttt{synced}            & Level with the upstream. \\
+\texttt{ahead(+N)}         & \texttt{N} commits here that the remote does
+                             not have. \texttt{push} sends them. \\
+\texttt{behind(-N)}        & \texttt{N} commits on the remote that are not
+                             here. \texttt{pull} fetches them. \\
+\texttt{diverged(+N/-M)}   & Both, from a common ancestor. \texttt{merge}
+                             or \texttt{pull-force} resolves it. \\
+\texttt{no-upstream}       & This branch was never pushed, so there is
+                             nothing to compare it to. Normal for a branch
+                             you just made, and for a \texttt{private/local}
+                             repository that only \texttt{push --private}
+                             ever sends. \\
+\texttt{unknown}           & The branch names an upstream that does not
+                             resolve. \texttt{pull} or \texttt{push} repairs
+                             it; if it persists, the remote is unreachable
+                             or the ref was deleted. \\
+\end{tabular}
+\end{center}
+
+The last two are worth telling apart. \texttt{no-upstream} is a normal
+state of a branch nobody has pushed yet; \texttt{unknown} is a fault. They
+used to share the one word \texttt{unknown}, which made the column not
+worth reading --- an ordinary new branch looked exactly like a broken one.
+
+\paragraph{\texttt{unmeasured} in the \texttt{summary} line.} The summary
+counts the \texttt{no-upstream} and \texttt{unknown} rows as
+\texttt{unmeasured}, separately from \texttt{ahead} and \texttt{behind}.
+Those rows were previously folded into \texttt{ahead=0 behind=0}, which
+reported a measurement nobody had taken. A repository nobody could measure
+is not a repository that is level, and the summary no longer says the
+second when it means the first.
 
 \subsection{\texttt{merge}}
 
