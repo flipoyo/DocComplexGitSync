@@ -1243,7 +1243,50 @@ takes it: \texttt{clone} aside, that is \texttt{pull},
 \texttt{tag} and \texttt{freeze}. It narrows the command to the writable
 configuration repositories alone, so they can be worked on without
 reaching for plain \texttt{git}. Read-only configuration repositories are
-never written to, with or without it.
+never written to, with or without it. Four of those commands also take
+\texttt{--all}, described next.
+
+\paragraph{\texttt{--all}: both halves, one command.} Running every write
+twice --- once plainly, once with \texttt{--private} --- is the right
+default when the two changes are different changes. When they are one
+change, \texttt{--all} does both halves in a single pass, under a single
+commit message. Four commands take it: \texttt{add}, \texttt{commit},
+\texttt{push} and \texttt{merge}.
+
+\begin{center}
+\begin{tabular}{ll}
+\textbf{Form} & \textbf{Reaches} \\
+\hline
+\texttt{cgitsync <cmd>}           & this project's own repositories \\
+\texttt{cgitsync <cmd> --private} & the writable configuration repositories \\
+\texttt{cgitsync <cmd> --all}     & both of the above, in one pass \\
+\end{tabular}
+\end{center}
+
+The plain form has not moved, so nothing an existing script runs changes
+meaning. \texttt{--all} and \texttt{--private} cannot be combined:
+\texttt{--all} already includes everything \texttt{--private} selects. No
+form of either writes to a read-only configuration repository --- ``all''
+means every repository \cgscli{} may write to, never every repository in
+the tree.
+
+The output still names the two halves apart, so giving up the typing does
+not mean giving up seeing which repository was written as what. On a tree
+with no writable configuration repository, \texttt{--all} does the project
+half and reports the other as empty; that is the common case, not a fault.
+An explicit \texttt{--private} on the same tree still stops, because there
+the user asked for something that is not there.
+
+\begin{center}
+\emph{\texttt{merge --all} checks every repository before merging any.}
+\end{center}
+
+That is why \texttt{--all} is one pass and never two. Two sequential merges
+mean two preflights: the project half would merge, the configuration half
+would then refuse, and the tree would be left half-merged --- exactly the
+state \texttt{merge}'s whole-scope check exists to prevent.
+\texttt{--dry-run} previews the same combined scope, and \texttt{--resolve}
+keeps its own warning and its deliberate partial progress.
 
 \paragraph{A pin covers everything inside it.} A configuration repository
 often holds repositories of its own, reached through its nested

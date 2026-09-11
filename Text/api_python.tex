@@ -207,8 +207,21 @@ branch does not drift behind the project's while a feature branch is open.
 client.merge("multi-branch")                  # the project's own repos
 client.merge("multi-branch", private=True)    # ComplexGitSync_multi-branch
                                               #   -> ComplexGitSync
+client.merge("multi-branch", all_writable=True)   # both halves, one pass
 client.refresh_private()                      # the other way round
 \end{lstlisting}
+
+\paragraph{\texttt{all\_writable}: the API half of \texttt{--all}.}
+\texttt{add}, \texttt{commit}, \texttt{push}, \texttt{merge},
+\texttt{merge\_resolve} and \texttt{merge\_plan} each take
+\texttt{all\_writable=False} alongside \texttt{private=False}. Setting it
+runs the call across this project's own repositories \emph{and} its
+writable configuration ones in a single pass. The two are mutually
+exclusive and passing both raises; leaving both unset keeps today's
+behaviour exactly. Read-only configuration repositories are never written
+to under any combination --- the parameter maps to
+\texttt{RepoScope.WRITABLE}, which is narrower than
+\texttt{RepoScope.ALL}.
 
 \section{Targeting a Single Path: \texttt{add} and \texttt{remove}}
 
