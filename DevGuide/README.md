@@ -15,11 +15,11 @@ ComplexGitSync. `docs/tutorials/` is task-shaped walkthroughs, also
 user-facing. `docs/figures/` holds the TikZ sources those book chapters
 `\input`. None of the three ever documents the codebase's internal
 `Ring:`-based import-direction rules — those lived only in
-`AgentSpec/AdditionalSpecs.md` and each module's own docstring header, invisible to
+`.localSpec/AdditionalSpecs.md` and each module's own docstring header, invisible to
 anyone reading the book.
 `docs/DevGuide/` is the missing dev-facing home for that model, with the
 diagrams the code split never got. See
-`AgentSpec/20260831_DocRewritePlanTicket.md` for the full rationale.
+`.localSpec/DevTickets/archive/20260831_DocRewritePlanTicket.md` for the full rationale.
 
 **What you will find.** One other file so far:
 [`architecture.md`](architecture.md) — the Ring model, how it relates to
@@ -33,8 +33,18 @@ want `README.md` or `docs/Text/`), and not people building the LaTeX book
 
 **What you need to do with it.** Read `architecture.md` before moving a
 module between rings or adding a new one; it links out to
-`AgentSpec/AdditionalSpecs.md`, which stays the enforced, authoritative
+`.localSpec/AdditionalSpecs.md`, which stays the enforced, authoritative
 source for the import rules themselves.
+
+**Where the planning went.** This folder describes how the code *is*. What
+is *planned* — the ranked planning tickets, the archive of finished ones,
+and the owner's short tickets they come from — lives in
+`.localSpec/DevTickets/`, a private mount that only the developer install
+(`examples/complexgitsync4dev.cgs`) brings in. It used to sit in the public
+repository as `AgentSpec/`; it moved so that installing the tool ships the
+tool, not the workshop. If you have the developer tree, start at
+`.localSpec/DevTickets/README.md`; if you do not, nothing in this folder
+depends on it.
 
 ```mermaid
 graph TD
@@ -56,7 +66,7 @@ graph TD
 
 | File | Covers |
 |---|---|
-| [`architecture.md`](architecture.md) | The Ring model, the Tier↔Ring mapping, a per-ring module dependency graph, a one-row-per-module contract table, and a condensed pointer to `AgentSpec/AdditionalSpecs.md`'s import rules and ceilings. |
+| [`architecture.md`](architecture.md) | The Ring model, the Tier↔Ring mapping, a per-ring module dependency graph, a one-row-per-module contract table, and a condensed pointer to `.localSpec/AdditionalSpecs.md`'s import rules and ceilings. |
 
 This folder is deliberately small — an index plus one substantive file, not
 a second architecture book. New dev-facing diagrams belong in
