@@ -535,7 +535,7 @@ actually checks (chain linkage and the \texttt{HEAD} cache); its remaining
 three members (\texttt{MISSING\_STATE}, \texttt{ORPHAN\_STATE},
 \texttt{STATE\_DIGEST\_MISMATCH}) are reserved for a future store-level
 verification pass that cross-references entries against the actual
-\texttt{state(<hash>)\_n/} directories on disk.
+\texttt{state/<hash>.gts} files on disk.
 
 With \texttt{repair=True}, a stale \texttt{HEAD} cache is corrected in
 place. Register entries are never rewritten or deleted by this method,

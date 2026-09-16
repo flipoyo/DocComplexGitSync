@@ -180,7 +180,7 @@ If a command accepts an optional snapshot and none is provided, \cgscli{}
 discovers the latest \texttt{.gts} automatically via the project's
 \texttt{.lgr} register under \texttt{CGSHOME/.cgitsync/}. Each generated
 \texttt{.gts} snapshot actually lives under its own content-addressed
-\texttt{CGSHOME/.cgitsync/state(<hash>)\_<n>/} directory; pass an explicit
+\texttt{CGSHOME/.cgitsync/state/} directory; pass an explicit
 path (e.g. \texttt{--gts FILE}, or a positional source, depending on the
 command) only to override that discovery.
 \texttt{CGSHOME} can be set explicitly; for \texttt{initialise(.cgs)} the
