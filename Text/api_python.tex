@@ -458,6 +458,35 @@ directory name (\texttt{CGSHOME} is \texttt{<parent>/<project-name>}), or
 when \texttt{repo\_root} has no \texttt{.gitmodules} to convert
 (\texttt{force=True} overrides the last one).
 
+\section{Looking at a memory: \texttt{memory\_status},
+\texttt{memory\_list}, \texttt{memory\_show}}
+
+The three read-only questions the CLI's \texttt{memory} group asks, each
+returning plain data rather than text:
+
+\begin{lstlisting}[language=python]
+from ComplexGitSync.orchestre import ComplexGitSyncClient
+
+client = ComplexGitSyncClient()
+
+status = client.memory_status("/path/to/CGSHOME")
+status["states"], status["entries"]      # how much is remembered
+status["verification"]                   # verified / no-history / legacy / corrupt
+status["latest_toolchain"]["git"]        # what produced the newest record
+
+for row in client.memory_list("/path/to/CGSHOME"):
+    row["state"], row["recorded_at"], row["commands"]
+
+state = client.memory_show("/path/to/CGSHOME", "2acdc98b")   # hash or prefix
+state["repos"], state["entries"]
+\end{lstlisting}
+
+\texttt{memory\_show} raises \texttt{GitSyncError} when the prefix matches
+no State, or more than one. \texttt{memory\_list} includes a State that
+entries name but that is not on disk, with \texttt{path} set to
+\texttt{None} --- \texttt{verify} reports it as \texttt{MISSING\_STATE},
+and this is how a caller finds out which one.
+
 \section{Machine-readable output: \texttt{status\_json} and
 \texttt{verify\_json}}
 

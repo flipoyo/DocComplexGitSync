@@ -721,6 +721,37 @@ some of those may belong to other people --- and prints the
 \texttt{branch}/\texttt{checkout}/\texttt{add}/\texttt{commit} sequence to
 run next.
 
+\subsection{\texttt{memory}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync memory status [--search-dir DIR]
+$ pixi run cgitsync memory list   [--search-dir DIR]
+$ pixi run cgitsync memory show <state> [--search-dir DIR]
+\end{lstlisting}
+
+Looks at what this workspace remembers. A \textbf{State} is one recorded
+snapshot of the tree, named by its own content; the \textbf{ledger} holds
+one entry per operation, saying when that State was seen and by which tool
+versions.
+
+\begin{itemize}
+  \item \texttt{status} --- how many States, how long the chain is, when it
+        was last written, which of \texttt{verify}'s four answers this
+        memory is in, and the toolchain the records carry. The first
+        entry's versions are shown beside the latest when they differ, so a
+        chain spanning an upgrade says where the upgrade fell.
+  \item \texttt{list} --- every State, newest recording first, with the
+        commands that recorded it. A State with no timestamp is one no
+        entry records: history from before the ledger, or a file that
+        arrived some other way.
+  \item \texttt{show} --- one State and every entry naming it. The
+        argument is the State's content hash or any unambiguous prefix of
+        it; nobody retypes sixty-four characters.
+\end{itemize}
+
+These are read-only. Nothing here sends a memory anywhere --- there is
+nowhere to send it to yet.
+
 \subsection{\texttt{verify}}
 
 \begin{lstlisting}[language=bash]
