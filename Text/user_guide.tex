@@ -727,20 +727,42 @@ run next.
 $ pixi run cgitsync verify [--search-dir DIR] [--repair]
 \end{lstlisting}
 
-Verifies the hash-chained \texttt{.cgitsync/lgr} register for
-tamper-evidence: every entry's \texttt{prev} field must match the previous
-entry's \texttt{entry\_hash} (\texttt{BROKEN\_LINK} if not), every entry's own
-\texttt{entry\_hash} must match its recomputed canonical hash
-(\texttt{BAD\_ENTRY\_HASH} if not), \texttt{seq} numbers must be gap-free and
-unique (\texttt{SEQ\_GAP}/\texttt{SEQ\_DUPLICATE}), and the cached \texttt{HEAD}
-pointer must agree with the recomputed true head (\texttt{HEAD\_STALE}). A
-register with no entries yet — the common case, since nothing currently
-writes to this format — is reported clean; that is not itself a finding.
+Says which of four things is true of this workspace's recorded history.
+One of them, never a blur of two:
+
+\begin{center}
+\begin{tabular}{llp{7.6cm}}
+\textbf{Answer} & \textbf{Exit} & \textbf{Means} \\
+\hline
+\texttt{verified}   & \texttt{0} & A chain was read and every link held. \\
+\texttt{no-history} & \texttt{0} & Nothing has been recorded here yet. Not
+                                    a failure --- a new workspace is not a
+                                    broken one. \\
+\texttt{legacy}     & \texttt{1} & History exists, in the single-file
+                                    \texttt{.lgr} register, which carries no
+                                    chain. Readable, not verifiable: an edit
+                                    to it leaves no trace. \\
+\texttt{corrupt}    & \texttt{1} & A chain was read and it does not hold. \\
+\end{tabular}
+\end{center}
+
+\texttt{legacy} exits non-zero on purpose. The question is ``is this
+history intact?'', and ``I cannot tell'' is not a yes: a build that gates on
+\texttt{verify} must not pass because the evidence is in a format nobody can
+check. Every workspace created before the hash-chained register is written
+is in exactly that state.
+
+When there \emph{is} a chain, what is checked: every entry's \texttt{prev}
+must match the previous entry's \texttt{entry\_hash}
+(\texttt{BROKEN\_LINK}), every entry's own \texttt{entry\_hash} must match
+its recomputed canonical hash (\texttt{BAD\_ENTRY\_HASH}), \texttt{seq}
+numbers must be gap-free and unique
+(\texttt{SEQ\_GAP}/\texttt{SEQ\_DUPLICATE}), and the cached \texttt{HEAD}
+must agree with the recomputed head (\texttt{HEAD\_STALE}).
 
 \texttt{CGSHOME} is located the same way as \texttt{status}: from
 \texttt{--search-dir}, else \texttt{\$CGSHOME}, else the current working
-directory's ancestors. Exits \texttt{0} when clean, \texttt{1} when any
-finding is reported.
+directory's ancestors.
 
 With \texttt{--repair}, a stale \texttt{HEAD} cache is corrected to match the
 recomputed true head. \textbf{Entries themselves are never rewritten or

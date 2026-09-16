@@ -514,14 +514,21 @@ else:
 client.verify("/path/to/CGSHOME", repair=True)
 \end{lstlisting}
 
-Returns an \texttt{integrity.VerificationReport} (re-exported from the
-package root) whose \texttt{findings} list holds \texttt{(seq, Finding,
-detail)} tuples and whose \texttt{is\_clean} property is \texttt{True} when
-the list is empty. A register with no entries yet is reported clean — this
-is the common case today, since no command writes to this per-entry format
-yet (the CLI's \texttt{verify} command is the enforcement instrument; the
-migration of \texttt{SyncLedger}'s own writes to this format is a separate,
-future piece of work).  \texttt{Finding} enumerates
+Returns an \texttt{integrity.VerificationReport}. Read
+\texttt{report.state} first: it is one of four \texttt{HistoryState}
+members --- \texttt{VERIFIED}, \texttt{NO\_HISTORY}, \texttt{LEGACY},
+\texttt{CORRUPT} --- and \texttt{report.is\_verified} is \texttt{True}
+only for the first.
+
+\texttt{report.is\_clean} is a narrower question: it means ``no findings
+were recorded'', which an empty register also satisfies. Use it to ask
+whether anything is \emph{wrong}; use \texttt{state} to ask what was
+actually established. \texttt{findings} holds \texttt{(seq, Finding,
+detail)} tuples.
+
+No command writes the per-entry format yet, so most workspaces answer
+\texttt{NO\_HISTORY} or \texttt{LEGACY} today. Migrating
+\texttt{SyncLedger}'s own writes is the next milestone of the memory work.  \texttt{Finding} enumerates
 \texttt{BROKEN\_LINK}, \texttt{BAD\_ENTRY\_HASH}, \texttt{SEQ\_GAP},
 \texttt{SEQ\_DUPLICATE}, and \texttt{HEAD\_STALE} for what this method
 actually checks (chain linkage and the \texttt{HEAD} cache); its remaining
