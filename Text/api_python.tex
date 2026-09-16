@@ -522,6 +522,31 @@ for every command rather than per command, and carries a
 only}: new fields may appear; existing fields do not change meaning and do
 not vanish.
 
+\section{A memory as a repository: \texttt{memory\_init},
+\texttt{memory\_clone}, \texttt{memory\_push}}
+
+\begin{lstlisting}[language=python]
+from ComplexGitSync.orchestre import ComplexGitSyncClient
+
+client = ComplexGitSyncClient()
+client.load_gts("/path/to/CGSHOME/.cgitsync/state/<hash>.gts")
+
+proposal = client.memory_init("/path/to/CGSHOME")
+proposal["entry"]        # the .cgs entry that mounts the memory
+proposal["branch"]       # this project's branch of the memory repository
+proposal["create_with"]  # the command that creates it -- never run for you
+
+client.memory_push("/path/to/CGSHOME")                      # commit + push
+client.memory_clone("/other/workspace", owner="flipoyo")    # onto a new machine
+\end{lstlisting}
+
+\texttt{memory\_clone} needs no loaded project --- that is the case it
+exists for --- so give it an \texttt{owner} and a \texttt{branch} when
+nothing is loaded, or a \texttt{remote} address directly for a memory that
+does not live where the convention says. It raises
+\texttt{GitSyncError} rather than writing over a memory already present, or
+when the branch it wants has never been pushed.
+
 \section{Register Integrity: \texttt{verify}}
 
 \texttt{verify(cgshome, *, repair=False)} checks the hash-chained

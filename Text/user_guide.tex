@@ -752,6 +752,31 @@ versions.
 These are read-only. Nothing here sends a memory anywhere --- there is
 nowhere to send it to yet.
 
+\paragraph{Keeping a memory when the disk does not.} A memory can be a
+repository of its own, mounted at \texttt{.cgitsync} exactly as
+\texttt{.localSpec} is: one repository holding every project's memory, on a
+branch per project.
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync memory init    # the .cgs entry to add, and the branch
+$ pixi run cgitsync memory clone   # bring a memory onto a new machine
+$ pixi run cgitsync memory push    # commit what it gained, and push it
+\end{lstlisting}
+
+\texttt{init} proposes and stops: ComplexGitSync speaks Git and nothing
+else, so it prints the command that creates the repository and waits.
+Nothing is ever pushed automatically --- a machine with no network keeps a
+complete, verifiable memory and sends it later.
+
+\texttt{clone} refuses to write over a memory that is already here, because
+a memory nobody has pushed is the only copy of itself.
+
+\paragraph{What a memory carries off your machine.} One path: the tree's own
+root, with \texttt{\$HOME} substituted. Every other path it records --- each
+repository's, and any path in a command line it logged --- is written
+against the tree as \texttt{\$CGSTREE/...}, so neither your directory
+layout nor your user name travels with it.
+
 \subsection{\texttt{verify}}
 
 \begin{lstlisting}[language=bash]
