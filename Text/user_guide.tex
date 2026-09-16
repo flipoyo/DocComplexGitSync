@@ -770,11 +770,20 @@ deleted} by \texttt{verify}, repair or not — a broken chain is reported, not
 silently healed, since a register that can be edited back to looking clean
 provides no evidence of anything.
 
-\textbf{Scope note:} this checks chain linkage and the \texttt{HEAD} cache
-only. Cross-referencing entries against the actual
-\texttt{state/<hash>.gts} files on disk (\texttt{MISSING\_STATE},
-\texttt{ORPHAN\_STATE}, \texttt{STATE\_DIGEST\_MISMATCH}) is not implemented
-yet.
+\paragraph{The States on disk are checked too.} Beyond the chain itself,
+\texttt{verify} cross-references what the entries say against what is
+there: an entry naming a State that is missing (\texttt{MISSING\_STATE}), a
+stored snapshot whose content no longer hashes to the name it is filed
+under (\texttt{STATE\_DIGEST\_MISMATCH}), and a State on disk that no entry
+records (\texttt{ORPHAN\_STATE}). The second is what naming a State by its
+content bought: a stored snapshot can no longer be edited quietly.
+
+\paragraph{Where the history lives.} \texttt{.cgitsync/lgr/}, one file per
+entry, appended to by every command that writes a State. Each entry records
+the versions that produced it --- cgitsync, git, pixi, and the data backends
+dvc and git-lfs --- inside the entry hash, so an edited version string is as
+detectable as an edited command. The older single-file \texttt{.lgr}
+register is still read, and is no longer written.
 
 \subsection{\texttt{launch-release}}
 

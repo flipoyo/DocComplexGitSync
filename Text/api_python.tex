@@ -526,9 +526,11 @@ whether anything is \emph{wrong}; use \texttt{state} to ask what was
 actually established. \texttt{findings} holds \texttt{(seq, Finding,
 detail)} tuples.
 
-No command writes the per-entry format yet, so most workspaces answer
-\texttt{NO\_HISTORY} or \texttt{LEGACY} today. Migrating
-\texttt{SyncLedger}'s own writes is the next milestone of the memory work.  \texttt{Finding} enumerates
+Every command that writes a State now appends an entry to
+\texttt{.cgitsync/lgr/}, so a workspace used since that landed answers
+\texttt{VERIFIED}. A workspace whose only history predates it answers
+\texttt{LEGACY}: the single-file register is still read, and nothing writes
+it any more.  \texttt{Finding} enumerates
 \texttt{BROKEN\_LINK}, \texttt{BAD\_ENTRY\_HASH}, \texttt{SEQ\_GAP},
 \texttt{SEQ\_DUPLICATE}, and \texttt{HEAD\_STALE} for what this method
 actually checks (chain linkage and the \texttt{HEAD} cache); its remaining
