@@ -491,7 +491,27 @@ method does not: a caller reading the memory from Python wants the message
 that was written, not the one that fitted.
 
 \texttt{memory\_show} raises \texttt{GitSyncError} when the prefix matches
-no State, or more than one. \texttt{memory\_list} includes a State that
+no State, or more than one.
+
+The commands that give a memory a repository of its own have the same
+mirror. \texttt{add\_memory\_repo\_cgs} is the one the owner named; the CLI
+spells it \texttt{memory mount}.
+
+\begin{lstlisting}[language=python]
+client.repo_create("github:you/.memory", private=True)
+#   {"created": "created" | "exists" | "unavailable", "command": "gh repo create ..."}
+
+client.add_memory_repo_cgs("project.cgs")        # one entry, comments kept
+client.memory_adopt("/path/to/CGSHOME")          # .cgitsync becomes the repository
+client.memory_push("/path/to/CGSHOME")
+client.memory_branch("/path/to/CGSHOME", "main") # the branch a merge will need
+\end{lstlisting}
+
+\texttt{repo\_create} never raises for a repository that already exists ---
+that is \texttt{"exists"}, an ordinary answer --- and never for a provider
+tool that is absent or signed out, which is \texttt{"unavailable"} carrying
+the command to run. It raises only for a provider no tool is known for, and
+for a tool that failed for some other reason. \texttt{memory\_list} includes a State that
 entries name but that is not on disk, with \texttt{path} set to
 \texttt{None} --- \texttt{verify} reports it as \texttt{MISSING\_STATE},
 and this is how a caller finds out which one.
