@@ -811,6 +811,40 @@ private mount still shows its own.
         HEAD without a tag reference).
 \end{enumerate}
 
+\subsection{Where a command works: the default workspace}
+
+Every command that is not given an explicit path finds its workspace from
+three inputs, in this order: \texttt{--search-dir}, then
+\texttt{\$CGSHOME}, then the ancestors of the current directory. When none
+of them lands on a \texttt{.cgitsync} directory there is a fourth answer: an
+empty workspace of ComplexGitSync's own, under \texttt{\$HOME/.cgs} (or
+\texttt{\$CGSPATH} when that is set).
+
+That workspace is a real directory holding a valid \texttt{.gts} with no
+repositories in it. An empty tree is not an error --- it is a project that
+has not started --- so \texttt{status} answers \texttt{no living project
+yet}, names the three commands that start a project, and exits \texttt{0}.
+
+\begin{itemize}
+  \item \textbf{Created once, then reused.} Its path is recorded in
+        \texttt{\$HOME/.cgs/default}; later runs read that pointer instead
+        of minting a second empty workspace.
+  \item \textbf{It never chooses for you.} When other workspaces exist
+        under the root they are listed, each with the
+        \texttt{export CGSHOME=...} line that would select it, and none is
+        selected automatically.
+  \item \textbf{It never overrides \texttt{--search-dir}.} A directory you
+        named that holds no workspace is an error, not an invitation to work
+        somewhere else.
+\end{itemize}
+
+\paragraph{The \texttt{use\_case} field.} Every discovery line also says
+which of the two ways of running is in force: \texttt{nested} when the
+ComplexGitSync being executed lives inside the workspace it manages,
+\texttt{standalone} otherwise. It is observed and printed, never obeyed ---
+nothing behaves differently because of it. It exists so that a user who
+believes they are in one case while standing in the other is told.
+
 \subsection{\texttt{status}}
 
 \begin{lstlisting}[language=bash]
