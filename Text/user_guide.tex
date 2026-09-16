@@ -726,7 +726,7 @@ run next.
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync memory status [--search-dir DIR]
 $ pixi run cgitsync memory list   [--search-dir DIR]
-$ pixi run cgitsync memory show <state> [--search-dir DIR]
+$ pixi run cgitsync memory show <state> [--full] [--search-dir DIR]
 \end{lstlisting}
 
 Looks at what this workspace remembers. A \textbf{State} is one recorded
@@ -744,10 +744,20 @@ versions.
         commands that recorded it. A State with no timestamp is one no
         entry records: history from before the ledger, or a file that
         arrived some other way.
-  \item \texttt{show} --- one State and every entry naming it. The
-        argument is the State's content hash or any unambiguous prefix of
-        it; nobody retypes sixty-four characters.
+  \item \texttt{show} --- one State, every entry naming it, and what each
+        \texttt{commit} wrote: the message, the repository, and whether the
+        commit has been published. The argument is the State's content hash
+        or any unambiguous prefix of it; nobody retypes sixty-four
+        characters. \texttt{--full} prints whole messages instead of first
+        lines, and the remote and ref each publication went to.
 \end{itemize}
+
+A commit marked \texttt{unpushed} exists on this machine and nowhere else.
+That distinction is the reason the messages are kept at all: while the
+repository is present \texttt{git log} is the better answer, and this record
+is for when it is not --- a deleted branch, an archived project, a fork that
+went away. The ledger entry that recorded a set of messages carries their
+fingerprint, so editing one afterwards is a finding \texttt{verify} reports.
 
 These are read-only. Nothing here sends a memory anywhere --- there is
 nowhere to send it to yet.

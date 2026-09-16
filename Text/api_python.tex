@@ -479,7 +479,16 @@ for row in client.memory_list("/path/to/CGSHOME"):
 
 state = client.memory_show("/path/to/CGSHOME", "2acdc98b")   # hash or prefix
 state["repos"], state["entries"]
+for entry in state["entries"]:
+    for commit in entry["commits"]:
+        commit["message"], commit["repository"], commit["published"]
+state["published"]                       # remote and ref each commit went to
 \end{lstlisting}
+
+Commit messages come back whole. Shortening a long one to a single line is
+the caller's decision, which is why the CLI has \texttt{--full} and this
+method does not: a caller reading the memory from Python wants the message
+that was written, not the one that fitted.
 
 \texttt{memory\_show} raises \texttt{GitSyncError} when the prefix matches
 no State, or more than one. \texttt{memory\_list} includes a State that
