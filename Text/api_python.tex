@@ -458,6 +458,41 @@ directory name (\texttt{CGSHOME} is \texttt{<parent>/<project-name>}), or
 when \texttt{repo\_root} has no \texttt{.gitmodules} to convert
 (\texttt{force=True} overrides the last one).
 
+\section{Machine-readable output: \texttt{status\_json} and
+\texttt{verify\_json}}
+
+Two methods return the same answers as \texttt{status()} and
+\texttt{verify()}, serialised as one JSON object each. They are what the
+CLI's \texttt{--json} flag prints, so a Python caller and a shell pipeline
+read exactly the same fields.
+
+\begin{lstlisting}[language=python]
+import json
+from ComplexGitSync.orchestre import ComplexGitSyncClient
+
+client = ComplexGitSyncClient()
+client.load_gts("/path/to/snapshot.gts")
+
+payload = json.loads(client.status_json())
+payload["cgitsync_branch"]          # the branch the tree is on
+payload["summary"]["repos"]         # how many repositories it holds
+payload["repositories"][0]["sync"]  # per repository, as the table shows it
+
+chain = json.loads(client.verify_json("/path/to/CGSHOME"))
+chain["status"]                     # "clean" or "findings"
+\end{lstlisting}
+
+\texttt{verify\_json} keeps the report it built on
+\texttt{client.last\_verify\_report}, so a caller needing both the object
+and the verdict does not verify the chain twice --- which under
+\texttt{repair=True} would mean repairing twice.
+
+The shape of both objects lives in \texttt{json\_render.py}, defined once
+for every command rather than per command, and carries a
+\texttt{schema\_version}. The promise attached to it is \textbf{additive
+only}: new fields may appear; existing fields do not change meaning and do
+not vanish.
+
 \section{Register Integrity: \texttt{verify}}
 
 \texttt{verify(cgshome, *, repair=False)} checks the hash-chained

@@ -811,6 +811,45 @@ private mount still shows its own.
         HEAD without a tag reference).
 \end{enumerate}
 
+\subsection{What \texttt{cgitsync} promises a script}
+
+\paragraph{Exit codes.} Three, meaning the same thing in every command:
+
+\begin{center}
+\begin{tabular}{lp{10.5cm}}
+\textbf{Code} & \textbf{Means} \\
+\hline
+\texttt{0} & The command did what was asked. \\
+\texttt{1} & It ran, and the answer is no --- a merge conflict, a tree that
+             is not \texttt{READY}, a verification that found something. \\
+\texttt{2} & It could not run --- bad arguments, no workspace, a missing or
+             unreadable file. \\
+\end{tabular}
+\end{center}
+
+The distinction that matters to a script is between ``I asked and the answer
+is no'' and ``I could not ask''. \texttt{validate} is the one command that
+judges a document rather than acting on one, so an invalid document is its
+answer (\texttt{1}); every other command exits \texttt{2} on the same
+document because it could not run at all.
+
+An expected failure prints one line on stderr and no traceback. A traceback
+is therefore a defect report, not a usage error --- which is the point of
+mapping the expected ones.
+
+\paragraph{\texttt{--json}.} \texttt{status} and \texttt{verify} accept
+it. Each prints one JSON object on stdout and nothing else; every
+human-facing line goes to stderr instead, and the exit code is unchanged, so
+a caller may use either signal. A failure prints one object too, carrying
+\texttt{"status": "error"} and the exit code, rather than leaving a pipe
+with nothing to parse. \texttt{--help}, \texttt{--version} and a command
+line that fails to parse are deliberately not JSON: the flag itself may be
+what failed.
+
+The object carries \texttt{schema\_version}. The promise attached to it is
+\textbf{additive only}: new fields may appear, existing fields do not change
+meaning and do not vanish.
+
 \subsection{Where a command works: the default workspace}
 
 Every command that is not given an explicit path finds its workspace from
