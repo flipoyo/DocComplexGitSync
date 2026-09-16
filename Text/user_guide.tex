@@ -822,6 +822,35 @@ the scope, local branch, upstream branch, local worktree state,
 ahead/behind tracking counts, current HEAD, and the commit recorded in the
 loaded \texttt{.gts}.
 
+\paragraph{The \texttt{cgitsync\_branch} field.} The \texttt{summary} line
+carries \texttt{cgitsync\_branch=<branch>}: the branch the project is on,
+which is the branch its root repository is on. It is what
+\texttt{cgitsync branch} and \texttt{cgitsync checkout} set, and what every
+other repository follows.
+
+The table shows a branch per repository and they are not all the same on
+purpose --- a \texttt{private/local} repository keeps this project's
+settings on a branch named after the project, so a project on
+\texttt{apoub} shows \texttt{ComplexGitSync\_apoub} there. The field is the
+one place that says which of those branches is the project's own.
+
+\begin{center}
+\begin{tabular}{lp{10.5cm}}
+\textbf{Shown} & \textbf{Means} \\
+\hline
+\texttt{<branch>}  & The branch the root repository is on. \\
+\texttt{detached}  & The root is parked on a commit rather than a branch.
+                     \texttt{cgitsync checkout <branch>} puts the tree
+                     back. \\
+\texttt{unknown}   & There is no branch to report: no project has been
+                     loaded, or Git could not be asked. \\
+\end{tabular}
+\end{center}
+
+The field is printed in every state. A field that disappears when the
+answer is awkward is harder to read, by eye or by script, than one that
+says it does not know.
+
 \paragraph{The \texttt{SCOPE} column.} It says, in three words, what kind
 of repository each row is and whether you may write to it:
 
