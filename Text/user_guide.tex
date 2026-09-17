@@ -759,10 +759,11 @@ is for when it is not --- a deleted branch, an archived project, a fork that
 went away. The ledger entry that recorded a set of messages carries their
 fingerprint, so editing one afterwards is a finding \texttt{verify} reports.
 
-These are read-only. Nothing here sends a memory anywhere --- there is
-nowhere to send it to yet.
+\texttt{status}, \texttt{list} and \texttt{show} are read-only; nothing
+they do sends a memory anywhere.
 
-\paragraph{Keeping a memory when the disk does not.} A memory can be a
+\paragraph{Keeping a memory when the disk does
+not.}\label{sec:memory-mount} A memory can be a
 repository of its own, mounted at \texttt{.cgitsync} exactly as
 \texttt{.localSpec} is: one repository holding every project's memory, on a
 branch per project. Getting there is five commands, run once per project;
@@ -1118,6 +1119,36 @@ Those rows were previously folded into \texttt{ahead=0 behind=0}, which
 reported a measurement nobody had taken. A repository nobody could measure
 is not a repository that is level, and the summary no longer says the
 second when it means the first.
+
+\paragraph{The memory mount reading \texttt{dirty}, or \texttt{HEAD} ending
+in \texttt{*}, is normal.} If the tree mounts its own memory at
+\texttt{.cgitsync} (\S\ref{sec:memory-mount}), two things about that one
+row are expected, not a fault:
+
+\begin{itemize}
+  \item \textbf{\texttt{LOCAL} reads \texttt{dirty} after almost every
+        command.} \texttt{add}, \texttt{commit}, and \texttt{push}
+        deliberately never touch the memory's own working tree --- each of
+        them still writes a record of itself \emph{into} the memory once
+        it finishes acting on everything else, and that record is new,
+        uncommitted content. \texttt{cgitsync memory push} is what sends
+        it; running it leaves the row clean again until the next command
+        writes its own record. When this row is the only thing dirty,
+        \texttt{status} prints a note saying so and naming
+        \texttt{memory push}.
+  \item \textbf{\texttt{HEAD} ends in \texttt{*} right after
+        \texttt{memory push}.} The \texttt{*} means the loaded \texttt{.gts}
+        recorded a different commit than the one actually there now.
+        \texttt{memory push} moves the memory's real commit directly and
+        does not write a new \texttt{.gts} itself, so the State most
+        recently written still names the commit from before the push. The
+        very next command that writes a State reads the memory's true
+        \texttt{HEAD} and the two agree again --- it never needs a second
+        \texttt{memory push} to catch up, only an ordinary next command.
+\end{itemize}
+
+Neither is worth chasing to a clean reading on purpose: a memory that
+never showed anything pending would not be recording what happens.
 
 \subsection{\texttt{merge}}
 
