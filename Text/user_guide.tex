@@ -1157,6 +1157,13 @@ the opposite about a conflict.
 tool, and still performs the checkout --- looking at an older branch is
 legitimate, being surprised by it is not.
 
+A \texttt{--private} or \texttt{--all} \texttt{--into} call only ever
+touches part of the tree, and the rest is meant to still be somewhere else
+until it too is asked to move. So a second scoped call --- \texttt{--private}
+after the plain form, or \texttt{--all} after either --- finishes what the
+first one left behind, rather than refusing those repositories for not
+having moved yet.
+
 \texttt{--private} merges the writable configuration repositories instead
 of the project's own. Read-only ones are never merged.
 
