@@ -1122,7 +1122,7 @@ second when it means the first.
 \subsection{\texttt{merge}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync merge <branch> [--private] [--ff-only|--no-ff] [--dry-run] [--resolve]
+$ pixi run cgitsync merge <branch> [--into TARGET] [--private] [--ff-only|--no-ff] [--dry-run] [--resolve]
 \end{lstlisting}
 
 Merges a branch across the tree, leaf-first. The argument is always the
@@ -1131,6 +1131,31 @@ itself. A project-owned repository merges that branch. A private/local
 repository merges the branch derived from it
 (\texttt{<base>\_<branch>}), because that is where its settings for that
 project branch live --- it has no branch of the project's own name at all.
+
+\paragraph{\texttt{--into}: merging into a branch you are not on.} Without
+it, \texttt{merge} merges into whatever is checked out, so reaching another
+branch means running \texttt{checkout} first. \texttt{--into TARGET} names
+the target and does both halves in one command.
+
+That is not a convenience when the tree being merged \textbf{contains the
+ComplexGitSync you are running} --- the developer checkout, which installs
+itself editable. A separate \texttt{checkout} replaces that build, and the
+merge typed after it runs under the older one, against a workspace the newer
+one wrote. A single command finishes under the build it started with,
+because Python has already imported its modules.
+
+Every repository is checked before any is touched, so a conflict or a
+missing target leaves the whole tree where it was: still on the source
+branch, nothing checked out and nothing merged. A fast-forward is reported
+as one, which is usually why a repository looks untouched afterwards.
+\texttt{--into} never creates its target: a branch that is not there is as
+likely to be a typing mistake as a new branch, so it is named and the
+command stops. It cannot be combined with \texttt{--resolve}, which promises
+the opposite about a conflict.
+
+\texttt{checkout} warns when it is about to install a different build of the
+tool, and still performs the checkout --- looking at an older branch is
+legitimate, being surprised by it is not.
 
 \texttt{--private} merges the writable configuration repositories instead
 of the project's own. Read-only ones are never merged.

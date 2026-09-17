@@ -208,6 +208,11 @@ client.merge("multi-branch")                  # the project's own repos
 client.merge("multi-branch", private=True)    # ComplexGitSync_multi-branch
                                               #   -> ComplexGitSync
 client.merge("multi-branch", all_writable=True)   # both halves, one pass
+
+# Merging into a branch that is not checked out, in one call.
+client.merge_into_plan("multi-branch", "main")   # what it would do, per repo
+client.merge_into("multi-branch", "main")        # checkout and merge, together
+client.build_installed_from("main")              # the version that branch carries
 client.refresh_private()                      # the other way round
 \end{lstlisting}
 
