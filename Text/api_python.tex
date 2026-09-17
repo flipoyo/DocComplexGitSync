@@ -464,9 +464,9 @@ when \texttt{repo\_root} has no \texttt{.gitmodules} to convert
 (\texttt{force=True} overrides the last one).
 
 \section{Looking at a memory: \texttt{memory\_status},
-\texttt{memory\_list}, \texttt{memory\_show}}
+\texttt{memory\_list}, \texttt{memory\_show}, \texttt{memory\_explore}}
 
-The three read-only questions the CLI's \texttt{memory} group asks, each
+The four read-only questions the CLI's \texttt{memory} group asks, each
 returning plain data rather than text:
 
 \begin{lstlisting}[language=python]
@@ -488,6 +488,15 @@ for entry in state["entries"]:
     for commit in entry["commits"]:
         commit["message"], commit["repository"], commit["published"]
 state["published"]                       # remote and ref each commit went to
+
+answer = client.memory_explore("/path/to/CGSHOME")
+answer["branch"]                         # the memory branch checked out here, or None
+for commit in answer["commits"]:         # published commits, newest push first
+    commit["repository"], commit["branch"], commit["sha"], commit["message"]
+
+timeline = client.memory_explore("/path/to/CGSHOME", timeline=True)
+for entry in timeline["entries"]:        # every ledger entry, in order
+    entry["seq"], entry["command"], entry["commits"], entry["published"]
 \end{lstlisting}
 
 Commit messages come back whole. Shortening a long one to a single line is
@@ -497,6 +506,14 @@ that was written, not the one that fitted.
 
 \texttt{memory\_show} raises \texttt{GitSyncError} when the prefix matches
 no State, or more than one.
+
+\texttt{memory\_explore}'s default view answers what a colleague pulling
+this branch would see --- commits with no publication row are left out,
+because that is \texttt{memory\_show}'s question, not this one.
+\texttt{branch=} asks for a memory branch other than the one checked out on
+this disk; today only the checked-out one can be read this way, and a
+mismatch raises \texttt{GitSyncError} naming \texttt{memory\_clone(branch=...)}
+rather than answering for the wrong branch.
 
 The commands that give a memory a repository of its own have the same
 mirror. \texttt{add\_memory\_repo\_cgs} is the one the owner named; the CLI

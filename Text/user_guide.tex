@@ -727,6 +727,7 @@ run next.
 $ pixi run cgitsync memory status [--search-dir DIR]
 $ pixi run cgitsync memory list   [--search-dir DIR]
 $ pixi run cgitsync memory show <state> [--full] [--search-dir DIR]
+$ pixi run cgitsync memory explore [--branch NAME] [--timeline] [--search-dir DIR]
 \end{lstlisting}
 
 Looks at what this workspace remembers. A \textbf{State} is one recorded
@@ -750,6 +751,17 @@ versions.
         or any unambiguous prefix of it; nobody retypes sixty-four
         characters. \texttt{--full} prints whole messages instead of first
         lines, and the remote and ref each publication went to.
+  \item \texttt{explore} --- a memory a person can read without a hash.
+        The default view is one row per commit this memory recorded as
+        published, newest push first, on the branch checked out here ---
+        what a colleague pulling this branch would see. \texttt{--timeline}
+        reads the ledger straight through instead: one row per entry, in
+        the order it happened, so \texttt{checkout}/\texttt{merge}/
+        \texttt{push} appear beside \texttt{commit} rather than being
+        dropped. \texttt{--branch NAME} asks for a different memory branch;
+        only the one actually checked out here can be read this way today,
+        and a mismatch names \texttt{memory clone --branch NAME} rather
+        than answering for the wrong branch.
 \end{itemize}
 
 A commit marked \texttt{unpushed} exists on this machine and nowhere else.
@@ -759,8 +771,8 @@ is for when it is not --- a deleted branch, an archived project, a fork that
 went away. The ledger entry that recorded a set of messages carries their
 fingerprint, so editing one afterwards is a finding \texttt{verify} reports.
 
-\texttt{status}, \texttt{list} and \texttt{show} are read-only; nothing
-they do sends a memory anywhere.
+\texttt{status}, \texttt{list}, \texttt{show} and \texttt{explore} are
+read-only; nothing they do sends a memory anywhere.
 
 \paragraph{Keeping a memory when the disk does
 not.}\label{sec:memory-mount} A memory can be a
