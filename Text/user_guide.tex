@@ -764,10 +764,14 @@ they do sends a memory anywhere.
 
 \paragraph{Keeping a memory when the disk does
 not.}\label{sec:memory-mount} A memory can be a
-repository of its own, mounted at \texttt{.cgitsync} exactly as
-\texttt{.localSpec} is: one repository holding every project's memory, on a
-branch per project. Getting there is five commands, run once per project;
-\texttt{tutorials/05\_memory.md} walks all five in order.
+repository of its own, mounted at \texttt{.cgitsync/.memory} exactly as
+\texttt{.localSpec} is mounted: one repository holding every project's
+memory, on a branch per project. \texttt{.cgitsync} itself stays the
+workspace's own live state --- States, the ledger, logs --- so the mount
+one level inside it is checked out and merged like any other private
+repository, never blocked by activity that is not its own. Getting there
+is five commands, run once per project; \texttt{tutorials/05\_memory.md}
+walks all five in order.
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync repo create github:you/.memory
@@ -787,11 +791,10 @@ $ pixi run cgitsync memory branch --project-branch main
   \item \texttt{memory mount} --- adds one entry to a \texttt{.cgs} that
         already exists, leaving the rest of the file, comments included,
         exactly as it was. Adding it twice changes nothing.
-  \item \texttt{memory adopt} --- makes the \texttt{.cgitsync} you already
-        have into that repository, on this project branch's memory branch.
-        Nothing on disk is moved, overwritten or lost, which is why this is
-        a separate command from \texttt{clone}: \texttt{clone} refuses to
-        run over a memory, and is right to.
+  \item \texttt{memory adopt} --- creates \texttt{.cgitsync/.memory} fresh
+        and turns it into that repository, on this project branch's memory
+        branch. It starts empty: the first \texttt{memory push} is what
+        folds in whatever \texttt{.cgitsync} already held.
   \item \texttt{memory branch} --- creates the memory branch another
         project branch will need, and pushes it. Needed once, for a memory
         born on a feature branch: merging \texttt{memory-dev} into
@@ -800,6 +803,17 @@ $ pixi run cgitsync memory branch --project-branch main
         branch itself, because a branch that is not there is as likely to
         be a typing mistake as a new branch.
 \end{itemize}
+
+\paragraph{Migrating a memory mounted before \texttt{memory migrate}
+existed.} A memory adopted before this command existed sits directly at
+\texttt{.cgitsync}, sharing it with the workspace's own live state.
+\texttt{cgitsync memory migrate [--cgs FILE]} moves it onto the layout
+above --- \texttt{.git} and every tracked file travel down into
+\texttt{.cgitsync/.memory}, history unchanged; whatever was never tracked
+stays exactly where it already was, which is where the new layout wants
+it anyway --- and updates the \texttt{.cgs} entry that declares the mount
+to match. A fresh \texttt{memory adopt} never needs this: it mounts at
+the new layout directly.
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync memory init    # the .cgs entry to add, and the branch
@@ -1120,22 +1134,16 @@ reported a measurement nobody had taken. A repository nobody could measure
 is not a repository that is level, and the summary no longer says the
 second when it means the first.
 
-\paragraph{The memory mount reading \texttt{dirty}, or \texttt{HEAD} ending
-in \texttt{*}, is normal.} If the tree mounts its own memory at
-\texttt{.cgitsync} (\S\ref{sec:memory-mount}), two things about that one
-row are expected, not a fault:
+\paragraph{The memory mount reading \texttt{dirty} mid-\texttt{push}, or
+\texttt{HEAD} ending in \texttt{*} right after, is normal.} If the tree
+mounts its own memory at \texttt{.cgitsync/.memory}
+(\S\ref{sec:memory-mount}), that row is an ordinary private/local
+repository the rest of the time --- clean before and after every command
+except \texttt{memory push} itself, which folds \texttt{.cgitsync}'s own
+pending content into it before committing. One thing about it is still
+worth knowing:
 
 \begin{itemize}
-  \item \textbf{\texttt{LOCAL} reads \texttt{dirty} after almost every
-        command.} \texttt{add}, \texttt{commit}, and \texttt{push}
-        deliberately never touch the memory's own working tree --- each of
-        them still writes a record of itself \emph{into} the memory once
-        it finishes acting on everything else, and that record is new,
-        uncommitted content. \texttt{cgitsync memory push} is what sends
-        it; running it leaves the row clean again until the next command
-        writes its own record. When this row is the only thing dirty,
-        \texttt{status} prints a note saying so and naming
-        \texttt{memory push}.
   \item \textbf{\texttt{HEAD} ends in \texttt{*} right after
         \texttt{memory push}.} The \texttt{*} means the loaded \texttt{.gts}
         recorded a different commit than the one actually there now.
@@ -1147,8 +1155,9 @@ row are expected, not a fault:
         \texttt{memory push} to catch up, only an ordinary next command.
 \end{itemize}
 
-Neither is worth chasing to a clean reading on purpose: a memory that
-never showed anything pending would not be recording what happens.
+Not worth chasing to a clean reading on purpose: a memory that never
+showed this for a moment would not be recording what \texttt{memory push}
+just did.
 
 \subsection{\texttt{merge}}
 

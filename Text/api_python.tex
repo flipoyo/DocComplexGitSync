@@ -507,9 +507,13 @@ client.repo_create("github:you/.memory", private=True)
 #   {"created": "created" | "exists" | "unavailable", "command": "gh repo create ..."}
 
 client.add_memory_repo_cgs("project.cgs")        # one entry, comments kept
-client.memory_adopt("/path/to/CGSHOME")          # .cgitsync becomes the repository
-client.memory_push("/path/to/CGSHOME")
+client.memory_adopt("/path/to/CGSHOME")          # .cgitsync/.memory, fresh and empty
+client.memory_push("/path/to/CGSHOME")           # folds .cgitsync's pending content in first
 client.memory_branch("/path/to/CGSHOME", "main") # the branch a merge will need
+
+# Only for a memory mounted before this command existed, directly at
+# .cgitsync instead of .cgitsync/.memory:
+client.memory_migrate("/path/to/CGSHOME", "project.cgs")
 \end{lstlisting}
 
 \texttt{repo\_create} never raises for a repository that already exists ---
