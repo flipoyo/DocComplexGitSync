@@ -447,28 +447,31 @@ Loads the READY registry from \texttt{--gts}, then propagates the ref,
 creates missing local branches, and runs \texttt{git checkout} in every repo.
 On success the tree remains \texttt{READY} and a new \texttt{.gts} snapshot is written.
 
-\paragraph{A branch this workspace already knows is joined, not recreated.}
-When the repository holds a remote-tracking ref for the branch --- because
-some earlier \texttt{pull} downloaded it --- \cgscli{} creates the local
-branch \emph{from that ref}, with tracking set. You land on your
-colleague's commits. Only when no such ref exists does it create a new
-branch where you currently stand.
+\paragraph{A branch that exists on the remote is joined, not recreated.}
+When the repository already holds a remote-tracking ref for the branch ---
+because some earlier \texttt{pull} downloaded it, or another
+\texttt{checkout}/\texttt{branch} fetched it on demand --- \cgscli{} creates
+the local branch \emph{from that ref}, with tracking set. You land on your
+colleague's commits. When it has no such ref cached, it asks the remote
+directly (one \texttt{ls-remote}, no full fetch) before deciding: found, it
+fetches that one branch and joins it the same way; genuinely not found, it
+creates a new branch where you currently stand, at no extra cost beyond
+that one lookup.
 
 This is a change of behaviour, and the reason for it is the failure it
 removes. \cgscli{} used to create the branch at the current \texttt{HEAD}
-in every case and report \texttt{READY}/\texttt{ALIGNED} --- so typing a
-colleague's branch name gave you a branch of that name holding commits
-that had nothing to do with theirs, and nothing in the output said so.
+whenever this workspace had not already cached the remote's ref --- so
+typing a colleague's branch name, on a clone that had never fetched it,
+gave you a branch of that name holding commits that had nothing to do with
+theirs, and nothing in the output said so. Depending on some earlier
+command (a \texttt{pull}, or a differently-built \texttt{cgitsync} during
+\texttt{bootstrap}) to have fetched every branch first was the actual
+defect: one command's gap silently became another command's fork.
 
-\texttt{pull} is what puts those refs on disk: it now fetches every branch
-of each remote before pulling your own. \texttt{checkout} itself still
-never touches the network, and still works offline --- it reads what the
-last \texttt{pull} brought.
-
-\begin{center}
-\emph{To join somebody else's branch: \texttt{pull}, then \texttt{checkout
-<their branch>}.}
-\end{center}
+\texttt{pull} still fetches every branch of each remote before pulling your
+own, and remains the cheapest way to bring many refs across at once.
+\texttt{checkout} and \texttt{branch} no longer depend on it having run
+first: each fetches the one ref it needs, exactly when it needs it.
 
 \subsection{\texttt{add}}
 
