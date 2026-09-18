@@ -162,6 +162,23 @@ client.git(registry, "tag", "v1.2.3")
 client.freeze("release-2026.05")
 \end{lstlisting}
 
+\paragraph{Every one of these that reaches a remote folds the memory first.}
+When this tree mounts and has adopted a memory (\texttt{.cgitsync/.memory}),
+\texttt{push()}, \texttt{tag()}, and \texttt{freeze()} each call
+\texttt{memory\_push} on it before doing their own work --- regardless of
+\texttt{private}, since the memory is this project's own record of itself,
+not a configuration repository scoped by that flag. \texttt{client.last\_memory\_fold} holds what the most recent one of these folded: the
+\texttt{memory\_push} result dict, or \texttt{None} when no memory is
+mounted or the fold could not proceed. A fold that fails --- the memory
+declared but not yet adopted, or unreachable for any other reason --- is
+never raised: it is turned into a \texttt{warnings.warn(...)} call instead
+(catchable with \texttt{pytest.warns}/\texttt{warnings.catch\_warnings}, the
+same as \texttt{checkout}'s own build-change warning), so a Python caller
+sees it exactly as a CLI user would, and the write it was folding for still
+completes. \texttt{client.memory\_declared()} answers whether a memory is
+mounted at all, with no side effect, for a caller that wants to know
+in advance.
+
 \section{Landing a Branch: \texttt{merge} and \texttt{refresh\_private}}
 
 \texttt{merge(project\_branch, private=False, ff\_only=False, no\_ff=False)}
@@ -624,6 +641,12 @@ nothing is loaded, or a \texttt{remote} address directly for a memory that
 does not live where the convention says. It raises
 \texttt{GitSyncError} rather than writing over a memory already present, or
 when the branch it wants has never been pushed.
+
+Calling \texttt{memory\_push} by hand, as above, is for settling the memory
+on its own. \emph{READY Methods in the Client API}, earlier in this
+chapter, covers the more common case: \texttt{push}, \texttt{tag}, and
+\texttt{freeze} each call it automatically, first, once a memory is mounted
+and adopted.
 
 \section{Register Integrity: \texttt{verify}}
 

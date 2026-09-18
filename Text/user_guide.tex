@@ -545,6 +545,20 @@ With \texttt{--dry-run}, \cgscli{} prints the push plan without mutating any
 repository. \texttt{--force-protocol} behaves exactly as described under
 \texttt{pull} above.
 
+\paragraph{Folds this project's own memory first, when one is mounted.}
+Before pushing anything else, \texttt{push} folds whatever has accumulated
+in \texttt{.cgitsync} into \texttt{.cgitsync/.memory} and sends it --- the
+same work \texttt{cgitsync memory push} does by hand, run automatically the
+moment a command was already about to reach a remote. This happens
+regardless of \texttt{--private}: a memory, once adopted, settles exactly
+as much as an ordinary push. Nothing happens when the tree declares no
+memory at all. A memory that is declared but not yet adopted, or one that
+cannot reach its own remote for any reason, prints a warning and does not
+block the push --- the memory's own trouble is never a reason to fail
+somebody else's publish. \texttt{--dry-run} lists \texttt{cgitsync memory
+push} first in its plan under the same condition the real run would
+perform it.
+
 \subsection{\texttt{freeze-release}}
 
 \begin{lstlisting}[language=bash]
@@ -596,6 +610,15 @@ snapshot filename includes the release, for example
 \texttt{gts-000001}.
 With \texttt{--dry-run}, \cgscli{} prints the planned add/commit/tag/push graph
 for the loaded workspace without mutating it.
+
+\paragraph{Folds this project's own memory first, same as \texttt{push}.}
+\texttt{freeze} (and, through it, \texttt{tag}, which folds the same way on
+its own combined commit-tag-push) crosses the \texttt{.cgitsync}
+$\rightarrow$ \texttt{.cgitsync/.memory} frontier before doing anything
+else, under the same conditions \texttt{push} does. \texttt{freeze-release}
+folds twice in one run --- once via its own \texttt{push} step, once via
+its own \texttt{freeze} step --- which is harmless: a fold with nothing new
+pending commits nothing and only re-sends the branch.
 
 \subsection{\texttt{import-submodules}}
 
