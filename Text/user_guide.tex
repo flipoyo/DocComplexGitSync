@@ -806,7 +806,10 @@ $ pixi run cgitsync memory branch --project-branch main
   \item \texttt{memory adopt} --- creates \texttt{.cgitsync/.memory} fresh
         and turns it into that repository, on this project branch's memory
         branch. It starts empty: the first \texttt{memory push} is what
-        folds in whatever \texttt{.cgitsync} already held.
+        folds in whatever \texttt{.cgitsync} already held. \texttt{--reboot}
+        adopts the same repository identity but skips carrying forward
+        whatever the fallback branch already holds, so the mount's content
+        starts fresh instead (\S\ref{sec:memory-reboot}).
   \item \texttt{memory branch} --- creates the memory branch another
         project branch will need, and pushes it. Needed once, for a memory
         born on a feature branch: merging \texttt{memory-dev} into
@@ -840,6 +843,32 @@ complete, verifiable memory and sends it later.
 
 \texttt{clone} refuses to write over a memory that is already here, because
 a memory nobody has pushed is the only copy of itself.
+
+\paragraph{Starting a memory's history over.}\label{sec:memory-reboot} A
+project's shape changes --- repositories added, removed, restructured ---
+and a memory built for the old shape stops being a clean answer to "what
+does this project look like." \texttt{cgitsync memory reboot} closes the
+current chapter and opens an empty one, without losing the old one:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync memory reboot
+\end{lstlisting}
+
+In order: whatever \texttt{.cgitsync} is holding pending is folded in and
+pushed under the branch's current name, exactly as \texttt{memory push}
+already does; the tree's current shape is exported --- from the loaded
+\texttt{.gts}, never a hand-authored file --- to a permanent, versioned
+\texttt{.cgitsync/.memory/.cgs/<project>-v<N>.cgs} (\texttt{N} incrementing
+once per reboot, never overwritten, never reused); the branch is archived,
+renamed both locally and on origin to \texttt{<branch>.archived-<date>},
+the old name removed from origin only \emph{after} the new one already
+holds the same commits, so nothing the memory ever recorded is
+unreachable for even a moment; and a fresh, empty branch takes the
+original name, so nothing about how the memory is mounted changes.
+Nothing is ever force-pushed or deleted. \texttt{cgitsync memory adopt
+--reboot} is the same fresh start for a mount being adopted for the very
+first time. Appending --- the ordinary \texttt{memory adopt}, and the only
+thing \texttt{memory push} ever does --- stays the default either way.
 
 \paragraph{What a memory carries off your machine.} One path: the tree's own
 root, with \texttt{\$HOME} substituted. Every other path it records --- each

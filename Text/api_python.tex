@@ -542,6 +542,29 @@ entries name but that is not on disk, with \texttt{path} set to
 \texttt{None} --- \texttt{verify} reports it as \texttt{MISSING\_STATE},
 and this is how a caller finds out which one.
 
+\subsection{Starting a memory's history over: \texttt{memory\_reboot}}
+
+\begin{lstlisting}[language=python]
+answer = client.memory_reboot("/path/to/CGSHOME")
+answer["folded"]         # pending records folded in before archiving
+answer["archived_from"]  # the branch's name before the reboot
+answer["archived_to"]    # "<branch>.archived-<YYYYMMDD>", real, on origin
+answer["exported"]       # .cgitsync/.memory/.cgs/<project>-v<N>.cgs
+answer["branch"]         # the original name, fresh, empty, checked out
+
+# A fresh start from the very first adopt, instead of inheriting whatever
+# the fallback branch already holds:
+client.memory_adopt("/path/to/CGSHOME", remote=remote, branch=branch, reboot=True)
+\end{lstlisting}
+
+Nothing is ever force-pushed or deleted: the old branch is pushed to
+origin under its archived name \emph{before} the old name is removed from
+origin, so the commits it holds are reachable under some name on the
+remote for the whole operation, never only locally. \texttt{memory\_reboot}
+raises \texttt{GitSyncError} when the mount is not a repository yet, and
+when today's archived name already exists --- a second reboot the same day
+needs a name of its own rather than colliding with the first.
+
 \section{Machine-readable output: \texttt{status\_json} and
 \texttt{verify\_json}}
 
