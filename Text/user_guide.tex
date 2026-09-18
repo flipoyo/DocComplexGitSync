@@ -473,6 +473,37 @@ own, and remains the cheapest way to bring many refs across at once.
 \texttt{checkout} and \texttt{branch} no longer depend on it having run
 first: each fetches the one ref it needs, exactly when it needs it.
 
+\subsection{\texttt{close-branch}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync close-branch <branch> [--private] [--gts <snapshot.gts>]
+\end{lstlisting}
+
+Renames \texttt{<branch>} to \texttt{closed/<branch>}, tree-wide,
+leaf-first --- locally and on the remote. Requires \texttt{READY}; the
+tree remains \texttt{READY} on success. Renames only: nothing is deleted,
+so the commits stay exactly as reachable as before, under a name that
+says what happened to them. Per repository: the branch is pushed under
+its closed name first, the old remote name is removed only once the
+commits are reachable under the new one, and only then is the local
+branch renamed --- the same order \texttt{memory reboot}'s own branch
+archiving already uses. A repository whose remote never had this branch
+published is renamed locally only, with nothing to remove remotely.
+
+Refuses, before touching any repository, in two cases: closing the
+project's own default branch (every repository with no branch of its own
+falls back to it, so removing it would break that fallback), and closing
+a branch that any repository in scope is currently checked out on. The
+second refusal names which repository and stops there --- this command
+closes a branch, it does not move the tree off one; check it out
+elsewhere first, then close it. A repository with no local branch named
+\texttt{<branch>} is skipped, not an error: a branch that only ever
+existed on some repositories (a private/local mount, say) is ordinary,
+not a mistake.
+
+\texttt{--private} selects the writable configuration repositories
+instead of the project's own, the same as \texttt{branch} (create).
+
 \subsection{\texttt{add}}
 
 \begin{lstlisting}[language=bash]
@@ -1609,9 +1640,10 @@ branch describing code that is not there.
 
 \paragraph{\texttt{--private} everywhere.} Every command that touches Git
 takes it: \texttt{clone} aside, that is \texttt{pull},
-\texttt{pull-force}, \texttt{checkout}, \texttt{branch}, \texttt{add},
-\texttt{rm}, \texttt{commit}, \texttt{push}, \texttt{merge},
-\texttt{tag} and \texttt{freeze}. It narrows the command to the writable
+\texttt{pull-force}, \texttt{checkout}, \texttt{branch},
+\texttt{close-branch}, \texttt{add}, \texttt{rm}, \texttt{commit},
+\texttt{push}, \texttt{merge}, \texttt{tag} and \texttt{freeze}. It
+narrows the command to the writable
 configuration repositories alone, so they can be worked on without
 reaching for plain \texttt{git}. Read-only configuration repositories are
 never written to, with or without it. Four of those commands also take

@@ -179,6 +179,25 @@ completes. \texttt{client.memory\_declared()} answers whether a memory is
 mounted at all, with no side effect, for a caller that wants to know
 in advance.
 
+\paragraph{\texttt{close\_branch(branch\_name, private=False)}.} Renames
+\texttt{branch\_name} to \texttt{closed/branch\_name} across the full
+tree, leaf-first --- locally and on the remote, never deleting anything.
+Requires \texttt{READY}. Raises \texttt{GitSyncError} before touching any
+repository when \texttt{branch\_name} is the project's own default branch,
+or when any repository in scope is currently checked out on it --- the
+error names which repository. \texttt{client.last\_write\_outcomes} holds
+one \texttt{RepoOutcome} per repository visited afterward: \texttt{acted}
+is \texttt{False} for a repository that had no branch of that name at all,
+never an error. \texttt{private=True} selects the writable configuration
+repositories instead of the project's own, the same as \texttt{branch()}
+(create).
+
+\begin{lstlisting}[language=Python]
+client.close_branch("memory-dev")
+for outcome in client.last_write_outcomes:
+    print(outcome.name, outcome.acted, outcome.detail)
+\end{lstlisting}
+
 \section{Landing a Branch: \texttt{merge} and \texttt{refresh\_private}}
 
 \texttt{merge(project\_branch, private=False, ff\_only=False, no\_ff=False)}
