@@ -636,6 +636,34 @@ for every command rather than per command, and carries a
 only}: new fields may appear; existing fields do not change meaning and do
 not vanish.
 
+\section{Environment observation and drift}
+
+The client exposes the same read-only Environment operations as the CLI:
+
+\begin{lstlisting}[language=python]
+from ComplexGitSync.cgs_format import CgsDocument
+from ComplexGitSync.orchestre import ComplexGitSyncClient
+
+client = ComplexGitSyncClient()
+client.load_gts("/path/to/CGSHOME/.cgitsync/state/<hash>.gts")
+
+observed = client.environment()
+print(observed.architecture, observed.pixi_platform, observed.digest())
+
+requirements = CgsDocument.from_toml("/path/to/project.cgs")
+drift = client.check_environment(requirements)
+if not drift.matches:
+    print("missing", drift.missing)
+    print("older", drift.older)
+print("observed but undeclared", drift.undeclared)
+\end{lstlisting}
+
+\texttt{environment()} returns a secret-free, content-addressable
+\texttt{TreeEnvironment}. Credentials are booleans only; manifests are
+tree-relative paths and digests, never copied contents. When a source
+\texttt{.cgs} is available, \texttt{check\_environment()} may be called
+without an argument. It returns data and installs nothing.
+
 \section{A memory as a repository: \texttt{memory\_init},
 \texttt{memory\_clone}, \texttt{memory\_push}}
 

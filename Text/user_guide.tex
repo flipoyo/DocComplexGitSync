@@ -25,6 +25,37 @@ $ pixi run cgitsync <command> [options]
 Running \cgscli{} without a command prints a help summary and exits with
 code~0.
 
+\subsection{Prerequisites}
+
+Three tools are needed before the first command: Git clones this checkout
+and the repositories in a tree; Pixi installs the locked Python environment
+and runs \cgscli{}; and repository creation needs the provider's own command
+line tool --- \texttt{gh} for GitHub, \texttt{glab} for GitLab, or
+\texttt{tea} for Codeberg. Install only the provider tool you use.
+
+The complete list depends on the tree and the work being done:
+
+\begin{center}
+\begin{tabular}{lp{5.0cm}p{5.2cm}}
+\textbf{Dependency} & \textbf{When it is needed} & \textbf{Where its version or requirement comes from} \\
+\hline
+Git & Every clone, inspection and synchronisation. & Its observed version is recorded with the State. \\
+Pixi & Install this project's environment and run \cgscli{}. & \texttt{pixi.lock} pins the project environment; the observed Pixi version is recorded separately. \\
+Python & Run \cgspkg{} inside the Pixi environment. & \texttt{pixi.toml} selects the interpreter; the observed interpreter is recorded. \\
+\texttt{gh}, \texttt{glab}, or \texttt{tea} & \texttt{repo create}, according to the repository provider. & The provider tool reports its version and whether it is authenticated. \\
+SSH client and agent & Repositories whose remote uses SSH. & Presence is observed. Keys, user names, and key paths are never recorded. \\
+DVC or Git LFS & A tree that uses the corresponding data backend. & The tree declares its use; the observed tool version is recorded when used. \\
+Compilers and system libraries & Native builds or software installed outside Pixi. & The tree declares these in its \texttt{.cgs} \texttt{[environment]} table. \\
+\texttt{latexmk} and TeX & Developers rebuilding the manuals under \texttt{docs/}. & A developer requirement, not an end-user runtime dependency. \\
+\end{tabular}
+\end{center}
+
+The machine must also match a platform supported by the tree's lock files.
+\texttt{pixi run cgitsync env} reports the operating system, architecture,
+Pixi platform, libc, tool versions, credential facts, and manifests it
+observes. \texttt{pixi run cgitsync env check} compares that observation
+with the tree's declared requirements. Neither command installs anything.
+
 \cgspkg{} stores no credentials of its own and has no private-repository
 authentication story: every git operation --- \texttt{clone}, \texttt{pull},
 \texttt{push}, and the remote lookups behind \texttt{checkout}'s branch/tag
@@ -70,7 +101,7 @@ the individual operations: \texttt{branch}, \texttt{checkout}, \texttt{purge},
 \texttt{validate}, \texttt{clone}, \texttt{pull}, \texttt{pull-force},
 \texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag}, \texttt{freeze},
 \texttt{import-submodules}, \texttt{init-from-submodules}, and
-\texttt{verify}.  The configuration level, \texttt{discover},
+\texttt{verify}, plus \texttt{env} and \texttt{env check}.  The configuration level, \texttt{discover},
 \texttt{configure} and
 \texttt{create-cgs}, authors a \texttt{.cgs} specification without requiring
 existing state.  Redundant
@@ -1008,6 +1039,50 @@ the versions that produced it --- cgitsync, git, pixi, and the data backends
 dvc and git-lfs --- inside the entry hash, so an edited version string is as
 detectable as an edited command. The older single-file \texttt{.lgr}
 register is still read, and is no longer written.
+
+\subsection{\texttt{env} and \texttt{env check}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync env [--search-dir DIR]
+$ pixi run cgitsync env check [--search-dir DIR] [--cgs FILE]
+\end{lstlisting}
+
+\texttt{env} observes the environment that can make the current tree usable.
+It reports the machine architecture, Pixi platform, operating system, kernel
+and libc; raw and parsed versions for Python and the tools \cgspkg{} drives;
+provider authentication as a fact; and the paths and digests of recognised
+manifests in the tree. A missing tool is printed as \texttt{none}, never as
+an empty value. Tokens, keys, user names, key paths, and paths outside
+\texttt{\$CGSTREE} are never part of an Environment record.
+
+\texttt{env check} compares that observation with requirements from the
+loaded tree's source \texttt{.cgs}. Pass \texttt{--cgs FILE} to check an
+explicit authoring document instead. Missing tools and versions older than
+the declared minimum are drift: the command names each mismatch and exits
+non-zero, which makes it suitable for continuous integration. Extra observed
+tools are reported as information and do not make the check fail.
+
+The check is separate from tree operations on purpose. \texttt{initialise}
+and \texttt{pull} may warn about drift, but a mismatch never blocks them.
+Both environment commands are read-only and install nothing.
+
+The optional authoring declaration names the repository where the environment
+is installed and requirements that cannot be inferred from a lock file:
+
+\begin{lstlisting}
+environment_root = "my-project"
+
+[environment]
+tools = { git = "2.43", pixi = "0.66" }
+compilers = ["cc"]
+system_libraries = ["libssl"]
+services = ["postgresql"]
+manifests = ["Cargo.lock"]
+\end{lstlisting}
+
+The root must name a configured repository (or \texttt{root}). Manifest
+contents remain in Git; the Environment record stores only tree-relative
+paths and digests.
 
 \subsection{\texttt{launch-release}}
 
