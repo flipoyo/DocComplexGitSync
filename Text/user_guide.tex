@@ -939,7 +939,7 @@ layout nor your user name travels with it.
 $ pixi run cgitsync verify [--search-dir DIR] [--repair]
 \end{lstlisting}
 
-Says which of four things is true of this workspace's recorded history.
+Says which of five things is true of this workspace's recorded history.
 One of them, never a blur of two:
 
 \begin{center}
@@ -955,6 +955,10 @@ One of them, never a blur of two:
                                     chain. Readable, not verifiable: an edit
                                     to it leaves no trace. \\
 \texttt{corrupt}    & \texttt{1} & A chain was read and it does not hold. \\
+\texttt{time-inconsistent} & \texttt{1} & The chain held, but its own
+                                    timestamps move backwards somewhere.
+                                    Your history is intact; the clock that
+                                    stamped it was not. \\
 \end{tabular}
 \end{center}
 
@@ -963,6 +967,14 @@ history intact?'', and ``I cannot tell'' is not a yes: a build that gates on
 \texttt{verify} must not pass because the evidence is in a format nobody can
 check. Every workspace created before the hash-chained register is written
 is in exactly that state.
+
+\texttt{time-inconsistent} is deliberately not \texttt{corrupt}. Every link
+checked out --- nothing was rewritten --- so the two answers send you to
+look at different things. A clock corrected mid-session, a restored virtual
+machine, or a machine that disagreed about the hour all read like this, and
+so does an entry somebody backdated: a date cannot be moved backwards
+without contradicting the chain around it. It still exits non-zero, because
+something is wrong even though your history is not.
 
 When there \emph{is} a chain, what is checked: every entry's \texttt{prev}
 must match the previous entry's \texttt{entry\_hash}

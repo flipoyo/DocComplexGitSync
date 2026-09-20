@@ -512,7 +512,7 @@ client = ComplexGitSyncClient()
 
 status = client.memory_status("/path/to/CGSHOME")
 status["states"], status["entries"]      # how much is remembered
-status["verification"]                   # verified / no-history / legacy / corrupt
+status["verification"]  # verified / no-history / legacy / corrupt / time-inconsistent
 status["latest_toolchain"]["git"]        # what produced the newest record
 
 for row in client.memory_list("/path/to/CGSHOME"):
