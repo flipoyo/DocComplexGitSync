@@ -2,10 +2,12 @@
 
 *Created: 2026-08-31*
 
-Project-specific documentation constraints that extend `./DocSpec/DocSpecs.md`
-(project-agnostic, a plain nested clone of `flipoyo/DocSpec` — gitignored,
-not tracked by this repo) for `ComplexGitSync`, per `DevSpecs.md`'s
-Documentation section: the chapter outline and glossary terms below.
+Project-specific documentation constraints that extend `DocSpecs.md`
+(project-agnostic, mounted at `.agent/.distant/documentation` —
+`AgentSkillsSplit`'s "documentation" skill, alongside `DOCSTYLE.md` in
+the same repository; gitignored, not tracked by this repo) for
+`ComplexGitSync`, per `DevSpecs.md`'s Documentation section: the chapter
+outline and glossary terms below.
 
 ## Chapter list (`docs/Text/`, built by `MASTER.tex`)
 
