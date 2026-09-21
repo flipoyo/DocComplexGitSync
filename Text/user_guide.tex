@@ -650,6 +650,12 @@ and \texttt{push} steps above, behaving exactly as described under
 \texttt{freeze} step's own tag push picks it up too without needing the
 flag itself.
 
+Unlike a bare \texttt{freeze}, this records a \texttt{release} row on the
+ledger entry it writes: the installed package's own SemVer and build
+counter, plus \texttt{<name>} as the tag actually applied. Name the release
+\texttt{v<semver>} (for example \texttt{v3.1.0}) to keep the tag and the
+recorded SemVer in agreement.
+
 \subsection{\texttt{freeze}}
 
 \begin{lstlisting}[language=bash]
