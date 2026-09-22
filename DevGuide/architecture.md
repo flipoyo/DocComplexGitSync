@@ -9,24 +9,24 @@
 Architecture" book chapter). This file documents the **Ring** model instead:
 the enforced, import-direction/I/O-boundary grouping that
 `src/ComplexGitSync/`'s modules actually declare in their own docstring
-headers and that `.localSpec/AdditionalSpecs.md`'s "Architectural Overview"
+headers and that `.agent/.local/.localSpec/AdditionalSpecs.md`'s "Architectural Overview"
 section states as rules.
 
 **Why it exists.** The isolation refactor
-(`.localSpec/DevTickets/archive/20260828_Isolation_DevPlanTicket.md`) split
+(`.agent/.local/.localSpec/DevTickets/archive/20260828_Isolation_DevPlanTicket.md`) split
 `orchestre.py`/`cli.py` into ~20 focused modules and gave each one a
 `Ring:` docstring header, but never added anywhere in `docs/` that shows
 those rings, how they relate to the book's Tier model, or how the current
-module set actually depends on itself. `.localSpec/AdditionalSpecs.md`'s
+module set actually depends on itself. `.agent/.local/.localSpec/AdditionalSpecs.md`'s
 ring table is dev-facing but text-only — no diagram. This file is that
 diagram, plus the one explicit Tier↔Ring reconciliation
-`.localSpec/DevTickets/archive/20260831_DocRewritePlanTicket.md` §1.1 calls for.
+`.agent/.local/.localSpec/DevTickets/archive/20260831_DocRewritePlanTicket.md` §1.1 calls for.
 
 **What you will find.** The Tier↔Ring mapping (§1); a Mermaid dependency
 graph of every current module, grouped by ring (§2); a one-row-per-module
 contract table pulled from each module's own docstring header (§3); and a
-condensed pointer to `.localSpec/AdditionalSpecs.md`'s four import rules and
-ceiling ratchet (§4) — `.localSpec/AdditionalSpecs.md` stays authoritative
+condensed pointer to `.agent/.local/.localSpec/AdditionalSpecs.md`'s four import rules and
+ceiling ratchet (§4) — `.agent/.local/.localSpec/AdditionalSpecs.md` stays authoritative
 for those, this file only summarizes; and one worked example of the
 "one owner per decision" rule, the path a branch takes from a `.cgs` to a
 repository on disk (§5).
@@ -38,11 +38,11 @@ ring new code belongs in, or before wiring a new internal import.
 **What you need to do with it.** Nothing by default. Update §2's graph and
 §3's table when a module is added, removed, renamed, or moved between
 rings — same discipline `CLAUDE.md` already asks for
-`.localSpec/AdditionalSpecs.md`.
+`.agent/.local/.localSpec/AdditionalSpecs.md`.
 
 ```mermaid
 graph TD
-    AUDIT[".localSpec/AdditionalSpecs.md<br/>ring table + import rules<br/><i>enforced source of truth</i>"] --> ARCH["architecture.md<br/><i>YOU ARE HERE</i>"]
+    AUDIT[".agent/.local/.localSpec/AdditionalSpecs.md<br/>ring table + import rules<br/><i>enforced source of truth</i>"] --> ARCH["architecture.md<br/><i>YOU ARE HERE</i>"]
     TEX["docs/Text/architecture.tex<br/>3-Tier book chapter"] --> ARCH
     ARCH --> MAP["§1 Tier<->Ring mapping"]
     ARCH --> GRAPH["§2 module dependency graph"]
@@ -67,7 +67,7 @@ grouping, aimed at readers of the published book:
   public facade that gates every action and coordinates the tree's
   lifecycle end to end.
 
-`.localSpec/AdditionalSpecs.md` describes **five Rings** — an *import-direction/I/O-boundary*
+`.agent/.local/.localSpec/AdditionalSpecs.md` describes **five Rings** — an *import-direction/I/O-boundary*
 grouping, mechanically checked by `scripts/check_module_ceilings.py`: a
 module may import only from a lower-numbered ring, `subprocess` is confined
 to `git_runner.py` alone, Ring 0 does no I/O at all, Ring 1 does no
@@ -305,7 +305,7 @@ of truth — update the module's docstring first, this table second.
 ## 4. Import rules and ceilings (summary)
 
 Full text and rationale live in
-[`.localSpec/AdditionalSpecs.md`](../../.localSpec/AdditionalSpecs.md) —
+[`.agent/.local/.localSpec/AdditionalSpecs.md`](../../.agent/.local/.localSpec/AdditionalSpecs.md) —
 this is a condensed pointer, not a restatement:
 
 1. **No upward imports.** Ring *n* imports from rings `< n` only (visible
