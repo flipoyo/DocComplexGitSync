@@ -1026,6 +1026,43 @@ repository's, and any path in a command line it logged --- is written
 against the tree as \texttt{\$CGSTREE/...}, so neither your directory
 layout nor your user name travels with it.
 
+\subsection{\texttt{self-history}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync self-history add \
+    --ticket NAME --goal TEXT --action TEXT \
+    --worker-role ROLE --worker-vendor NAME --worker-model NAME \
+    --orchestrator-role ROLE --orchestrator-vendor NAME --orchestrator-model NAME \
+    --spec-respect-score N --spec-respect-basis measured|asserted --spec-respect-reasoning TEXT \
+    --gating-score N --gating-basis measured|asserted --gating-reasoning TEXT \
+    --quality-score N --quality-basis measured|asserted --quality-reasoning TEXT \
+    [--state-before STATE] [--state-after STATE] \
+    [--lint-passed|--lint-failed] [--tests-passed|--tests-failed] \
+    [--pushed] [--pushed-reason TEXT] [--search-dir DIR]
+\end{lstlisting}
+
+Records one piece of agent work: which ticket it served, the goal and the
+action taken in plain English (at most three lines each), the two agents
+involved --- a \textbf{worker} that implemented the ticket and an
+independent \textbf{orchestrator} that quoted the work, each with a role
+from \texttt{.localSpec/AGENT.md}'s roster, a vendor and a model version
+--- and a three-part conformity score (spec respect, \texttt{.PUBLIC}/
+\texttt{.PRIVATE} gating, quality of production), each part marked
+\texttt{measured} or \texttt{asserted} rather than blending the two.
+
+Two facts the command fills in itself, because this project can check them
+directly rather than trust an agent to type them: which signed
+agent-contract record was in force (by its own hash, from
+\texttt{.agent/.distant/dev-sync/agent-contracts/current}), and this
+workspace's own \texttt{errors=} count from the same view \texttt{status}
+prints. Everything else is the orchestrator's own account. A missing
+signed contract is not an error --- the field is simply empty.
+
+The record is written to \texttt{.cgitsync/.self-history/}, content-addressed
+the same way a State or an Environment record is. There is no repository
+mounted at this path yet (that is future work), so today's record stays
+local to the machine that wrote it until that lands.
+
 \subsection{\texttt{verify}}
 
 \begin{lstlisting}[language=bash]

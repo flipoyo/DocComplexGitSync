@@ -601,6 +601,54 @@ raises \texttt{GitSyncError} when the mount is not a repository yet, and
 when today's archived name already exists --- a second reboot the same day
 needs a name of its own rather than colliding with the first.
 
+\subsection{Recording one piece of agent work: \texttt{self\_history\_add}}
+
+\begin{lstlisting}[language=python]
+from ComplexGitSync.memory.self_history import AgentInfo, ConformityCriterion, ConformityScore
+
+worker = AgentInfo(role="Dev", vendor="Anthropic", model="claude-sonnet-5")
+orchestrator = AgentInfo(role="Orchestration", vendor="Anthropic", model="claude-sonnet-5")
+conformity = ConformityScore(
+    spec_respect=ConformityCriterion(score=33, basis="measured", reasoning="lint and test both pass"),
+    gating=ConformityCriterion(score=33, basis="measured", reasoning="nothing private pushed"),
+    quality=ConformityCriterion(score=30, basis="asserted", reasoning="a reasonable first pass"),
+)
+
+path = client.self_history_add(
+    "/path/to/CGSHOME",
+    ticket="AgentReport",
+    goal="Implement WP1: the record format and the add command.",
+    action="Wrote memory/self_history.py and self_history_add.",
+    worker=worker,
+    orchestrator=orchestrator,
+    conformity=conformity,
+    lint_passed=True,
+    tests_passed=True,
+)
+\end{lstlisting}
+
+Writes one record to \texttt{.cgitsync/.self-history/<hash>.toml}, content-addressed
+the same way a State or an Environment record is. \texttt{contract} (the
+current signed \texttt{AgentContractRecord}'s own hash) and
+\texttt{checks.status\_errors} (this workspace's \texttt{errors=} count) are
+filled in from what the client can itself observe; every other field,
+including \texttt{lint\_passed}/\texttt{tests\_passed}, is the caller's own
+account --- \texttt{self\_history\_add} cannot run \texttt{pixi run lint} or
+\texttt{pixi run test} itself, since \texttt{subprocess} stays confined to
+\texttt{git\_runner.py}, and that module runs Git, not Pixi.
+
+\texttt{AgentInfo.role} is validated against \texttt{.localSpec/AGENT.md}'s
+six-role roster; \texttt{ConformityCriterion.basis} against
+\texttt{"measured"}/\texttt{"asserted"} only. Both raise
+\texttt{ValueError} on anything else, the same way \texttt{goal}/
+\texttt{action} raise for more than three lines.
+
+\textbf{There is no repository mounted at \texttt{.self-history} yet.} The
+record above stays in an ordinary, gitignored pending directory until the
+nested-repository fold/push pipeline the AgentReport ticket designs (its
+WP2/WP2b) lands; \texttt{memory\_reboot} and \texttt{memory\_clone} do not
+yet know it exists.
+
 \section{Machine-readable output: \texttt{status\_json} and
 \texttt{verify\_json}}
 
