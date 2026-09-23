@@ -744,3 +744,54 @@ verification pass that cross-references entries against the actual
 With \texttt{repair=True}, a stale \texttt{HEAD} cache is corrected in
 place. Register entries are never rewritten or deleted by this method,
 repair or not — a broken chain is reported, not silently healed.
+
+\section{Diagnosing and Repairing a Git Situation: \texttt{autofix}}
+\label{sec:api-autofix}
+
+\texttt{autofix(*, error=None, repo\_name=None)} reads the error the
+tree's last command actually failed with, and runs whichever registered
+repair recognises it --- the same command \texttt{cgitsync autofix}
+wraps (\S\ref{sec:autofix} of the user guide):
+
+\begin{lstlisting}[language=python]
+from ComplexGitSync.orchestre import ComplexGitSyncClient
+
+client = ComplexGitSyncClient()
+client.load("/path/to/CGSHOME/snapshot.gts")
+
+# error=None reads .cgitsync/logs/*.log's most recent failing command
+outcome = client.autofix()
+
+# Or hand it an error directly -- useful from a script that already
+# caught one, or in a test
+outcome = client.autofix(
+    error="fatal: Not possible to fast-forward, aborting.",
+    repo_name=".memory",
+)
+
+print(outcome.repaired, outcome.detail)
+\end{lstlisting}
+
+Returns an \texttt{autofix.RepairOutcome}: \texttt{repaired} (bool) and
+\texttt{detail} (str, one line naming what changed or why nothing did).
+\texttt{repaired=False} is not a failure --- it also covers the case
+where the situation turned out not to need this repair at all (e.g.\ a
+merge that applied cleanly on its own).
+
+Raises \texttt{autofix.NoMatchingRepairError} (mapped to the CLI's
+\texttt{EXIT\_REFUSED}, never a traceback, when reached through
+\texttt{cgitsync autofix}) when no failing command is found to read, or
+when nothing registered recognises the error --- \texttt{autofix} refuses
+rather than guessing. It can also raise the ordinary
+\texttt{errors.GitSyncError} a repair itself raises, for example when the
+two sides of a divergence are not disjoint enough to reconcile safely
+without a person's judgement.
+
+\texttt{autofix} is deliberately not one growing class: each situation it
+recognises lives in its own \texttt{ComplexGitSync.autofix.repair\_*}
+module (today, \texttt{repair\_divergent\_user} --- a private repository
+whose branch diverged because two machines wrote to it independently,
+where the content itself, like \texttt{.memory}'s hash-chained ledger,
+carries an ordering invariant a plain \texttt{merge} cannot see). Adding
+a new situation this method can handle means adding a new module and
+registering it, never editing an existing one to grow another branch.

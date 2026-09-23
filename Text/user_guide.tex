@@ -99,6 +99,7 @@ The minimalist level is \texttt{initialise}, \texttt{bootstrap},
 \texttt{status}, \texttt{view-tree}, and \texttt{launch-release}.  The expert level exposes
 the individual operations: \texttt{branch}, \texttt{checkout}, \texttt{purge},
 \texttt{validate}, \texttt{clone}, \texttt{pull}, \texttt{pull-force},
+\texttt{autofix},
 \texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag}, \texttt{freeze},
 \texttt{import-submodules}, \texttt{init-from-submodules}, and
 \texttt{verify}, plus \texttt{env} and \texttt{env check}.  The configuration level, \texttt{discover},
@@ -438,6 +439,61 @@ FETCH\_HEAD}, and \texttt{git clean -fd}.  This command can discard local
 uncommitted changes and untracked files; it never force-pushes.
 \texttt{--force-protocol} behaves exactly as described under \texttt{pull}
 above.
+
+\subsection{\texttt{autofix}}
+\label{sec:autofix}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync autofix [spec.cgs|snapshot.gts] [--error TEXT] [--repo NAME]
+\end{lstlisting}
+
+Diagnoses and repairs the situation named by the last failing command's
+error, instead of a person reading raw \texttt{git} output and guessing
+which of \texttt{merge}/\texttt{pull-force} is safe. With no
+\texttt{--error}, reads the most recent \texttt{.cgitsync/logs/*.log}'s
+failing command --- the normal workflow is a command fails, run
+\texttt{cgitsync autofix} next, and nothing gets retyped. \texttt{--repo}
+names which mounted repository to repair when it cannot be guessed from
+the error text (a chain-shaped repository's name is usually visible in
+its own remote URL, which \texttt{git}'s error text already includes).
+
+\paragraph{Tricky git states, and the safe \cgscli{} command for each.}
+The \texttt{SYNC} column \texttt{status} prints (\S\ref{sec:status-sync},
+below) names the git-level situation; it cannot say whether the content
+behind it is safe to reconcile automatically. This table can:
+
+\begin{center}
+\begin{tabular}{lp{8.7cm}}
+\textbf{\texttt{SYNC} state} & \textbf{Safe command} \\
+\hline
+\texttt{ahead(+N)}          & \texttt{push} --- nothing to reconcile, the
+  remote is simply behind. \\
+\texttt{behind(-N)}         & \texttt{pull} --- nothing to reconcile, this
+  workspace is simply behind. \\
+\texttt{diverged}, plain-text content (e.g.\ \texttt{.localSpec},
+  \texttt{.claude}) & \texttt{merge} by hand, or \texttt{autofix} --- an
+  ordinary three-way merge resolves it with nothing lost, since the
+  content has no ordering invariant beyond ``these are files''. \\
+\texttt{diverged}, chain-shaped content (\texttt{.memory}'s \texttt{lgr/}
+  ledger, and --- once built --- \texttt{omniscience}'s register) &
+  \texttt{autofix}. \texttt{pull-force} discards whichever side loses the
+  race outright; a plain \texttt{merge} leaves an add/add conflict on the
+  colliding ledger entry that nothing but \texttt{autofix} knows how to
+  resolve without dropping one side's history. \\
+Anything \texttt{autofix} does not recognise & Refused outright, with the
+  reason printed --- never a guess. \\
+\end{tabular}
+\end{center}
+
+\texttt{autofix} tells a plain-text divergence apart from a chain-shaped
+one before acting on either: fetches, attempts the ordinary merge, and
+only on a conflict in a repository registered as chain-shaped does it
+re-sequence both sides' new ledger entries --- in the order they were
+actually recorded, not ``whichever side pushed first'' --- verify the
+result, and complete a real two-parent merge commit. It never
+force-pushes and never rewrites history; a repair it cannot verify as
+correct is refused, leaving the conflict exactly as \texttt{git} left it,
+rather than writing something that looks resolved and is not.
 
 \subsection{\texttt{clone}}
 
@@ -1284,7 +1340,9 @@ private one is shown the same way, because it is just as shared.
 to a \texttt{private/distant} row. When any private row is present, the
 table prints a legend saying so.
 
-\paragraph{The \texttt{SYNC} column.} It says how the branch a repository
+\paragraph{The \texttt{SYNC} column.}
+\label{sec:status-sync}
+It says how the branch a repository
 is on stands against the branch it tracks --- the one named in
 \texttt{UPSTREAM\_BRANCH}, which reads \texttt{-} when there is none. There
 are six values:
@@ -1298,8 +1356,13 @@ are six values:
                              not have. \texttt{push} sends them. \\
 \texttt{behind(-N)}        & \texttt{N} commits on the remote that are not
                              here. \texttt{pull} fetches them. \\
-\texttt{diverged(+N/-M)}   & Both, from a common ancestor. \texttt{merge}
-                             or \texttt{pull-force} resolves it. \\
+\texttt{diverged(+N/-M)}   & Both, from a common ancestor. \texttt{autofix}
+                             (\S\ref{sec:autofix}) diagnoses which of
+                             \texttt{merge} or a chain-aware splice is
+                             safe; \texttt{pull-force} discards this
+                             workspace's own \texttt{N} commits
+                             unconditionally and should not be the first
+                             thing tried. \\
 \texttt{no-upstream}       & This branch was never pushed, so there is
                              nothing to compare it to. Normal for a branch
                              you just made, and for a \texttt{private/local}
