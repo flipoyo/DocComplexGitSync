@@ -532,7 +532,8 @@ for commit in answer["commits"]:         # published commits, newest push first
 
 timeline = client.memory_explore("/path/to/CGSHOME", timeline=True)
 for entry in timeline["entries"]:        # every ledger entry, in order
-    entry["seq"], entry["command"], entry["commits"], entry["published"]
+    entry["seq"], entry["command"], entry["state"], entry["commits"], entry["published"]
+    # entry["state"] is what memory_show(cgshome, entry["state"]) takes
 \end{lstlisting}
 
 Commit messages come back whole. Shortening a long one to a single line is

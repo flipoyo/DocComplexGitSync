@@ -908,7 +908,9 @@ versions.
         reads the ledger straight through instead: one row per entry, in
         the order it happened, so \texttt{checkout}/\texttt{merge}/
         \texttt{push} appear beside \texttt{commit} rather than being
-        dropped. \texttt{--branch NAME} asks for a different memory branch;
+        dropped --- each row also prints the State it recorded, so a prefix
+        to hand \texttt{show} is never more than a scroll away.
+        \texttt{--branch NAME} asks for a different memory branch;
         only the one actually checked out here can be read this way today,
         and a mismatch names \texttt{memory clone --branch NAME} rather
         than answering for the wrong branch.
