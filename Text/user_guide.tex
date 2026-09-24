@@ -1058,6 +1058,14 @@ workspace's own \texttt{errors=} count from the same view \texttt{status}
 prints. Everything else is the orchestrator's own account. A missing
 signed contract is not an error --- the field is simply empty.
 
+\texttt{--state-before}/\texttt{--state-after} are \textbf{verified against
+the ledger}, not merely shape-checked: each, if given, must name a State
+some ledger entry actually recorded, still on disk, still hashing to its
+own name --- the same three questions \texttt{verify} itself asks. A
+citation that fails any of them is refused, not recorded as though it were
+fact. \texttt{--state-after} defaults to the ledger's own most recent
+entry when not given.
+
 The record is written to \texttt{.cgitsync/.self-history/}, content-addressed
 the same way a State or an Environment record is --- the pending half.
 Once self-history has been adopted (below), \texttt{cgitsync memory push}
@@ -1070,16 +1078,19 @@ $ pixi run cgitsync self-history adopt [--owner NAME] [--branch NAME] [--search-
 \end{lstlisting}
 
 Self-history rides \texttt{.memory}'s own lifecycle rather than needing a
-lifecycle of its own: the moment \texttt{github:<owner>/.self-history} is
-reachable, \texttt{cgitsync memory adopt} adopts it automatically,
-silently, right alongside \texttt{.memory} --- a project that has never
-created that repository sees no new behaviour at all. \texttt{self-history
-adopt} is the one explicit step, for a \texttt{.memory} that was adopted
-\emph{before} self-history existed to ride along: it retrofits the same
-fresh, empty start onto an already-adopted memory. Unlike the automatic
-attempt, asking for this explicitly raises when the remote is not there,
-rather than quietly doing nothing --- asking for it means wanting to know
-why it did not work.
+lifecycle of its own. \texttt{self-history adopt} is the \emph{one} place
+this is ever decided: it writes \texttt{config-memory.cgs} once, for a
+brand-new project or as the explicit retrofit for a \texttt{.memory}
+adopted \emph{before} self-history existed. From then on,
+\texttt{cgitsync memory adopt} follows that decision automatically,
+silently, whenever a project's own memory branch inherits it from a
+fallback base branch that already carries it --- the same mechanism that
+already lets a new project's memory share history with another. A project
+that has never adopted self-history has no such file anywhere, so this
+sees no new behaviour at all. Unlike that automatic follow, asking for
+\texttt{self-history adopt} explicitly raises when the remote is not
+there, rather than quietly doing nothing --- asking for it means wanting
+to know why it did not work.
 
 \texttt{cgitsync memory clone} brings self-history back too, the moment it
 was adopted upstream; \texttt{cgitsync memory reboot} leaves it entirely

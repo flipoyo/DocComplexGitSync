@@ -643,6 +643,20 @@ six-role roster; \texttt{ConformityCriterion.basis} against
 \texttt{ValueError} on anything else, the same way \texttt{goal}/
 \texttt{action} raise for more than three lines.
 
+\texttt{state\_before}/\texttt{state\_after} are \textbf{verified against
+the ledger}, not merely shape-checked --- deliberately a ledger question,
+not a \texttt{.cgs}/discovery one: a \texttt{.gts} is a static snapshot, so
+whether a citation names something real is answered the same way
+\texttt{verify} already answers it, via \texttt{MISSING\_STATE}/
+\texttt{STATE\_DIGEST\_MISMATCH} — never by re-parsing or re-deriving
+something from a transformed document. Concretely, each citation, if
+given, must name a State some ledger entry actually recorded, on disk,
+still hashing to its own name; one that fails any of the three raises
+\texttt{GitSyncError} rather than being recorded as though it were fact.
+\texttt{state\_after} is additionally \textbf{observed}, not merely
+validated, when omitted: the ledger's own most recent entry at the moment
+\texttt{self\_history\_add} runs.
+
 \texttt{memory\_push} folds this pending directory into
 \texttt{.cgitsync/.memory/.self-history/} and pushes it --- \emph{before}
 folding and pushing \texttt{.memory} itself, once self-history has been
@@ -658,18 +672,30 @@ result["branch"]  # .memory's own branch, unless a different one was given
 result["remote"]  # the SSH URL self-history was adopted from
 \end{lstlisting}
 
-There is no separate opt-in flag: \texttt{memory\_adopt} already calls
-this automatically, silently, the moment
-\texttt{github:<owner>/.self-history} is reachable --- a project that has
-never created that repository sees no new behaviour at all, since a
-\texttt{.gts}-loaded registry never carries a nested-config declaration to
-check in the first place. \texttt{self\_history\_adopt} is the explicit,
-standalone form: the retrofit for a \texttt{.memory} that was adopted
-\emph{before} self-history existed (this project's own, among others).
-Unlike the automatic attempt, every precondition here raises
-\texttt{GitSyncError} instead of returning quietly --- \texttt{.memory}
-not yet adopted, self-history already adopted, no owner resolvable, or the
-remote not reachable.
+\texttt{self\_history\_adopt} is the \emph{one place} this fact is ever
+decided: it writes \texttt{config-memory.cgs} the first time, for a
+brand-new project or as the explicit retrofit for a \texttt{.memory}
+adopted \emph{before} self-history existed (this project's own, among
+others). Every precondition here raises \texttt{GitSyncError} instead of
+returning quietly --- \texttt{.memory} not yet adopted, self-history
+already adopted, no owner resolvable, or the remote not reachable.
+
+There is no separate opt-in flag beyond that one decision:
+\texttt{memory\_adopt} follows it automatically and silently afterward,
+whenever \texttt{.memory}'s own already-fetched content already carries
+\texttt{config-memory.cgs} --- typically because a project's own memory
+branch inherited it from a fallback base branch that already had it, the
+same mechanism that already lets a new project's memory share history
+with another. This is deliberately \emph{not} a check against
+\texttt{self.registry}: a \texttt{.gts} is a static snapshot of an
+already-discovered tree, and \texttt{nested\_config} (the \texttt{.cgs}-side
+declaration that makes \texttt{.self-history} a discoverable child of
+\texttt{.memory}) is \texttt{.cgs}-only information a
+\texttt{.gts}-loaded registry never carries in the first place --- asking
+the registry would be the wrong layer, not a gap a runtime probe should
+paper over. Reachability is checked too, but only \emph{after} that
+question, to decide whether an already-declared repository can actually be
+fetched right now.
 
 \texttt{memory\_clone} brings self-history back too, reading which
 repository to clone from \texttt{config-memory.cgs} itself rather than
