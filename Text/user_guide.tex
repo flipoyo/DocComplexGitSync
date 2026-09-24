@@ -1059,9 +1059,42 @@ prints. Everything else is the orchestrator's own account. A missing
 signed contract is not an error --- the field is simply empty.
 
 The record is written to \texttt{.cgitsync/.self-history/}, content-addressed
-the same way a State or an Environment record is. There is no repository
-mounted at this path yet (that is future work), so today's record stays
-local to the machine that wrote it until that lands.
+the same way a State or an Environment record is --- the pending half.
+Once self-history has been adopted (below), \texttt{cgitsync memory push}
+folds it into \texttt{.cgitsync/.memory/.self-history/} and pushes it,
+\emph{before} folding and pushing \texttt{.memory} itself, so the parent's
+own push always records a leaf that already exists.
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync self-history adopt [--owner NAME] [--branch NAME] [--search-dir DIR]
+\end{lstlisting}
+
+Self-history rides \texttt{.memory}'s own lifecycle rather than needing a
+lifecycle of its own: the moment \texttt{github:<owner>/.self-history} is
+reachable, \texttt{cgitsync memory adopt} adopts it automatically,
+silently, right alongside \texttt{.memory} --- a project that has never
+created that repository sees no new behaviour at all. \texttt{self-history
+adopt} is the one explicit step, for a \texttt{.memory} that was adopted
+\emph{before} self-history existed to ride along: it retrofits the same
+fresh, empty start onto an already-adopted memory. Unlike the automatic
+attempt, asking for this explicitly raises when the remote is not there,
+rather than quietly doing nothing --- asking for it means wanting to know
+why it did not work.
+
+\texttt{cgitsync memory clone} brings self-history back too, the moment it
+was adopted upstream; \texttt{cgitsync memory reboot} leaves it entirely
+alone, on purpose --- a reboot starts \texttt{.memory}'s own history over,
+and the record of what happened, including across the reboot, is exactly
+the thing that should survive it.
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync memory self-history [--search-dir DIR]
+\end{lstlisting}
+
+Every self-history record this workspace holds, folded and pending,
+oldest first --- consultation only. A workspace that has never adopted
+self-history, or has adopted it but written nothing yet, prints that
+plainly rather than erroring.
 
 \subsection{\texttt{verify}}
 
