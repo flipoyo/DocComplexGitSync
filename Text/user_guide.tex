@@ -895,16 +895,26 @@ versions.
         commands that recorded it. A State with no timestamp is one no
         entry records: history from before the ledger, or a file that
         arrived some other way.
-  \item \texttt{show} --- one State, every entry naming it, and what each
-        \texttt{commit} wrote: the message, the repository, and whether the
-        commit has been published. The argument is the State's content hash
-        or any unambiguous prefix of it; nobody retypes sixty-four
-        characters. Pasted back verbatim from wherever it was printed also
-        works: the bare prefix, the \texttt{state=<hash>} label
-        \texttt{explore --timeline} prints it under, or the full
-        \texttt{state(<hash>)} form a ledger entry uses. \texttt{--full}
-        prints whole messages instead of first lines, and the remote and
-        ref each publication went to.
+  \item \texttt{show <state>} --- the environment that State's own commits
+        ran under, as a bare reference; that State's own topology right
+        after, drawn exactly the way \texttt{view-tree} draws the live one
+        (\texttt{format\_view\_tree}) but as it was at that State, not as it
+        is now; then every entry naming it and what each \texttt{commit}
+        wrote: the message, the repository, and whether the commit has been
+        published. The argument is the State's content hash or any
+        unambiguous prefix of it; nobody retypes sixty-four characters.
+        Pasted back verbatim from wherever it was printed also works: the
+        bare prefix, the \texttt{state=<hash>} label \texttt{explore
+        --timeline} prints it under, or the full \texttt{state(<hash>)} form
+        a ledger entry uses. \texttt{--full} prints whole messages instead
+        of first lines, and the remote and ref each publication went to.
+  \item \texttt{show env=<ref>} --- one Environment record, in full: machine,
+        tools, credentials and manifest digests, drawn as the same kind of
+        tree \texttt{view-tree} draws a repo tree with. This is the detail a
+        State's own bare \texttt{environment=env(<hash>)} reference never
+        shows, since a State answers "what was this tree", not "what ran
+        it". Takes the full id, a bare prefix, or the \texttt{env=<hash>}
+        form its own argument is spelled with.
   \item \texttt{explore} --- a memory a person can read without a hash.
         The default view is one row per commit this memory recorded as
         published, newest push first, on the branch checked out here ---

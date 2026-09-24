@@ -520,10 +520,15 @@ for row in client.memory_list("/path/to/CGSHOME"):
 
 state = client.memory_show("/path/to/CGSHOME", "2acdc98b")   # hash or prefix
 state["repos"], state["entries"]
+state["tree"]                            # this State's own topology, like view_tree()
+state["environments"]                    # [{"id": "env(<hash>)", "path": ..., "record": ...}]
 for entry in state["entries"]:
     for commit in entry["commits"]:
         commit["message"], commit["repository"], commit["published"]
 state["published"]                       # remote and ref each commit went to
+
+environment = client.memory_show_environment("/path/to/CGSHOME", "env(<hash>)")
+environment["record"]["machine"], environment["record"]["tools"]
 
 answer = client.memory_explore("/path/to/CGSHOME")
 answer["branch"]                         # the memory branch checked out here, or None
