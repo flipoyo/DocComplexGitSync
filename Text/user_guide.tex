@@ -899,8 +899,12 @@ versions.
         \texttt{commit} wrote: the message, the repository, and whether the
         commit has been published. The argument is the State's content hash
         or any unambiguous prefix of it; nobody retypes sixty-four
-        characters. \texttt{--full} prints whole messages instead of first
-        lines, and the remote and ref each publication went to.
+        characters. Pasted back verbatim from wherever it was printed also
+        works: the bare prefix, the \texttt{state=<hash>} label
+        \texttt{explore --timeline} prints it under, or the full
+        \texttt{state(<hash>)} form a ledger entry uses. \texttt{--full}
+        prints whole messages instead of first lines, and the remote and
+        ref each publication went to.
   \item \texttt{explore} --- a memory a person can read without a hash.
         The default view is one row per commit this memory recorded as
         published, newest push first, on the branch checked out here ---
