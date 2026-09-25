@@ -1029,9 +1029,17 @@ once per reboot, never overwritten, never reused); the branch is archived,
 renamed both locally and on origin to \texttt{<branch>.archived-<date>},
 the old name removed from origin only \emph{after} the new one already
 holds the same commits, so nothing the memory ever recorded is
-unreachable for even a moment; and a fresh, empty branch takes the
-original name, so nothing about how the memory is mounted changes.
-Nothing is ever force-pushed or deleted. \texttt{cgitsync memory adopt
+unreachable for even a moment; and a fresh branch takes the original
+name, so nothing about how the memory is mounted changes. Its tracked
+content is cleared except \texttt{.cgs/} --- the permanent, versioned
+record above, which a reboot must not erase --- and one fresh State is
+written, committed, and \emph{pushed} immediately, so the branch is live,
+with a real \texttt{HEAD} \texttt{cgitsync status} can read, and is never
+missing from origin: the old name was already gone from there by the time
+the fresh branch is built, so a bootstrap on another machine that ran in
+between would otherwise have found no branch under this project's name at
+all, and fallen back to one that never held its \texttt{.cgs}. Nothing is
+ever force-pushed or deleted. \texttt{cgitsync memory adopt
 --reboot} is the same fresh start for a mount being adopted for the very
 first time. Appending --- the ordinary \texttt{memory adopt}, and the only
 thing \texttt{memory push} ever does --- stays the default either way.

@@ -592,7 +592,8 @@ answer["folded"]         # pending records folded in before archiving
 answer["archived_from"]  # the branch's name before the reboot
 answer["archived_to"]    # "<branch>.archived-<YYYYMMDD>", real, on origin
 answer["exported"]       # .cgitsync/.memory/.cgs/<project>-v<N>.cgs
-answer["branch"]         # the original name, fresh, empty, checked out
+answer["branch"]         # the original name, fresh: .cgs/ kept, else
+                          # cleared, one State committed and pushed
 
 # A fresh start from the very first adopt, instead of inheriting whatever
 # the fallback branch already holds:
@@ -602,7 +603,11 @@ client.memory_adopt("/path/to/CGSHOME", remote=remote, branch=branch, reboot=Tru
 Nothing is ever force-pushed or deleted: the old branch is pushed to
 origin under its archived name \emph{before} the old name is removed from
 origin, so the commits it holds are reachable under some name on the
-remote for the whole operation, never only locally. \texttt{memory\_reboot}
+remote for the whole operation, never only locally. The fresh branch's
+own genesis commit is pushed too, immediately, rather than left for the
+next \texttt{memory\_push} --- the old name is already gone from origin by
+then, so a bootstrap on another machine in between would otherwise find
+no branch under this project's name at all. \texttt{memory\_reboot}
 raises \texttt{GitSyncError} when the mount is not a repository yet, and
 when today's archived name already exists --- a second reboot the same day
 needs a name of its own rather than colliding with the first.
