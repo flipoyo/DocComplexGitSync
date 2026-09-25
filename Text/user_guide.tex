@@ -276,8 +276,26 @@ not a repository carries its own \texttt{*.cgs}.
 Repositories with no \texttt{origin}, or whose remote URL does not resolve
 to a registered provider, are reported as warnings and left out of the
 draft. They are never guessed at: a draft that silently invented an address
-would be worse than one that states what it could not determine. Always
-review the generated file, then \texttt{validate} it.
+would be worse than one that states what it could not determine. The
+warning names what to add, not only what was missing --- a ready-to-edit
+entry with the address it could not fill in. Always review the generated
+file, then \texttt{validate} it.
+
+The branch each repository is actually checked out on is drafted twice, for
+two different jobs. The root repository's own branch becomes
+\texttt{project.default\_branch} --- the tree's target, read back the same
+way any other declared branch is (``Branches in a \texttt{.cgs}'', below).
+Every repository also keeps its scanned branch as \texttt{fallback\_branch},
+consulted only when the target branch turns out to be absent from the
+remote. A repository scanned on a \emph{different} branch than the root
+gets its own explicit \texttt{default\_branch} too, so it is not silently
+retargeted at the root's branch on the next \texttt{initialise}; one
+scanned on the same branch as the root needs no per-entry override at all.
+Re-materialising the drafted tree therefore reproduces the tree that was
+scanned, branch included --- before this, the branch was drafted only as a
+fallback, which \texttt{initialise} never targets first, so a tree scanned
+entirely on a non-\texttt{main} branch quietly re-cloned onto \texttt{main}
+wherever the remote happened to have it.
 
 A repository found \emph{inside} another repository is drafted as that
 repository's child, not the project root's. Nesting is worked out by
@@ -1791,41 +1809,66 @@ byte-for-byte identical.
 
 \subsection{Branches in a \texttt{.cgs}}
 
-Four fields decide which branch a repository lands on. Three of them fall
-back to each other, so a \texttt{.cgs} that names no branch at all still
-sends every repository somewhere.
+Two different questions, both decided per repository, and easy to conflate
+because both are spelled ``branch'': \textbf{which branch does this
+repository target}, and \textbf{what does \cgscli{} clone if the target
+turns out not to exist on the remote}.
 
 \begin{center}
 \begin{tabular}{lll}
 \textbf{Field} & \textbf{Where it is written} & \textbf{Default} \\
 \hline
-\texttt{project.default\_branch}  & the \texttt{project} table & \texttt{main} \\
+\texttt{repos[].branch}           & one repository entry & --- (unset) \\
+\texttt{repos[].tag}              & one repository entry & --- (unset) \\
 \texttt{repos[].default\_branch}  & one repository entry & the project's \\
+\texttt{project.default\_branch}  & the \texttt{project} table & \texttt{main} \\
 \texttt{repos[].fallback\_branch} & one repository entry & that repository's own \\
 \texttt{repos[].private}           & one repository entry & \texttt{false} \\
 \texttt{repos[].writable}         & one repository entry & \texttt{false} \\
 \end{tabular}
 \end{center}
 
-Read the first three as one chain, longest reach first:
+\textbf{The target} is decided by the first four, read as one chain, a tag
+winning outright over any branch:
 
 \begin{center}
-\texttt{fallback\_branch -> default\_branch -> project.default\_branch -> main}
+\texttt{tag -> branch -> default\_branch -> project.default\_branch -> main}
 \end{center}
 
 \texttt{project.default\_branch} is the tree's branch: every repository
 inherits it unless the repository says otherwise.
 \texttt{repos[].default\_branch} is the branch that one repository targets.
-\texttt{repos[].fallback\_branch} is used when the target branch does not
-exist on the remote --- \cgscli{} clones the fallback instead and records
-that it did so, rather than failing.
+This chain governs the \textbf{root} repository exactly as it governs every
+other entry --- a \texttt{branch}, \texttt{tag} or \texttt{default\_branch}
+declared on the root targets that ref, the same as anywhere else in the
+tree. (An earlier version of \cgscli{} silently ignored these three fields
+on the root entry specifically, cloning \texttt{project.default\_branch}
+regardless of what the root itself declared; \texttt{DiscoverRoundTrip}
+fixed this, so a \texttt{.cgs} written against that version and relying on
+the old silence should be checked.)
 
-Each link is silent. Nothing warns you that a decision was made, so
-\textbf{state \texttt{project.default\_branch} in every \texttt{.cgs} you
-write}, even when the answer is \texttt{main}. A reader of the file can then
-see the branch the tree lands on without knowing what \cgscli{}'s built-in
-default happens to be. Every \texttt{.cgs} shipped with ComplexGitSync does
-this, and a test enforces it.
+\textbf{The fallback} is a separate question, decided afterwards, only for
+repositories the chain above already resolved: \texttt{repos[].fallback\_branch}
+is consulted only when the \emph{target} branch turns out to be absent from
+the remote --- \cgscli{} clones the fallback instead and records that it
+did so, rather than failing. A fallback is never itself a target: setting
+only \texttt{fallback\_branch} on a repository, with no \texttt{branch},
+\texttt{tag} or \texttt{default\_branch} anywhere in its chain, still
+targets whatever \texttt{project.default\_branch} says (\texttt{main} by
+default) and merely falls back to the declared branch if that target is
+missing on the remote --- \texttt{discover --write} drafts both fields for
+exactly this reason (see \texttt{discover}, above): a tree scanned on a
+branch that differs from the root's own also needs an explicit
+\texttt{default\_branch}, not only a \texttt{fallback\_branch}, or
+re-materialising it retargets that repository at the root's branch instead
+of reproducing what was scanned.
+
+Each link in the target chain is silent. Nothing warns you that a decision
+was made, so \textbf{state \texttt{project.default\_branch} in every
+\texttt{.cgs} you write}, even when the answer is \texttt{main}. A reader of
+the file can then see the branch the tree lands on without knowing what
+\cgscli{}'s built-in default happens to be. Every \texttt{.cgs} shipped with
+ComplexGitSync does this, and a test enforces it.
 
 \subsubsection{What \texttt{private} means}
 
