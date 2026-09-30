@@ -926,6 +926,33 @@ local and prints the \texttt{.cgs} line that publishes it. Declaring that
 entry and running \texttt{memory adopt} is the opt-in; publishing a memory is
 a developer's privilege.
 
+\paragraph{A user's tree or a developer's.}\label{sec:tree-profile}
+\texttt{status} prints \texttt{profile=user} or \texttt{profile=dev} on its
+summary line, and \texttt{status --json} carries the same word as
+\texttt{profile}. A tree whose \texttt{.cgs} holds no private repository is a
+user's, and its memory never leaves the disk. A tree holding at least one
+private repository, read-only or not, is a developer's, and its memory is meant
+to be sent to the repository its \texttt{.cgs} declares. When a developer's
+\texttt{.cgs} declares none, the work is still recorded locally, and the first
+command that records something asks, in a terminal only, for the provider
+(default \texttt{github}), the owner (the owner of most of the tree's private
+repositories, else the project's own) and the name (default
+\texttt{.memory}); it shows the command that creates the repository and, on a
+yes, runs \texttt{memory setup}. A no is asked once. Without a terminal ---
+\texttt{--json}, CI, a Python caller --- after a no, or after a step failed, it
+only warns that the work has no memory back-up and no global ledger record, and
+names the command that fixes it; \texttt{memory status} says the same.
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync memory setup [--provider P] [--owner O] [--name N] [--cgs FILE]
+\end{lstlisting}
+
+\texttt{memory setup} runs \texttt{repo create}, \texttt{memory mount} and
+\texttt{memory adopt} (below) as one command, in that order, and stops at the
+first that fails, saying which and what was left done. In a terminal it asks
+the three questions first, with the defaults filled in; elsewhere it uses the
+flags and defaults as given.
+
 \begin{itemize}
   \item \texttt{status} --- how many States, how long the chain is, when it
         was last written, which of \texttt{verify}'s four answers this

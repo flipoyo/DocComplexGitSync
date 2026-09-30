@@ -755,6 +755,7 @@ client.load_gts("/path/to/snapshot.gts")
 
 payload = json.loads(client.status_json())
 payload["cgitsync_branch"]          # the branch the tree is on
+payload["profile"]                  # "user" or "dev" (client.registry.profile)
 payload["summary"]["repos"]         # how many repositories it holds
 payload["repositories"][0]["sync"]  # per repository, as the table shows it
 
@@ -825,6 +826,36 @@ nothing is loaded, or a \texttt{remote} address directly for a memory that
 does not live where the convention says. It raises
 \texttt{GitSyncError} rather than writing over a memory already present, or
 when the branch it wants has never been pushed.
+
+\subsection{A developer's tree with no memory: \texttt{memory\_setup}}
+
+A tree holding any private repository is a developer's
+(\texttt{client.registry.profile} is \texttt{TreeProfile.DEV}); one holding
+none is a user's. A developer's memory is meant to be synced, so when the
+\texttt{.cgs} declares none these three methods offer one. None of them
+prompts: asking is the CLI's job.
+
+\begin{lstlisting}[language=python]
+proposal = client.memory_setup_proposal()   # None for a user tree, or a declared memory
+proposal["owner"]        # guessed: most frequent private owner, else the root's, else None
+proposal["create_with"]  # "gh repo create you/.memory --private"
+proposal["warning"]      # the plain-words warning, naming the fix
+
+result = client.memory_setup(provider="github", owner="you", name=".memory")
+result["done"]           # ["create", "declare", "adopt"] on success
+result["failed"]         # None, or the step that stopped it
+
+client.memory_setup_decline()   # asked once: remembered in .cgitsync/
+\end{lstlisting}
+
+\texttt{memory\_setup} runs \texttt{repo\_create},
+\texttt{add\_memory\_repo\_cgs} and \texttt{memory\_adopt} in that order
+and stops at the first that fails; it raises \texttt{GitSyncError} only when
+there is nothing to set up or no owner is known. A command that records a
+State in such a tree still records it, sets
+\texttt{client.memory\_setup\_due}, and emits a
+\texttt{MemorySetupWarning} (\texttt{orchestre.memory\_setup}) --- a warning,
+never a refusal.
 
 Calling \texttt{memory\_push} by hand, as above, is for settling the memory
 on its own. \emph{READY Methods in the Client API}, earlier in this
