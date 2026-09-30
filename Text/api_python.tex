@@ -47,7 +47,8 @@ The CLI commands \texttt{configure}, \texttt{create-cgs}, and direct
 from pathlib import Path
 
 from ComplexGitSync import GitRepo, GitTree, RefKind, TreeLifecycleState
-from ComplexGitSync.orchestre import GtsDocument, build_registry_from_gts_document
+from ComplexGitSync.orchestre import GtsDocument
+from ComplexGitSync.registry import RegistryTranslator
 from ComplexGitSync.git_tree import WorkingGitTree
 
 # 1) Empty registry lifecycle
@@ -57,7 +58,7 @@ assert empty_registry.recompute_tree_state() == TreeLifecycleState.UNLOADED
 # 2) Load the CGSil1 runtime snapshot (.gts) and rebuild the dependency registry
 cgshome = Path("../..")
 gts_doc = GtsDocument.from_toml(cgshome / ".cgitsync/state/CGSil1.gts")
-registry = build_registry_from_gts_document(gts_doc)
+registry = RegistryTranslator.from_gts_document(gts_doc)
 assert registry.lifecycle_state == TreeLifecycleState.READY
 
 # 3) Rebuild GitTree/GitRepo identity objects from discovered registry entries

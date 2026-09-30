@@ -343,7 +343,7 @@ src/ComplexGitSync/
   operations.py                propagate_global_branch, create_global_branch
                                checkout_tree, commit_tree, push_tree
   orchestre.py                 discover_nested_configs(),
-                               build_registry_from_cgs_document, render helpers
+                               render helpers
 
   # --- Tier 3: Client / API ---
   orchestre.py                 Orchestre, ComplexGitSyncClient
@@ -403,13 +403,13 @@ live working tree:
 
 \begin{lstlisting}[language=Python]
 # Load from authoring spec
-registry = build_registry_from_cgs_document(document, config_path)
+registry = RegistryTranslator.from_cgs_document(document, config_path)
 
 # Load from snapshot
-registry = build_registry_from_gts_document(snapshot_document)
+registry = RegistryTranslator.from_gts_document(snapshot_document)
 
 # Serialise to snapshot
-gts_doc = build_gts_document_from_registry(
+gts_doc = RegistryTranslator.to_gts_document(
     registry, command_origin="clone", source_cgs_path=path
 )
 \end{lstlisting}
