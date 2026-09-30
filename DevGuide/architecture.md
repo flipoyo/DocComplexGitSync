@@ -96,7 +96,7 @@ false 1:1 impression:
   same class (`cgs_format.py`, `gts_document.py` — see §3 for why).
 - **Seven Ring 0–2 modules postdate the book chapter entirely** and have no
   Tier counterpart to map to at all: `git_branch.py` (§5), `integrity.py`, `ledger_entry.py`,
-  `ledger_store.py` (the `.lgr` hash-chained register behind `cgitsync
+  `ledger_store.py` (the `lgr/` hash-chained ledger behind `cgitsync
   verify`), and `status_render.py`, `snapshot_resolver.py`,
   `config_document_io.py` (extractions that used to be inline in the old
   `cli.py`/`orchestre.py`/`config_document.py`, pulled out during the

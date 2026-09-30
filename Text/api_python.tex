@@ -832,10 +832,10 @@ chapter, covers the more common case: \texttt{push}, \texttt{tag}, and
 \texttt{freeze} each call it automatically, first, once a memory is mounted
 and adopted.
 
-\section{Register Integrity: \texttt{verify}}
+\section{Ledger Integrity: \texttt{verify}}
 
 \texttt{verify(cgshome, *, repair=False)} checks the hash-chained
-\texttt{.cgitsync/lgr} register under \texttt{cgshome} for tamper-evidence:
+\texttt{.cgitsync/lgr} ledger under \texttt{cgshome} for tamper-evidence:
 
 \begin{lstlisting}[language=python]
 from ComplexGitSync.orchestre import ComplexGitSyncClient
@@ -844,7 +844,7 @@ client = ComplexGitSyncClient()
 report = client.verify("/path/to/CGSHOME")
 
 if report.is_clean:
-    print("register is clean")
+    print("ledger is clean")
 else:
     for seq, finding, detail in report.findings:
         print(seq, finding.name, detail)
@@ -860,7 +860,7 @@ members --- \texttt{VERIFIED}, \texttt{NO\_HISTORY}, \texttt{LEGACY},
 only for the first.
 
 \texttt{report.is\_clean} is a narrower question: it means ``no findings
-were recorded'', which an empty register also satisfies. Use it to ask
+were recorded'', which an empty ledger also satisfies. Use it to ask
 whether anything is \emph{wrong}; use \texttt{state} to ask what was
 actually established. \texttt{findings} holds \texttt{(seq, Finding,
 detail)} tuples.
@@ -879,7 +879,7 @@ verification pass that cross-references entries against the actual
 \texttt{state/<hash>.gts} files on disk.
 
 With \texttt{repair=True}, a stale \texttt{HEAD} cache is corrected in
-place. Register entries are never rewritten or deleted by this method,
+place. Ledger entries are never rewritten or deleted by this method,
 repair or not — a broken chain is reported, not silently healed.
 
 \section{Diagnosing and Repairing a Git Situation: \texttt{autofix}}

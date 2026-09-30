@@ -507,7 +507,7 @@ behind it is safe to reconcile automatically. This table can:
   ordinary three-way merge resolves it with nothing lost, since the
   content has no ordering invariant beyond ``these are files''. \\
 \texttt{diverged}, chain-shaped content (\texttt{.memory}'s \texttt{lgr/}
-  ledger, and --- once built --- \texttt{omniscience}'s register) &
+  ledger, and --- once built --- \texttt{omniscience}'s journal) &
   \texttt{autofix}. \texttt{pull-force} discards whichever side loses the
   race outright; a plain \texttt{merge} leaves an add/add conflict on the
   colliding ledger entry that nothing but \texttt{autofix} knows how to
@@ -1217,7 +1217,7 @@ One of them, never a blur of two:
 \texttt{legacy} exits non-zero on purpose. The question is ``is this
 history intact?'', and ``I cannot tell'' is not a yes: a build that gates on
 \texttt{verify} must not pass because the evidence is in a format nobody can
-check. Every workspace created before the hash-chained register is written
+check. Every workspace created before the hash-chained ledger is written
 is in exactly that state.
 
 \texttt{time-inconsistent} is deliberately not \texttt{corrupt}. Every link
@@ -1243,7 +1243,7 @@ directory's ancestors.
 With \texttt{--repair}, a stale \texttt{HEAD} cache is corrected to match the
 recomputed true head. \textbf{Entries themselves are never rewritten or
 deleted} by \texttt{verify}, repair or not — a broken chain is reported, not
-silently healed, since a register that can be edited back to looking clean
+silently healed, since a ledger that can be edited back to looking clean
 provides no evidence of anything.
 
 \paragraph{The States on disk are checked too.} Beyond the chain itself,
