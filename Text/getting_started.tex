@@ -31,7 +31,28 @@ The primary lifecycle is:
 % -----------------------------------------------------------------------
 \section{Installation}
 
-Install \cgspkg{} from source with the Pixi-managed environment:
+\subsection{For users}
+
+Install \cgspkg{} with \texttt{pipx}, which puts \texttt{cgitsync} on your
+\texttt{PATH} in an environment of its own. No clone, no Pixi and none of the
+developer repositories are needed; only Git and Python~3.11 or later.
+
+\begin{lstlisting}[language=bash]
+$ pipx install complexgitsync
+$ cgitsync --help
+$ cgitsync --version
+\end{lstlisting}
+
+Until the first release is on the package index, install the same thing from
+the repository with
+\texttt{pipx install git+https://github.com/flipoyo/ComplexGitSync.git}.
+Everywhere else in this guide a command written
+\texttt{pixi run cgitsync ...} is simply \texttt{cgitsync ...} for this
+install. \texttt{CHANGELOG.md} lists what each version changed.
+
+\subsection{For contributors}
+
+Contributors work from a clone with the Pixi-managed environment:
 
 \begin{lstlisting}[language=bash]
 $ git clone https://github.com/flipoyo/ComplexGitSync.git
