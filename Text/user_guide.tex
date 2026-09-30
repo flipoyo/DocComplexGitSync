@@ -1015,9 +1015,11 @@ repository of its own, mounted at \texttt{.cgitsync/.memory} exactly as
 memory, on a branch per project. \texttt{.cgitsync} itself stays the
 workspace's own live state --- States, the ledger, logs --- so the mount
 one level inside it is checked out and merged like any other private
-repository, never blocked by activity that is not its own. Getting there
-is five commands, run once per project; \texttt{tutorials/05\_memory.md}
-walks all five in order.
+repository, never blocked by activity that is not its own. A developer gets
+there with one command, run at any time: \texttt{memory setup}
+(\S\ref{sec:tree-profile}). The five commands below are the same path
+step by step, run once per project; \texttt{tutorials/05\_memory.md} walks
+both.
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync repo create github:you/.memory
