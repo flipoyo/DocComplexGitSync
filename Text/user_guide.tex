@@ -76,10 +76,12 @@ be undone first.
 This guide follows the simplified canonical lifecycle:
 
 \begin{enumerate}
-  \item \texttt{initialise(.cgs)} $\rightarrow$ clone all repos $\rightarrow$
-        \texttt{READY}  \textit{(new project)}\\
-        \texttt{initialise(.gts)} $\rightarrow$ restore from snapshot $\rightarrow$
-        \texttt{READY}  \textit{(existing project)}
+  \item \texttt{initialise(.cgs)} $\rightarrow$ clone the dependencies of a
+        checked-out root $\rightarrow$ \texttt{READY}  \textit{(nested install)}\\
+        \texttt{initialise(.gts)} $\rightarrow$ the same, each repository at the
+        commit the snapshot recorded $\rightarrow$ \texttt{READY}\\
+        \texttt{bootstrap(.cgs|.gts)} $\rightarrow$ clone the whole tree, root
+        included $\rightarrow$ \texttt{READY}  \textit{(standalone install)}
   \item \texttt{pull(.cgs|.gts)} $\rightarrow$ resync an existing tree
   \item \texttt{checkout(.gts)} / \texttt{add} / \texttt{commit} / \texttt{push} / \texttt{tag}
         $\rightarrow$ git operations on the tree
@@ -119,18 +121,29 @@ $ pixi run cgitsync initialise <snapshot.gts>
 $ pixi run cgitsync initialise --project NAME --repo PROVIDER:OWNER/REPO [--repo ...] [--output-path DIR]
 \end{lstlisting}
 
-Unified initialisation entry point.  Dispatches on file extension:
+The \emph{nested install}. \texttt{initialise} builds the dependencies of a
+project whose root is already checked out at \texttt{CGSHOME}, with the
+running \cgscli{} inside it. It refuses --- before touching the disk, naming
+\texttt{bootstrap} --- when \texttt{CGSHOME} is not a Git checkout (a detached
+\texttt{HEAD} is fine) or the running installation is not inside it; a failed
+\texttt{initialise} suggests \texttt{clean-init} only where that could help.
+A \texttt{.gts} source checks each dependency out at the commit the snapshot
+recorded, and is refused, naming every repository, when a remote no longer
+holds one. A \texttt{private}, \texttt{writable} entry clones the branch
+computed from the project's name, then its \texttt{fallback\_branch}, then the
+remote's own active branch. Dispatches on file extension:
 
 \begin{itemize}
-  \item \texttt{.cgs} source (clone mode): clones the full repository tree.
+  \item \texttt{.cgs} source (clone mode): clones the workspace's dependencies.
     The optional \texttt{--output-path} controls
     \texttt{CGSPATH}; \texttt{CGSHOME} is derived as
     \texttt{CGSPATH/<project-name>}. When omitted, \texttt{CGSPATH} defaults to
     \texttt{../..}.  On success, ends in \texttt{READY}.  If clone setup fails
     because stale generated state is still present, the CLI prints
     \texttt{Try clean-init method}.
-  \item \texttt{.gts} source (restore mode): loads a saved snapshot directly.
-    On success, ends in the lifecycle state recorded in the snapshot.
+  \item \texttt{.gts} source (restore mode): clones the same dependencies and
+    puts each on the commit the snapshot recorded, so the rebuilt tree carries
+    the snapshot's State name. On success, ends in \texttt{READY}.
   \item Direct CLI authoring: requires \texttt{--project} and at least one
     repeatable \texttt{--repo}. It is mutually exclusive with a source file.
     The CLI collects values only and calls
@@ -206,11 +219,12 @@ exactly as without the flag.
 \subsection{\texttt{bootstrap}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync bootstrap <spec.cgs> <project_name> [--cgs-path DIR]
+$ pixi run cgitsync bootstrap <spec.cgs|snapshot.gts> <project_name> [--cgs-path DIR]
     [--force-protocol {ssh,https}]
 \end{lstlisting}
 
-Clones the full repository tree from a \texttt{.cgs} source into an
+The \emph{standalone install}: clones the full repository tree from a
+\texttt{.cgs} or \texttt{.gts} source (root included) into an
 isolated \texttt{CGSHOME}, for running \cgscli{} from its own standalone
 clone rather than nested inside the project tree it manages --- one
 \cgspkg{} clone reused across many projects. It delegates to the same

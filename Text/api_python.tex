@@ -299,6 +299,8 @@ the child's working tree); the two are not interchangeable.
 \section{\texttt{.gitignore} Lifecycle Sync and Commit Identity}
 
 \texttt{initialise\_cgs}, \texttt{initialise\_cgs\_document},
+\texttt{initialise\_gts} (the nested install from a snapshot, each repository
+at its recorded commit; \texttt{initialise} dispatches to it for a \texttt{.gts}),
 \texttt{clean\_initialise\_cgs}, \texttt{clean\_init}, \texttt{restart}, and
 \texttt{pull} (for \texttt{.cgs} sources) all accept the same four optional
 keyword arguments, mirroring the CLI's \texttt{--commit-gitignore},
