@@ -196,7 +196,7 @@ without repeating the flags.
 
 The root's own \texttt{.gitignore} additionally always gains
 \texttt{.cgitsync/} (the generated runtime-state directory --- snapshots,
-register, run logs, never part of the \texttt{.cgs}/\texttt{.gts} project
+ledger, run logs, never part of the \texttt{.cgs}/\texttt{.gts} project
 spec) and its \texttt{<project-name>.lgr} register file, whether or not the
 tree has any nested repositories at all --- that state is written under the
 root regardless of tree shape, so it is excluded the same idempotent way,
