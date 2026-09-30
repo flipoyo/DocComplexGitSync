@@ -917,6 +917,15 @@ snapshot of the tree, named by its own content; the \textbf{ledger} holds
 one entry per operation, saying when that State was seen and by which tool
 versions.
 
+A workspace whose \texttt{.cgs} declares no memory --- every install from
+\texttt{install.cgs} --- gets one made for it, locally, the first time a
+command records something: a repository at \texttt{.cgitsync/.memory} with no
+remote. \texttt{memory push} folds and commits into it and never sends it
+anywhere, even if a remote is added by hand; \texttt{memory status} says it is
+local and prints the \texttt{.cgs} line that publishes it. Declaring that
+entry and running \texttt{memory adopt} is the opt-in; publishing a memory is
+a developer's privilege.
+
 \begin{itemize}
   \item \texttt{status} --- how many States, how long the chain is, when it
         was last written, which of \texttt{verify}'s four answers this
