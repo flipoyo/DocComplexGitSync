@@ -106,7 +106,7 @@
   register\_repo(repo)
 };
 \node[modlist, below=0.3cm of client.south west, anchor=north west] (t3mods) {
-  also in \texttt{orchestre.py}: \textit{CommandRunLogger} \textperiodcentered{}
+  also in \texttt{orchestre/}: \textit{CommandRunLogger} \textperiodcentered{}
   \textit{RuntimeStateStore} \textperiodcentered{} \textit{LocalGitRegister}
   (\texttt{.lgr} writer) \textperiodcentered{} \textit{SyncLedger}
 };
@@ -130,7 +130,7 @@
 };
 \node[modlist, right=0.6cm of runner] (t2mods) {
   supporting modules (\texttt{Tier 2 --- Actions}):\\
-  \textperiodcentered{} \texttt{operations.py} --- leaf/parent-first Git ops\\
+  \textperiodcentered{} \texttt{operations/} --- leaf/parent-first Git ops\\
   \textperiodcentered{} \texttt{registry.py} --- build/serialize \texttt{WorkingGitTree}\\
   \textperiodcentered{} \texttt{paths.py}, \texttt{discovery.py}\\
   \textperiodcentered{} \texttt{state\_store.py}, \texttt{snapshot\_resolver.py}\\

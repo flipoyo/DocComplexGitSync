@@ -279,7 +279,7 @@ existing remote in place, never rebuilding it from identity) refuses with
 an explicit error instead of silently defaulting to GitHub.
 
 Figure~\ref{fig:ops-sequence} shows the internal sequence of the four
-tree-wide synchronisation actions implemented in \texttt{operations.py}.
+tree-wide synchronisation actions implemented in the \texttt{operations/} package.
 
 \begin{figure}[ht]
 \centering
@@ -340,23 +340,24 @@ src/ComplexGitSync/
                                sync_gitignore (.gitignore maintenance)
 
   # --- Tier 2: Actions ---
-  operations.py                propagate_global_branch, create_global_branch
-                               checkout_tree, commit_tree, push_tree
-  orchestre.py                 discover_nested_configs(),
-                               render helpers
+  operations/                  BranchOperation, CommitOperation, MergeOperation,
+                               PushOperation, RestartOperation, RemovalOperation,
+                               Preflight, RepoOutcome
+  orchestre/                   discovery and render collaborators
+                               (DiscoveryCommands, Reporting)
 
   # --- Tier 3: Client / API ---
-  orchestre.py                 Orchestre, ComplexGitSyncClient
+  orchestre/                   ComplexGitSyncClient (facade) and the collaborators
+                               it delegates to; Orchestre (the tree holder)
   cli.py                       build_parser / main
-  orchestre.py                 GitRunner, RuntimeStateStore,
-                               CommandRunLogger + create_run_logger
+  orchestre/                   RuntimeStateStore, CommandRunLogger
   master.py                    MasterConfig (workspace-local Git identity
                                for ComplexGitSync-authored commits)
 
   # --- Document layer (cross-cutting) ---
   config_document.py           ConfigDocument (format-neutral base)
   cgs_format.py                CgsDocument (.cgs parse/normalize/validate/serialize)
-  orchestre.py                 GtsDocument
+  gts_document.py              GtsDocument (runtime state snapshot)
   errors.py                    exception hierarchy
 \end{lstlisting}
 
@@ -372,7 +373,7 @@ provides format-agnostic serialisation (\texttt{to\_toml}, \texttt{to\_json},
 \texttt{from\_yaml}).  Subclasses add document-specific validation and
 convenience properties.  The base is defined in
 \texttt{config\_document.py}; \texttt{cgs\_format.py} owns the complete
-\texttt{.cgs}-specific boundary, while \texttt{orchestre.py} consumes validated
+\texttt{.cgs}-specific boundary, while the \texttt{orchestre/} package consumes validated
 documents and retains runtime/orchestration responsibilities.
 
 \begin{itemize}
@@ -398,7 +399,7 @@ Figure~\ref{fig:registry-model} shows the registry model.
 \texttt{WorkingRepo} holds both the static identity declared in
 \texttt{.cgs} and the dynamic state updated during operations.
 
-Builder functions in \texttt{orchestre.py} translate document objects into a
+The \texttt{RegistryTranslator} class in \texttt{registry.py} translates document objects into a
 live working tree:
 
 \begin{lstlisting}[language=Python]
