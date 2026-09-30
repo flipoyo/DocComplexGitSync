@@ -1115,6 +1115,19 @@ from \texttt{.localSpec/AGENT.md}'s roster, a vendor and a model version
 \texttt{.PRIVATE} gating, quality of production), each part marked
 \texttt{measured} or \texttt{asserted} rather than blending the two.
 
+The score is out of \textbf{100}: spec respect is scored from 0 to 33,
+gating from 0 to 33 and quality from 0 to 34, and the total is their plain
+sum. The orchestrator starts each part at its maximum and takes off points
+for each shortfall it can name, saying which in that part's reasoning; that
+method is guidance, and the tool checks only that a score is within its
+range (a score outside it is refused with a clear message) and that the
+total is the sum. Every score is shown with its maximum,
+for example \texttt{spec\_respect=26/33 (asserted) gating=32/33 (measured)
+quality=26/34 (asserted) total=84/100}. The optional
+\texttt{--conformity-explanation} is a short account, in the orchestrator's
+own words, of how the total came about; it is stored with the record and
+printed under the score.
+
 Two facts the command fills in itself, because this project can check them
 directly rather than trust an agent to type them: which signed
 agent-contract record was in force (by its own hash, from

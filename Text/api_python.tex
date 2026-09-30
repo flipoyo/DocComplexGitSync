@@ -657,6 +657,14 @@ six-role roster; \texttt{ConformityCriterion.basis} against
 \texttt{ValueError} on anything else, the same way \texttt{goal}/
 \texttt{action} raise for more than three lines.
 
+\texttt{ConformityScore} is out of 100: \texttt{spec\_respect} 0--33,
+\texttt{gating} 0--33, \texttt{quality} 0--34, the total their plain sum.
+A score outside its range raises \texttt{ValueError}.
+\texttt{ConformityScale} (in \texttt{memory.conformity\_scale}) holds those
+maxima and renders a score with them. The optional
+\texttt{ConformityScore.explanation} is the orchestrator's short account of
+how the total came about; it is left out of the stored record when empty.
+
 \texttt{state\_before}/\texttt{state\_after} are \textbf{verified against
 the ledger}, not merely shape-checked --- deliberately a ledger question,
 not a \texttt{.cgs}/discovery one: a \texttt{.gts} is a static snapshot, so
