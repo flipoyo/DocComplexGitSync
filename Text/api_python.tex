@@ -944,7 +944,22 @@ outcome = client.autofix(
 )
 
 print(outcome.repaired, outcome.detail)
+
+# No error to start from: read each writable repository's latest commit message
+found = client.autofix_tip_commits()                  # repo_name=... narrows it
+found["checked"], found["findings"]                   # findings: repository, sha, subject, findings, published
+
+# Rewrite one malformed latest commit message -- locally, never pushing
+client.autofix_amend("docs", "cgitsync3.9.1 A corrected message.")
+client.autofix_amend("docs", "cgitsync3.9.1 A corrected message.", force=True)  # a remote already holds it
 \end{lstlisting}
+
+\texttt{autofix\_tip\_commits} is read-only (its \texttt{published} is what this clone last saw of its remotes, not proof). \texttt{autofix\_amend} raises
+\texttt{GitSyncError} for a malformed replacement or a commit a remote holds
+(without \texttt{force}), and \texttt{NoMatchingRepairError} for a commit that is not
+malformed or a repository this project may not write, and \texttt{GitSyncError} again while a rebase, merge, cherry-pick or revert is stopped; with \texttt{force} it
+still never pushes, and the returned \texttt{detail} names the
+\texttt{git push --force-with-lease} to run.
 
 Returns an \texttt{autofix.RepairOutcome}: \texttt{repaired} (bool) and
 \texttt{detail} (str, one line naming what changed or why nothing did).

@@ -484,6 +484,7 @@ above.
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync autofix [spec.cgs|snapshot.gts] [--error TEXT] [--repo NAME]
+$ pixi run cgitsync autofix --tip-commit [--repo NAME [--message-file FILE | --message TEXT] [--force]]
 \end{lstlisting}
 
 Diagnoses and repairs the situation named by the last failing command's
@@ -495,6 +496,40 @@ failing command (run logs stay local in that folder, so a \texttt{push} that fol
 names which mounted repository to repair when it cannot be guessed from
 the error text (a chain-shaped repository's name is usually visible in
 its own remote URL, which \texttt{git}'s error text already includes).
+
+\paragraph{A commit that logged no error: \texttt{--tip-commit}.} Some
+trouble raises nothing for \texttt{autofix} to start from. A commit message
+pasted into a shell with backticks in it is the real case: the shell runs each
+backticked phrase and puts its output (often nothing) where the phrase was,
+\texttt{git} accepts the string, and the commit succeeds. \texttt{--tip-commit}
+reads the latest commit message of every repository this project may write
+instead of the error log, and reports each one that breaks the commit-message
+rule (when the tree has adopted it) or shows the traces of eaten text: two
+spaces in a row, or a space before a comma or full stop. Those are heuristics,
+reported as ``suspected'': aligned text or a code block can trip the first, and
+a colon or semicolon is deliberately not a trace, since French sets a space
+there. It skips merge commits (\texttt{git} wrote their
+message), the memory mounts (the tool wrote theirs) and repositories this
+project may not write, and it exits \texttt{1} when it found something.
+
+To fix one, name the repository and give the corrected message, preferably with
+\texttt{--message-file} (a file cannot be damaged by a shell the way a
+quoted argument can). Only the latest commit's \emph{message} is rewritten
+--- anything staged stays staged --- and only when it really is malformed; the
+corrected message must itself pass the same checks. A commit a remote already
+holds is refused unless \texttt{--force}, because amending gives it a new
+identity. Even with \texttt{--force} the rewrite stays on this machine: nothing
+is pushed, and the \texttt{git push --force-with-lease} to publish it is printed
+for you to run.
+
+Three limits worth knowing. ``Already on a remote'' is what \emph{this clone}
+last saw of its remotes, so \texttt{on\_a\_remote=not-seen-from-this-clone}
+does not prove nobody has the commit; a plain push of the amended commit would
+be refused by the remote if they do. Nothing is amended while a rebase, merge,
+cherry-pick or revert is stopped, because the latest commit is then the one it
+stands on. And the amend runs your Git hooks and re-signs with your current
+signing setting: a commit signed earlier loses its signature if signing is off
+now.
 
 \paragraph{Tricky git states, and the safe \cgscli{} command for each.}
 The \texttt{SYNC} column \texttt{status} prints (\S\ref{sec:status-sync},
@@ -529,8 +564,10 @@ one before acting on either: fetches, attempts the ordinary merge, and
 only on a conflict in a repository registered as chain-shaped does it
 re-sequence both sides' new ledger entries --- in the order they were
 actually recorded, not ``whichever side pushed first'' --- verify the
-result, and complete a real two-parent merge commit. It never
-force-pushes and never rewrites history; a repair it cannot verify as
+result, and complete a real two-parent merge commit. The
+repairs driven by an error never force-push and never rewrite history (only
+\texttt{--tip-commit} with a corrected message rewrites, and then one commit
+message, locally); a repair it cannot verify as
 correct is refused, leaving the conflict exactly as \texttt{git} left it,
 rather than writing something that looks resolved and is not.
 
