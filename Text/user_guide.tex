@@ -599,6 +599,17 @@ own, and remains the cheapest way to bring many refs across at once.
 \texttt{checkout} and \texttt{branch} no longer depend on it having run
 first: each fetches the one ref it needs, exactly when it needs it.
 
+\subsection{\texttt{branch --list}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync branch --list [--private] [--gts <snapshot.gts>]
+\end{lstlisting}
+
+Prints one line per repository of the tree with its local branches, the
+one it is on marked with \texttt{*}. Changes nothing. Give either a branch
+name to create or \texttt{--list}, not both. \texttt{--private} narrows it
+to the writable configuration repositories.
+
 \subsection{\texttt{close-branch}}
 
 \begin{lstlisting}[language=bash]

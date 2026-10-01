@@ -180,6 +180,18 @@ completes. \texttt{client.memory\_declared()} answers whether a memory is
 mounted at all, with no side effect, for a caller that wants to know
 in advance.
 
+\paragraph{\texttt{list\_branches(private=False)}.} Returns one
+\texttt{RepoBranches} per repository, parent-first: its \texttt{name},
+the \texttt{current} branch (\texttt{None} when detached) and the sorted
+local \texttt{branches}. Read-only; a repository not yet cloned is left
+out. \texttt{private=True} narrows it to the writable configuration
+repositories, as for \texttt{branch()}.
+
+\begin{lstlisting}[language=Python]
+for repo in client.list_branches():
+    print(repo.name, repo.current, repo.branches)
+\end{lstlisting}
+
 \paragraph{\texttt{close\_branch(branch\_name, private=False)}.} Renames
 \texttt{branch\_name} to \texttt{closed/branch\_name} across the full
 tree, leaf-first --- locally and on the remote, never deleting anything.
