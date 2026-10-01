@@ -197,7 +197,8 @@ without repeating the flags.
 The root's own \texttt{.gitignore} additionally always gains
 \texttt{.cgitsync/} (the generated runtime-state directory --- snapshots,
 ledger, run logs, never part of the \texttt{.cgs}/\texttt{.gts} project
-spec) and its \texttt{<project-name>.lgr} register file, whether or not the
+spec; the run logs never leave the machine, are never pushed with a memory,
+and only the 200 most recent are kept) and its \texttt{<project-name>.lgr} register file, whether or not the
 tree has any nested repositories at all --- that state is written under the
 root regardless of tree shape, so it is excluded the same idempotent way,
 via the same underlying write \texttt{sync\_gitignore()} already uses for
@@ -483,7 +484,7 @@ Diagnoses and repairs the situation named by the last failing command's
 error, instead of a person reading raw \texttt{git} output and guessing
 which of \texttt{merge}/\texttt{pull-force} is safe. With no
 \texttt{--error}, reads the most recent \texttt{.cgitsync/logs/*.log}'s
-failing command --- the normal workflow is a command fails, run
+failing command (run logs stay local in that folder, so a \texttt{push} that folded the memory never moves the log \texttt{autofix} needs) --- the normal workflow is a command fails, run
 \texttt{cgitsync autofix} next, and nothing gets retyped. \texttt{--repo}
 names which mounted repository to repair when it cannot be guessed from
 the error text (a chain-shaped repository's name is usually visible in
