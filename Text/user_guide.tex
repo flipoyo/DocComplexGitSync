@@ -1003,6 +1003,16 @@ flags and defaults as given.
         only the one actually checked out here can be read this way today,
         and a mismatch names \texttt{memory clone --branch NAME} rather
         than answering for the wrong branch.
+  \item \texttt{as-of <time>} --- what was this tree at that time? The
+        State the ledger recorded at or before it, not the nearest and not
+        the latest, with the \texttt{show} command to type next. A time
+        is read as UTC unless it carries an offset
+        (\texttt{2026-09-30T17:00+02:00}); a bare date means the end of
+        that day. A time before the first entry answers ``nothing recorded
+        yet''. When the chain does not verify, or its clock moved backwards
+        (\texttt{verify}'s \texttt{time-inconsistent}), the answer is
+        printed with \texttt{answer\_reliable=false} and a warning, never
+        as if the chain were clean.
 \end{itemize}
 
 A commit marked \texttt{unpushed} exists on this machine and nowhere else.

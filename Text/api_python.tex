@@ -530,6 +530,12 @@ for entry in state["entries"]:
         commit["message"], commit["repository"], commit["published"]
 state["published"]                       # remote and ref each commit went to
 
+answer = client.memory_as_of("/path/to/CGSHOME", "2026-09-30T17:00")   # UTC unless an offset
+answer["entry"]                          # last entry recorded at or before it, or None
+answer["entry"]["seq"], answer["entry"]["state"]   # the hash memory_show takes
+answer["reliable"], answer["history"]    # False + "time-inconsistent" when a clock ran backwards
+answer["findings"]                       # why, as `verify` would say
+
 environment = client.memory_show_environment("/path/to/CGSHOME", "env(<hash>)")
 environment["record"]["machine"], environment["record"]["tools"]
 
