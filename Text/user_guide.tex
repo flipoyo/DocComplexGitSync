@@ -95,6 +95,12 @@ DAG event in the \texttt{[[ledger]]} section of the \texttt{.lgr} file.
 % -----------------------------------------------------------------------
 \section{Commands}
 
+Every command answers \texttt{--help} with what it does, its options and
+examples. A group such as \texttt{cgitsync memory --help} lists each
+subcommand with its options, and \texttt{cgitsync help --all} prints every
+command and option on one page, ready for \texttt{grep}. The help is generated
+from the parser the command actually runs, so it does not drift from it.
+
 The CLI exposes three command groups once a \texttt{GitTree} is \texttt{READY}.
 The minimalist level is \texttt{initialise}, \texttt{bootstrap},
 \texttt{clean-init}, \texttt{freeze-release}, \texttt{freeze-release-force},
