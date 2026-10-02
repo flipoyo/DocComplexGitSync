@@ -239,6 +239,44 @@ for outcome in client.last_write_outcomes:
     print(outcome.name, outcome.acted, outcome.detail)
 \end{lstlisting}
 
+Before it renames anything, \texttt{close\_branch} keeps every commit the
+branch alone holds on the project's \texttt{ancestors} branch
+(\texttt{<project>\_ancestors} in a private/local repository) with a merge
+that only adds a commit, records each move as a \texttt{Relocation} in the
+ledger entry it writes, and refuses unless the ledger still verifies. The
+closed branch can then be deleted by any tool without losing a commit.
+\texttt{client.last\_ancestry} holds what each repository's copy of the
+branch held, and \texttt{client.last\_kept\_outcomes} what keeping it did.
+
+\texttt{branch\_ancestry(branch\_name, private=False)} answers, without
+writing anything but remote-tracking refs, what deleting a branch would
+lose: one \texttt{RepoAncestry} per repository, leaf-first, whose
+\texttt{verdict} is \texttt{"safe"}, \texttt{"recorded"},
+\texttt{"needs ancestor"}, \texttt{"absent"} or \texttt{"skipped"}, with
+the commits only it reaches (\texttt{exclusive}) and the memory files only
+it holds (\texttt{content}). \texttt{delete\_branch(branch\_name,
+private=False)} deletes a \emph{closed} branch on origin and locally,
+leaf-first, once everything it alone holds is kept and recorded; a move the
+close already recorded is reused, never written twice, and any failing step
+raises \texttt{GitSyncError} with nothing deleted.
+\texttt{preserved\_branches()} names every project branch the ledger
+records as kept on \texttt{ancestors}, deleted ones included.
+
+\begin{lstlisting}[language=Python]
+for answer in client.branch_ancestry("closed/feature-x"):
+    print(answer.name, answer.verdict, answer.detail)
+client.delete_branch("feature-x")
+print(client.preserved_branches())
+\end{lstlisting}
+
+\texttt{memory\_as\_of(cgshome, moment, branch=None)} and
+\texttt{memory\_list(cgshome, branch=None)} read another chapter of the
+memory from Git when \texttt{branch} is given --- its branch, its closed
+name, or the copy \texttt{ancestors} keeps once it is deleted --- and say
+which in \texttt{read\_from}. \texttt{memory\_explore} does the same for a
+chapter not checked out here, and \texttt{memory\_show} finds a State that
+is not on disk in any of them.
+
 \section{Landing a Branch: \texttt{merge} and \texttt{refresh\_private}}
 
 \texttt{merge(project\_branch, private=False, ff\_only=False, no\_ff=False)}

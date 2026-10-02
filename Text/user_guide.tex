@@ -112,7 +112,8 @@ The CLI exposes three command groups once a \texttt{GitTree} is \texttt{READY}.
 The minimalist level is \texttt{initialise}, \texttt{bootstrap},
 \texttt{freeze-release}, \texttt{status}, and \texttt{view-tree}.  The expert
 level exposes the individual operations: \texttt{branch create},
-\texttt{branch list}, \texttt{branch close}, \texttt{checkout},
+\texttt{branch list}, \texttt{branch close}, \texttt{branch check},
+\texttt{branch delete}, \texttt{checkout},
 \texttt{validate}, \texttt{pull}, \texttt{pull --force}, \texttt{fetch},
 \texttt{autofix},
 \texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag},
@@ -566,8 +567,9 @@ narrows it to the writable configuration repositories.
 $ pixi run cgitsync branch close <branch> [--private] [--gts <snapshot.gts>]
 \end{lstlisting}
 
-Closes a \emph{project} branch: renames it to \texttt{closed/<branch>}
-tree-wide, leaf-first, locally and on the remote. Each repository closes
+Closes a \emph{project} branch: keeps what it alone holds on the
+project's \texttt{ancestors} branch, then renames it to
+\texttt{closed/<branch>} tree-wide, leaf-first, locally and on the remote. Each repository closes
 the branch it follows under that project branch: the same name in a
 project repository, \texttt{<project>\_<branch>} in a private/local one
 (so \texttt{branch close tmpPyPi} closes \texttt{ComplexGitSync\_tmpPyPi}
@@ -592,6 +594,56 @@ repository with no such branch is skipped, not an error.
 
 \texttt{--private} selects the writable configuration repositories
 instead of the project's own, the same as \texttt{branch create}.
+
+\paragraph{Closing is the safe point.} Before anything is renamed, every
+commit the branch alone holds --- one no other branch, local or on origin,
+reaches --- is kept on the project's permanent \texttt{ancestors} branch:
+\texttt{ancestors} in a project repository,
+\texttt{<project>\_ancestors} in a private/local one. It starts as an
+empty commit and gains one merge per branch it keeps; the merge keeps
+\texttt{ancestors}' own (empty) tree and takes the branch as its second
+parent, so its whole history stays reachable. Nothing is rewritten and
+nothing is forced: \texttt{ancestors} only ever gains a commit. Each move is
+recorded in the ledger (the entry's \texttt{relocations}: what moved, from
+which address, to which, and its hash there), and the ledger is checked to
+still verify. A step that fails refuses with nothing renamed. Afterwards
+the closed branch can be deleted by anything, \cgscli{} or plain Git or the
+provider's web page, without losing a commit. \texttt{ancestors} itself is
+never closed or deleted. Run on a branch that is already closed --- one
+closed before \texttt{ancestors} existed --- \texttt{branch close} keeps
+and records what it alone holds and renames nothing.
+
+\subsection{\texttt{branch check}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync branch check <branch> [--private] [--gts <snapshot.gts>]
+\end{lstlisting}
+
+Says, per repository, what deleting \texttt{<branch>} would lose: the
+commits only it reaches, and the ledger entries and State files only it
+holds (by content, so a copy on another branch counts as kept). Each
+repository is \texttt{safe} (nothing would be lost), \texttt{recorded}
+(\texttt{ancestors} keeps it and the ledger records the move) or
+\texttt{needs ancestor}. \texttt{<branch>} may be a live branch,
+\texttt{closed/<branch>}, or a closed branch by its old name. It first
+fetches every branch of origin, so the answer counts what origin holds
+today; that moves remote-tracking refs and nothing else.
+
+\subsection{\texttt{branch delete}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync branch delete <branch> [--private] [--gts <snapshot.gts>]
+\end{lstlisting}
+
+Deletes a closed branch, tree-wide. A branch that is not closed is refused:
+close it first. The ledger is read first: a move a close already recorded,
+and that still resolves, is reused and never recorded twice, so a branch
+closed by \texttt{branch close} records nothing new here. Anything not yet
+kept --- a branch closed before \texttt{ancestors} existed --- is kept and
+recorded exactly as a close does. Then the ledger is verified, and only
+then is the branch deleted, on origin first and then locally, leaf-first;
+a local branch is removed only while it still points at the commit that
+was checked. A step that fails refuses with nothing deleted.
 
 \subsection{\texttt{add}}
 
@@ -874,7 +926,7 @@ run next.
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync memory status [--search-dir DIR]
-$ pixi run cgitsync memory list   [--search-dir DIR]
+$ pixi run cgitsync memory list   [--branch NAME] [--search-dir DIR]
 $ pixi run cgitsync memory show <state> [--full] [--search-dir DIR]
 $ pixi run cgitsync memory explore [--branch NAME] [--timeline] [--search-dir DIR]
 \end{lstlisting}
@@ -959,10 +1011,16 @@ flags and defaults as given.
         \texttt{push} appear beside \texttt{commit} rather than being
         dropped --- each row also prints the State it recorded, so a prefix
         to hand \texttt{show} is never more than a scroll away.
-        \texttt{--branch NAME} asks for a different memory branch;
-        only the one actually checked out here can be read this way today,
-        and a mismatch names \texttt{memory clone --branch NAME} rather
-        than answering for the wrong branch.
+        \texttt{--branch NAME} asks for a different chapter of the
+        memory. One not checked out here is read from Git, as a timeline
+        of its entries: from its branch, its closed name, or the copy
+        \texttt{ancestors} keeps once the branch is deleted, and the
+        answer says which. One this clone holds nowhere names
+        \texttt{memory clone --branch NAME} rather than answering for the
+        wrong branch. \texttt{list} and \texttt{as-of} take the same
+        option, and \texttt{show} looks in every chapter for a State that
+        is not on disk; it also names the repositories whose commit, in
+        that State, only \texttt{ancestors} still reaches.
   \item \texttt{as-of <time>} --- what was this tree at that time? The
         State the ledger recorded at or before it, not the nearest and not
         the latest, with the \texttt{show} command to type next. A time
