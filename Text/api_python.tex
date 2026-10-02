@@ -658,8 +658,8 @@ needs a name of its own rather than colliding with the first.
 \begin{lstlisting}[language=python]
 from ComplexGitSync.memory.self_history import AgentInfo, ConformityCriterion, ConformityScore
 
-worker = AgentInfo(role="Dev", vendor="Anthropic", model="claude-sonnet-5")
-orchestrator = AgentInfo(role="Orchestration", vendor="Anthropic", model="claude-sonnet-5")
+worker = AgentInfo(role="Dev", vendor="vendor-name", model="model-name")
+orchestrator = AgentInfo(role="Orchestration", vendor="vendor-name", model="model-name")
 conformity = ConformityScore(
     spec_respect=ConformityCriterion(score=33, basis="measured", reasoning="lint and test both pass"),
     gating=ConformityCriterion(score=33, basis="measured", reasoning="nothing private pushed"),

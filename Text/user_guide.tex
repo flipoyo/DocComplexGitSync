@@ -1089,7 +1089,14 @@ $ pixi run cgitsync memory branch --project-branch main
   \item \texttt{memory adopt} --- creates \texttt{.cgitsync/.memory} fresh
         and turns it into that repository, on this project branch's memory
         branch. It starts empty: the first \texttt{memory push} is what
-        folds in whatever \texttt{.cgitsync} already held. \texttt{--reboot}
+        folds in whatever \texttt{.cgitsync} already held. When the
+        workspace already has the local memory ComplexGitSync made for it,
+        that repository and every commit in it are kept: adopting adds the
+        remote and, if the repository already holds this branch's base,
+        joins it with one merge commit. If the two cannot be merged cleanly,
+        nothing is adopted and the local memory is left exactly as it was;
+        \texttt{--reboot} or \texttt{cgitsync autofix} are the ways on.
+        \texttt{--reboot}
         adopts the same repository identity but skips carrying forward
         whatever the fallback branch already holds, so the mount's content
         starts fresh instead (\S\ref{sec:memory-reboot}).
