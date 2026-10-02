@@ -117,7 +117,7 @@ $ pixi run cgitsync initialise --project CGSil1 \
 Use either a source file or \texttt{--project} plus \texttt{--repo}, never
 both. To write a \texttt{.cgs} without initializing a workspace, use
 \texttt{discover --write FILE} on an existing checkout, or
-\texttt{init-from-submodules}.
+\texttt{submodules init}.
 
 When \texttt{--output-path} is omitted, \cgscli{} uses the workspace-level
 default \texttt{CGSPATH=../..}, then derives
@@ -188,7 +188,7 @@ $ pixi run cgitsync checkout release-2026.05 --ref-kind tag
 \texttt{commit}, \texttt{push}, and \texttt{freeze-release} walk the opposite direction:
 \texttt{leaf -> parent -> root}.
 When local files block the safe pull, the CLI suggests
-\texttt{cgitsync pull-force}; that recovery command force-updates the same tree.
+\texttt{cgitsync pull --force}; that recovery command force-updates the same tree.
 It sets uncommitted and untracked work aside with \texttt{git stash push -u},
 and refuses, before changing anything, while a commit exists that no remote
 holds.

@@ -97,7 +97,7 @@ false 1:1 impression:
 - **Seven Ring 0–2 modules postdate the book chapter entirely** and have no
   Tier counterpart to map to at all: `git_branch.py` (§5), `integrity.py`, `ledger_entry.py`,
   `ledger_store.py` (the `lgr/` hash-chained ledger behind `cgitsync
-  verify`), and `status_render.py`, `snapshot_resolver.py`,
+  verify check`), and `status_render.py`, `snapshot_resolver.py`,
   `config_document_io.py` (extractions that used to be inline in the old
   `cli.py`/`orchestre.py`/`config_document.py`, pulled out during the
   isolation work for testability, not for a lifecycle reason the Tier model
@@ -295,7 +295,7 @@ of truth — update the module's docstring first, this table second.
 | `cli/__init__.py` | 4 | Build the top-level argparse parser from each command group's own subparsers, dispatch parsed args to the matching handler, and expose `main()`/`build_parser()`/`_PLANNED_COMMANDS` at the package root so external callers (`pyproject.toml`'s console-script entry point, `__main__.py`, every test) see the same surface `cli.py` used to. |
 | `cli/minimalist.py` | 4 | Register argparse subparsers for, and dispatch/execute, exactly the five Minimalist commands (`initialise`, `bootstrap`, `freeze-release`, `status`, `view-tree`) per README.md's command table. Argument collection and printing only. |
 | `cli/configuration.py` | 4 | Register this group's subparsers (`discover`, `repo`) and dispatch each to its `_handle_*`/`_execute_*` pair, mirroring the old `cli.py`'s `build_parser()` if/elif chain for exactly these commands. Argument/prompt collection only. |
-| `cli/expert.py` | 4 | Register argparse subparsers for, and dispatch/execute, the Expert-tier commands (`validate`, `pull`, `pull-force`, `fetch`, `checkout`, `branch`, `add`, `commit`, `push`, `tag`, `import-submodules`, `verify`). Argument/prompt collection only. |
+| `cli/expert.py` | 4 | Register argparse subparsers for, and dispatch/execute, the Expert-tier commands (`validate`, `pull` and `pull --force`, `fetch`, `checkout`, `branch create`/`list`/`close`, `add`, `commit`, `push`, `tag`, `submodules report`/`import`/`init`, `verify check`/`repair`). Argument/prompt collection only. |
 | `cli/_shared.py` | 4 | Dispatch a command handler under structured run-logging (with the two hard-coded error hints), resolve/load a `.cgs` or `.gts` source, and format/print the plan, tree-state, and `.gitignore`-sync reports every command group's `_execute_*` functions reuse — no group-specific handler logic. |
 | `__init__.py` | *(no `Ring:` header — package root)* | "ComplexGitSync package: deterministic distributed workspace synchronization over Git trees." Re-exports the public surface (`CgsDocument`, `ComplexGitSyncClient`, the error hierarchy, `__version__`, …) from the modules above. |
 | `__main__.py` | *(no `Ring:` header — entry-point stub)* | No docstring; its entire body is `from .cli import main` / `raise SystemExit(main())`, so `python -m ComplexGitSync` matches the console-script entry point exactly. |

@@ -51,7 +51,7 @@ Compilers and system libraries & Native builds or software installed outside Pix
 \end{center}
 
 The machine must also match a platform supported by the tree's lock files.
-\texttt{pixi run cgitsync env} reports the operating system, architecture,
+\texttt{pixi run cgitsync env show} reports the operating system, architecture,
 Pixi platform, libc, tool versions, credential facts, and manifests it
 observes. \texttt{pixi run cgitsync env check} compares that observation
 with the tree's declared requirements. Neither command installs anything.
@@ -101,15 +101,24 @@ subcommand with its options, and \texttt{cgitsync help --all} prints every
 command and option on one page, ready for \texttt{grep}. The help is generated
 from the parser the command actually runs, so it does not drift from it.
 
+Every command follows one grammar. A subcommand is a plain word
+(\texttt{branch close}, \texttt{verify repair}); anything that starts with
+\texttt{--} is an option and never a command of its own; a single-dash
+\texttt{-x} is only ever the short form of a \texttt{--option}. An old spelling
+such as \texttt{close-branch} is not run: \cgscli{} names its new form
+(\texttt{'close-branch' is now 'branch close'.}) and stops.
+
 The CLI exposes three command groups once a \texttt{GitTree} is \texttt{READY}.
 The minimalist level is \texttt{initialise}, \texttt{bootstrap},
 \texttt{freeze-release}, \texttt{status}, and \texttt{view-tree}.  The expert
-level exposes the individual operations: \texttt{branch}, \texttt{checkout},
-\texttt{validate}, \texttt{pull}, \texttt{pull-force}, \texttt{fetch},
+level exposes the individual operations: \texttt{branch create},
+\texttt{branch list}, \texttt{branch close}, \texttt{checkout},
+\texttt{validate}, \texttt{pull}, \texttt{pull --force}, \texttt{fetch},
 \texttt{autofix},
 \texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag},
-\texttt{import-submodules}, \texttt{init-from-submodules}, and
-\texttt{verify}, plus \texttt{env} and \texttt{env check}.  The configuration
+\texttt{submodules report}, \texttt{submodules import},
+\texttt{submodules init}, \texttt{verify check} and \texttt{verify repair},
+plus \texttt{env show} and \texttt{env check}.  The configuration
 level, \texttt{discover} and \texttt{repo}, authors a \texttt{.cgs}
 specification without requiring existing state.  There is no command that
 deletes a workspace for you: to start a directory over, move it aside
@@ -186,7 +195,7 @@ this a parent's \texttt{git status}/\texttt{git add} would otherwise see a
 child's working tree as ordinary untracked content. This is logged as the
 \texttt{GT-GITIGNORE} phase, after \texttt{GT-CLONE}. If the safe pull for
 one of these repositories fails, \texttt{initialise} raises immediately and
-nothing is written; run \texttt{pull-force} on that repository, then
+nothing is written; run \texttt{pull --force} on that repository, then
 \texttt{initialise} again.
 By default nothing is staged, committed, or pushed by this step --- it only
 writes the file and prints what changed. Pass \texttt{--commit-gitignore}
@@ -274,7 +283,8 @@ The command is a pure read of the filesystem and of each repository's git
 config: nothing is cloned, fetched, staged, or modified, and no network
 call is made. Without \texttt{--write} it only prints what it found,
 matching the ``report first, write only when asked'' posture of
-\texttt{--commit-gitignore} and \texttt{import-submodules --apply}.
+\texttt{--commit-gitignore} and of \texttt{submodules report} before
+\texttt{submodules import}.
 
 The walk descends with no depth limit by default, treating every directory
 that contains a \texttt{.git} entry as a repository. Pass
@@ -332,7 +342,8 @@ submodule.
 Only what is \emph{checked out at scan time} can be found. A repository
 cloned without \texttt{--recurse-submodules} leaves its submodule paths as
 empty directories, and those are correctly not reported; recovering them
-from git metadata instead is \texttt{import-submodules}' job. The same
+from git metadata instead is the job of \texttt{submodules report} and
+\texttt{submodules import}. The same
 applies when \texttt{--max-depth} is given: if it stops the walk while
 directories are still left to look into, the report says so in a warning
 rather than presenting a partial answer as a complete one. Without the
@@ -343,7 +354,7 @@ flag, the walk cannot stop early --- there is nothing to stop it at.
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync pull [spec.cgs|snapshot.gts] [--commit-gitignore]
     [--git-user-name NAME] [--git-user-email EMAIL]
-    [--force-protocol {ssh,https}]
+    [--force-protocol {ssh,https}] [--private]
 \end{lstlisting}
 
 Resynchronises the project tree.  \texttt{.cgs} sources reload the source,
@@ -356,7 +367,7 @@ alike --- is a plain independent clone and receives its own
 check out a frozen recorded release state instead of pulling current
 remotes.  If local changes block this safe pull, the CLI
 suggests \texttt{cgitsync autofix}, and names any repository whose commits only
-exist locally, because \texttt{pull-force} refuses while they do.
+exist locally, because \texttt{pull --force} refuses while they do.
 
 Before pulling your own branch, \texttt{pull} fetches \emph{every} branch
 of each remote. That is what lets \texttt{checkout} join a branch somebody
@@ -370,9 +381,10 @@ For a \texttt{.cgs} source, \texttt{pull} also runs the same
 including \texttt{--commit-gitignore} and
 the \texttt{--git-user-name}/\texttt{--git-user-email} identity override ---
 once the tree-wide pull completes. A \texttt{.gts} source runs no discovery,
-so there is nothing new for the sync to find. \texttt{pull-force} does not
-run this sync at all; it is a destructive recovery command, not a lifecycle
-path the sync is wired into.
+so there is nothing new for the sync to find. \texttt{pull --force} does not
+run this sync at all, and so does not take \texttt{--commit-gitignore},
+\texttt{--git-user-name} or \texttt{--git-user-email}; it is a destructive
+recovery command, not a lifecycle path the sync is wired into.
 
 \texttt{--force-protocol \{ssh,https\}} rewrites every repo's remote to
 that protocol before pulling, persisting the change (\texttt{git remote
@@ -404,10 +416,11 @@ instance) cannot have its protocol converted; \texttt{--force-protocol}
 then fails with an explicit error naming the repository, rather than
 guessing.
 
-\subsection{\texttt{pull-force}}
+\subsection{\texttt{pull --force}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync pull-force [spec.cgs|snapshot.gts] [--force-protocol {ssh,https}]
+$ pixi run cgitsync pull --force [spec.cgs|snapshot.gts] [--force-protocol {ssh,https}]
+    [--private]
 \end{lstlisting}
 
 Destructively resynchronises the same tree.  Every repository --- root,
@@ -433,7 +446,7 @@ $ pixi run cgitsync autofix [spec.cgs|snapshot.gts] [--error TEXT] [--repo NAME]
 
 Diagnoses and repairs the situation named by the last failing command's
 error, instead of a person reading raw \texttt{git} output and guessing
-which of \texttt{merge}/\texttt{pull-force} is safe. With no
+which of \texttt{merge}/\texttt{pull --force} is safe. With no
 \texttt{--error}, reads the most recent \texttt{.cgitsync/logs/*.log}'s
 failing command (run logs stay local in that folder, so a \texttt{push} that folded the memory never moves the log \texttt{autofix} needs) --- the normal workflow is a command fails, run
 \texttt{cgitsync autofix} next, and nothing gets retyped. \texttt{--repo}
@@ -460,7 +473,7 @@ behind it is safe to reconcile automatically. This table can:
   content has no ordering invariant beyond ``these are files''. \\
 \texttt{diverged}, chain-shaped content (\texttt{.memory}'s \texttt{lgr/}
   ledger, and --- once built --- \texttt{omniscience}'s journal) &
-  \texttt{autofix}. \texttt{pull-force} refuses while this workspace holds
+  \texttt{autofix}. \texttt{pull --force} refuses while this workspace holds
   commits no remote has; a plain \texttt{merge} leaves an add/add conflict on the
   colliding ledger entry that nothing but \texttt{autofix} knows how to
   resolve without dropping one side's history. \\
@@ -493,7 +506,7 @@ On success the tree remains \texttt{READY} and a new \texttt{.gts} snapshot is w
 \paragraph{A branch that exists on the remote is joined, not recreated.}
 When the repository already holds a remote-tracking ref for the branch ---
 because some earlier \texttt{pull} downloaded it, or another
-\texttt{checkout}/\texttt{branch} fetched it on demand --- \cgscli{} creates
+\texttt{checkout}/\texttt{branch create} fetched it on demand --- \cgscli{} creates
 the local branch \emph{from that ref}, with tracking set. You land on your
 colleague's commits. When it has no such ref cached, it asks the remote
 directly (one \texttt{ls-remote}, no full fetch) before deciding: found, it
@@ -513,23 +526,24 @@ defect: one command's gap silently became another command's fork.
 
 \texttt{pull} still fetches every branch of each remote before pulling your
 own, and remains the cheapest way to bring many refs across at once.
-\texttt{checkout} and \texttt{branch} no longer depend on it having run
+\texttt{checkout} and \texttt{branch create} no longer depend on it having run
 first: each fetches the one ref it needs, exactly when it needs it.
 
-\subsection{\texttt{branch --list}}
+\subsection{\texttt{branch create} and \texttt{branch list}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync branch --list [--per-repo] [--private] [--gts <snapshot.gts>]
+$ pixi run cgitsync branch create <branch> [--private] [--gts <snapshot.gts>]
+$ pixi run cgitsync branch list [--per-repo] [--private] [--gts <snapshot.gts>]
 \end{lstlisting}
 
-Prints the project's own branches: those of the root repository, local
+\texttt{branch create} creates a branch across the whole \texttt{READY} tree
+without checking it out. \texttt{branch list} prints the project's own branches: those of the root repository, local
 or on origin as of the last fetch, the one the project is on marked with
 \texttt{*}. Each line says which repositories hold the branch they would
 be on under it, or names those that lack it; a \texttt{closed/} branch is
 listed apart. \texttt{--per-repo} prints one line per repository with its
-own local branches instead. Changes nothing. Give either a branch
-name to create or \texttt{--list}, not both. \texttt{--private} narrows it
-to the writable configuration repositories.
+own local branches instead. Changes nothing. On either subcommand,
+\texttt{--private} narrows it to the writable configuration repositories.
 
 \subsection{\texttt{fetch}}
 
@@ -540,23 +554,23 @@ $ pixi run cgitsync fetch [--private] [--gts <snapshot.gts>]
 Runs \texttt{git fetch --prune origin} in every cloned repository of the
 tree, parent-first. Only the remote-tracking refs change: no local branch,
 no \texttt{HEAD}, no worktree, and no State is written. A branch pushed
-elsewhere appears in \texttt{branch --list} afterwards, and one deleted on
+elsewhere appears in \texttt{branch list} afterwards, and one deleted on
 origin disappears. Prints \texttt{fetched} or \texttt{skipped} (with the
 reason: not cloned, no origin, or the fetch failed) for each repository,
 then a summary; exits non-zero if any fetch failed. \texttt{--private}
 narrows it to the writable configuration repositories.
 
-\subsection{\texttt{close-branch}}
+\subsection{\texttt{branch close}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync close-branch <branch> [--private] [--gts <snapshot.gts>]
+$ pixi run cgitsync branch close <branch> [--private] [--gts <snapshot.gts>]
 \end{lstlisting}
 
 Closes a \emph{project} branch: renames it to \texttt{closed/<branch>}
 tree-wide, leaf-first, locally and on the remote. Each repository closes
 the branch it follows under that project branch: the same name in a
 project repository, \texttt{<project>\_<branch>} in a private/local one
-(so \texttt{close-branch tmpPyPi} closes \texttt{ComplexGitSync\_tmpPyPi}
+(so \texttt{branch close tmpPyPi} closes \texttt{ComplexGitSync\_tmpPyPi}
 in \texttt{.memory}), and nothing in a private/distant one, which never
 follows the project and is reported as skipped. Requires \texttt{READY};
 the tree remains \texttt{READY} on success. Renames only: nothing is
@@ -577,7 +591,7 @@ it does not move the tree off one; check it out elsewhere first. A
 repository with no such branch is skipped, not an error.
 
 \texttt{--private} selects the writable configuration repositories
-instead of the project's own, the same as \texttt{branch} (create).
+instead of the project's own, the same as \texttt{branch create}.
 
 \subsection{\texttt{add}}
 
@@ -611,7 +625,7 @@ a path outside every repo in the tree raises before anything is removed.
 Requires \texttt{READY}; tree stays \texttt{READY}. With \texttt{--dry-run},
 \cgscli{} prints the plan without mutating repositories.
 
-Distinct from and unrelated to \texttt{import-submodules}' internal use of
+Distinct from and unrelated to \texttt{submodules import}' internal use of
 \texttt{git rm --cached} (index-only, dropping a gitlink while keeping the
 child's working tree) --- \texttt{rm} deletes the file from disk.
 
@@ -676,7 +690,7 @@ Minimalist release workflow from a READY tree. It chains public operations in
 order: \texttt{add -> commit -> pull -> push}, then it creates and pushes the
 shared tag and writes the \texttt{.gts} snapshot. It is the one freeze
 procedure: there is no bare \texttt{freeze} command and no force variant. To
-release from a branch that has fallen behind, run \texttt{pull-force} first
+release from a branch that has fallen behind, run \texttt{pull --force} first
 (it refuses while a commit exists that no remote holds, so commit and push
 before it), then \texttt{freeze-release}. The release name becomes the
 shared tag and snapshot label; the message is used for the release
@@ -728,23 +742,24 @@ folds twice in one run --- once via its \texttt{push} step, once via
 the freeze step --- which is harmless: a fold with nothing new
 pending commits nothing and only re-sends the branch.
 
-\subsection{\texttt{import-submodules}}
+\subsection{\texttt{submodules report} and \texttt{submodules import}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync import-submodules REPO_ROOT [--apply] [--recursive]
+$ pixi run cgitsync submodules report REPO_ROOT [--recursive]
+$ pixi run cgitsync submodules import REPO_ROOT [--recursive]
 \end{lstlisting}
 
-Reads \texttt{REPO\_ROOT/.gitmodules} and reports (or converts) every declared
+Reads \texttt{REPO\_ROOT/.gitmodules}; \texttt{report} lists, and
+\texttt{import} converts, every declared
 git submodule to a plain ComplexGitSync nested clone. This is the whole job:
 turning gitlinks into plain clones on disk. It does not author a
 \texttt{.cgs} --- \texttt{.gitmodules} never records the root's own identity,
 and a checkout worth importing already has a \texttt{.cgs} (hand-authored)
 or can get one from \texttt{discover} (\S\ref{chap:user-guide}
-``\texttt{discover}''), before or after applying.
+``\texttt{discover}''), before or after importing.
 
-Without \texttt{--apply} (the default), the command performs a
-\emph{dry run}: it prints each submodule's name, path, URL, and branch,
-without touching the repository.
+\texttt{submodules report} is the \emph{dry run}: it prints each
+submodule's name, path, URL, and branch, without touching the repository.
 
 \texttt{--recursive} (same name and meaning as \texttt{git submodule
 update}'s own flag) also converts any submodule that itself has its own
@@ -768,7 +783,7 @@ counted from \texttt{REPO\_ROOT}, and \texttt{declared in} names the
 repository is involved --- in \texttt{cawaqsviz}, two of the three
 submodules are called \texttt{docs/...} by their own repository.
 
-With \texttt{--apply}:
+\texttt{submodules import}:
 \begin{itemize}
   \item Verifies every submodule's working tree is clean (\texttt{git status
         --porcelain} must be empty apart from that repository's own
@@ -787,7 +802,7 @@ With \texttt{--apply}:
         same helper that the \texttt{.gitignore} lifecycle sync uses.
 \end{itemize}
 
-After applying, review and commit the staged changes manually:
+After importing, review and commit the staged changes manually:
 \begin{lstlisting}[language=bash]
 $ git -C REPO_ROOT status          # deleted .gitmodules, modified .gitignore
 $ git -C REPO_ROOT commit -m "chore: retire git submodules"
@@ -796,21 +811,21 @@ $ git -C REPO_ROOT commit -m "chore: retire git submodules"
 \textbf{Note:} ComplexGitSync stores no credentials and has no private-repo
 authentication story.  If a submodule's upstream is private and the ambient
 environment lacks access, the subsequent \cgscli{} \texttt{initialise} or
-\texttt{pull} will fail at the clone step.  The \texttt{import-submodules}
+\texttt{pull} will fail at the clone step.  The \texttt{submodules import}
 step itself (which only touches the local index and working tree) will still
 succeed.
 
-\subsection{\texttt{init-from-submodules}}
+\subsection{\texttt{submodules init}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync init-from-submodules REPO_ROOT [--cgs FILE]
+$ pixi run cgitsync submodules init REPO_ROOT [--cgs FILE]
       [--max-depth N] [--dry-run] [--force] [--force-protocol {ssh,https}]
 \end{lstlisting}
 
 Adopts a submodule-based checkout in one command: \texttt{discover} the
 repositories under \texttt{REPO\_ROOT}, write the drafted \texttt{.cgs},
 \texttt{initialise} the tree in place, then convert every submodule with
-\texttt{import-submodules --recursive --apply}.  \texttt{REPO\_ROOT} is a
+\texttt{submodules import --recursive}.  \texttt{REPO\_ROOT} is a
 project cloned and \texttt{git submodule update --init --recursive}'d by
 hand; the command performs no clone of the root itself.
 
@@ -819,7 +834,7 @@ why.}  \texttt{initialise} adopts the root in place but deletes and
 re-clones every \emph{other} repository straight from its remote, and those
 remotes still declare submodules --- so a conversion run first is undone
 for every repository except the root.  Nor can a second pass repair that:
-\texttt{import-submodules --recursive} follows the submodule graph declared
+\texttt{submodules import --recursive} follows the submodule graph declared
 by the root's own \texttt{.gitmodules}, which the first pass removed, so no
 deeper level stays reachable.  Running the two commands in the other order
 by hand produces a half-converted tree that looks finished.
@@ -852,7 +867,7 @@ remote as it is.
 The command stops at a \texttt{READY} tree with the conversion staged but
 not committed --- it touches every repository that held a submodule, and
 some of those may belong to other people --- and prints the
-\texttt{branch}/\texttt{checkout}/\texttt{add}/\texttt{commit} sequence to
+\texttt{branch create}/\texttt{checkout}/\texttt{add}/\texttt{commit} sequence to
 run next.
 
 \subsection{\texttt{memory}}
@@ -907,7 +922,7 @@ flags and defaults as given.
 
 \begin{itemize}
   \item \texttt{status} --- how many States, how long the chain is, when it
-        was last written, which of \texttt{verify}'s four answers this
+        was last written, which of \texttt{verify check}'s answers this
         memory is in, and the toolchain the records carry. The first
         entry's versions are shown beside the latest when they differ, so a
         chain spanning an upgrade says where the upgrade fell.
@@ -955,7 +970,7 @@ flags and defaults as given.
         (\texttt{2026-09-30T17:00+02:00}); a bare date means the end of
         that day. A time before the first entry answers ``nothing recorded
         yet''. When the chain does not verify, or its clock moved backwards
-        (\texttt{verify}'s \texttt{time-inconsistent}), the answer is
+        (\texttt{verify check}'s \texttt{time-inconsistent}), the answer is
         printed with \texttt{answer\_reliable=false} and a warning, never
         as if the chain were clean.
 \end{itemize}
@@ -965,7 +980,7 @@ That distinction is the reason the messages are kept at all: while the
 repository is present \texttt{git log} is the better answer, and this record
 is for when it is not --- a deleted branch, an archived project, a fork that
 went away. The ledger entry that recorded a set of messages carries their
-fingerprint, so editing one afterwards is a finding \texttt{verify} reports.
+fingerprint, so editing one afterwards is a finding \texttt{verify check} reports.
 
 \texttt{status}, \texttt{list}, \texttt{show} and \texttt{explore} are
 read-only; nothing they do sends a memory anywhere.
@@ -1137,7 +1152,7 @@ signed contract is not an error --- the field is simply empty.
 \texttt{--state-before}/\texttt{--state-after} are \textbf{verified against
 the ledger}, not merely shape-checked: each, if given, must name a State
 some ledger entry actually recorded, still on disk, still hashing to its
-own name --- the same three questions \texttt{verify} itself asks. A
+own name --- the same three questions \texttt{verify check} itself asks. A
 citation that fails any of them is refused, not recorded as though it were
 fact. \texttt{--state-after} defaults to the ledger's own most recent
 entry when not given.
@@ -1175,7 +1190,7 @@ and the record of what happened, including across the reboot, is exactly
 the thing that should survive it.
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync memory self-history [--search-dir DIR]
+$ pixi run cgitsync self-history list [--search-dir DIR]
 \end{lstlisting}
 
 Every self-history record this workspace holds, folded and pending,
@@ -1183,13 +1198,14 @@ oldest first --- consultation only. A workspace that has never adopted
 self-history, or has adopted it but written nothing yet, prints that
 plainly rather than erroring.
 
-\subsection{\texttt{verify}}
+\subsection{\texttt{verify check} and \texttt{verify repair}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync verify [--search-dir DIR] [--repair]
+$ pixi run cgitsync verify check [--search-dir DIR] [--json]
+$ pixi run cgitsync verify repair [--search-dir DIR] [--json]
 \end{lstlisting}
 
-Says which of five things is true of this workspace's recorded history.
+\texttt{verify check} says which of five things is true of this workspace's recorded history.
 One of them, never a blur of two:
 
 \begin{center}
@@ -1214,7 +1230,7 @@ One of them, never a blur of two:
 
 \texttt{legacy} exits non-zero on purpose. The question is ``is this
 history intact?'', and ``I cannot tell'' is not a yes: a build that gates on
-\texttt{verify} must not pass because the evidence is in a format nobody can
+\texttt{verify check} must not pass because the evidence is in a format nobody can
 check. Every workspace created before the hash-chained ledger is written
 is in exactly that state.
 
@@ -1238,14 +1254,14 @@ must agree with the recomputed head (\texttt{HEAD\_STALE}).
 \texttt{--search-dir}, else \texttt{\$CGSHOME}, else the current working
 directory's ancestors.
 
-With \texttt{--repair}, a stale \texttt{HEAD} cache is corrected to match the
-recomputed true head. \textbf{Entries themselves are never rewritten or
-deleted} by \texttt{verify}, repair or not — a broken chain is reported, not
+\texttt{verify repair} runs the same check, then corrects a stale
+\texttt{HEAD} cache to match the recomputed true head. \textbf{Entries
+themselves are never rewritten or deleted} by either subcommand — a broken chain is reported, not
 silently healed, since a ledger that can be edited back to looking clean
 provides no evidence of anything.
 
 \paragraph{The States on disk are checked too.} Beyond the chain itself,
-\texttt{verify} cross-references what the entries say against what is
+\texttt{verify check} cross-references what the entries say against what is
 there: an entry naming a State that is missing (\texttt{MISSING\_STATE}), a
 stored snapshot whose content no longer hashes to the name it is filed
 under (\texttt{STATE\_DIGEST\_MISMATCH}), and a State on disk that no entry
@@ -1259,14 +1275,14 @@ dvc and git-lfs --- inside the entry hash, so an edited version string is as
 detectable as an edited command. The older single-file \texttt{.lgr}
 register is still read, and is no longer written.
 
-\subsection{\texttt{env} and \texttt{env check}}
+\subsection{\texttt{env show} and \texttt{env check}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync env [--search-dir DIR]
+$ pixi run cgitsync env show [--search-dir DIR]
 $ pixi run cgitsync env check [--search-dir DIR] [--cgs FILE]
 \end{lstlisting}
 
-\texttt{env} observes the environment that can make the current tree usable.
+\texttt{env show} observes the environment that can make the current tree usable.
 It reports the machine architecture, Pixi platform, operating system, kernel
 and libc; raw and parsed versions for Python and the tools \cgspkg{} drives;
 provider authentication as a fact; and the paths and digests of recognised
@@ -1371,8 +1387,8 @@ An expected failure prints one line on stderr and no traceback. A traceback
 is therefore a defect report, not a usage error --- which is the point of
 mapping the expected ones.
 
-\paragraph{\texttt{--json}.} \texttt{status} and \texttt{verify} accept
-it. Each prints one JSON object on stdout and nothing else; every
+\paragraph{\texttt{--json}.} \texttt{status}, \texttt{verify check} and
+\texttt{verify repair} accept it. Each prints one JSON object on stdout and nothing else; every
 human-facing line goes to stderr instead, and the exit code is unchanged, so
 a caller may use either signal. A failure prints one object too, carrying
 \texttt{"status": "error"} and the exit code, rather than leaving a pipe
@@ -1432,8 +1448,8 @@ loaded \texttt{.gts}.
 \paragraph{The \texttt{cgitsync\_branch} field.} The \texttt{summary} line
 carries \texttt{cgitsync\_branch=<branch>}: the branch the project is on,
 which is the branch its root repository is on. It is what
-\texttt{cgitsync branch} and \texttt{cgitsync checkout} set, and what every
-other repository follows.
+\texttt{cgitsync checkout} sets (\texttt{branch create} makes a branch
+without moving onto it), and what every other repository follows.
 
 The table shows a branch per repository and they are not all the same on
 purpose --- a \texttt{private/local} repository keeps this project's
@@ -1501,7 +1517,7 @@ are six values:
 \texttt{diverged(+N/-M)}   & Both, from a common ancestor. \texttt{autofix}
                              (\S\ref{sec:autofix}) diagnoses which of
                              \texttt{merge} or a chain-aware splice is
-                             safe; \texttt{pull-force} refuses to
+                             safe; \texttt{pull --force} refuses to
                              run while this workspace's own \texttt{N}
                              commits exist nowhere else. \\
 \texttt{no-upstream}       & This branch was never pushed, so there is
@@ -1790,9 +1806,9 @@ real-world \texttt{cawaqsviz} project (not synthetic), which has no
 \texttt{.cgs} of its own and still tracks three repositories on two levels
 as git submodules,
 as one verified procedure: clone, check out the submodules, adopt the whole
-tree with \texttt{init-from-submodules} (\texttt{discover} +
-\texttt{initialise} + \texttt{import-submodules}, in that order), then
-\texttt{branch}/\texttt{checkout}/\texttt{add}/\texttt{commit}/\texttt{push}.
+tree with \texttt{submodules init} (\texttt{discover} +
+\texttt{initialise} + \texttt{submodules import}, in that order), then
+\texttt{branch create}/\texttt{checkout}/\texttt{add}/\texttt{commit}/\texttt{push}.
 
 \texttt{examples/cawaqsviz.cgs}, the hand-authored alternative mentioned in
 \texttt{tutorials/03\_adopting\_a\_real\_project.md} above,
@@ -1906,7 +1922,7 @@ projects} and must stay on its own branch.
 \emph{Branch moves stop at a private repository. Tags do not.}
 \end{center}
 
-\texttt{cgitsync branch <name>} and \texttt{cgitsync checkout <name>} skip
+\texttt{cgitsync branch create <name>} and \texttt{cgitsync checkout <name>} skip
 a private repository and leave it on its declared
 \texttt{default\_branch}, because moving it would drag every other project
 that mounts it onto your branch.
@@ -1962,10 +1978,10 @@ documentation written for an unfinished feature is live on the default
 branch describing code that is not there.
 
 \paragraph{\texttt{--private} everywhere.} Every command that touches Git
-takes it: twelve commands, \texttt{pull},
-\texttt{pull-force}, \texttt{fetch}, \texttt{checkout}, \texttt{branch},
-\texttt{close-branch}, \texttt{add}, \texttt{rm}, \texttt{commit},
-\texttt{merge}, \texttt{push} and \texttt{tag}. \texttt{freeze-release}
+takes it: ten commands, \texttt{pull} (with or without \texttt{--force}),
+\texttt{fetch}, \texttt{checkout}, \texttt{branch} (on \texttt{create},
+\texttt{list} and \texttt{close}), \texttt{add}, \texttt{rm},
+\texttt{commit}, \texttt{merge}, \texttt{push} and \texttt{tag}. \texttt{freeze-release}
 does not take it: it is a whole-tree release. It
 narrows the command to the writable
 configuration repositories alone, so they can be worked on without
@@ -2037,7 +2053,7 @@ repository can never be more open than the one that contains it.
 \hline
 \texttt{add}, \texttt{commit}, \texttt{push}    & this project's own     & they write this project's history \\
 the same, \texttt{--private}                   & writable config repos  & shared, but on your own branch \\
-\texttt{branch}, \texttt{checkout}              & this project's own     & a branch must not spread \\
+\texttt{branch create}, \texttt{checkout}       & this project's own     & a branch must not spread \\
 \texttt{tag}, \texttt{freeze-release}           & everything writable    & they create \emph{and push} a tag \\
 \texttt{pull}, \texttt{status}                  & everything             & reading a shared repo is the point \\
 \end{tabular}
@@ -2082,7 +2098,7 @@ committing to a private mount.
 
 \subsubsection{The two meanings of ``force''}
 
-\texttt{pull-force} is destructive, but it loses nothing: uncommitted and
+\texttt{pull --force} is destructive, but it loses nothing: uncommitted and
 untracked work is stashed (\texttt{git stash pop} restores it), and it
 refuses, for the whole tree, while a commit exists that no remote holds, so
 it never drops a commit.

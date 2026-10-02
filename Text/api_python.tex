@@ -39,7 +39,7 @@ reference_tree = document.to_git_tree()
 \end{lstlisting}
 
 \texttt{configure} is the \texttt{.cgs} writer and has no CLI command of its
-own. \texttt{discover --write}, \texttt{init-from-submodules}, and direct
+own. \texttt{discover --write}, \texttt{submodules init}, and direct
 \texttt{initialise --project/--repo} authoring are the adapters over it.
 
 \section{From Empty Registry to READY via \texttt{.gts}}
@@ -457,7 +457,9 @@ draft is never written.
 
 \texttt{import\_submodules(repo\_root, *, apply=False, recursive=False)}
 converts git submodules in a local repository to plain ComplexGitSync
-nested clones:
+nested clones. It is what the CLI's \texttt{submodules report}
+(\texttt{apply=False}) and \texttt{submodules import} (\texttt{apply=True})
+run:
 
 \begin{lstlisting}[language=python]
 from ComplexGitSync.orchestre import ComplexGitSyncClient
@@ -501,7 +503,7 @@ last (see \texttt{init\_from\_submodules} below).
 \texttt{init\_from\_submodules(repo\_root, *, cgs\_path=None,
 max\_depth=5, dry\_run=False, force=False, force\_access\_protocol=None)}
 performs the whole adoption of a submodule-based checkout, in the one order
-that works:
+that works. It is what the CLI's \texttt{submodules init} runs:
 
 \begin{lstlisting}[language=python]
 from ComplexGitSync.orchestre import ComplexGitSyncClient
@@ -777,8 +779,8 @@ records[0]["ticket"]        # the short ticket name
 records[0]["conformity"]    # {"spec_respect": {...}, "gating": {...}, "quality": {...}}
 \end{lstlisting}
 
-Every record this workspace holds, folded and pending, oldest first, each
-as the same dict \texttt{SelfHistoryRecord.to\_dict()} produces --
+Every record this workspace holds, folded and pending, oldest first ---
+what the CLI's \texttt{self-history list} prints --- each as the same dict \texttt{SelfHistoryRecord.to\_dict()} produces --
 consultation only. An empty list means no self-history has been written
 here yet, not an error.
 
@@ -910,7 +912,9 @@ and adopted.
 \section{Ledger Integrity: \texttt{verify}}
 
 \texttt{verify(cgshome, *, repair=False)} checks the hash-chained
-\texttt{.cgitsync/lgr} ledger under \texttt{cgshome} for tamper-evidence:
+\texttt{.cgitsync/lgr} ledger under \texttt{cgshome} for tamper-evidence.
+The CLI's \texttt{verify check} calls it with \texttt{repair=False}, and
+\texttt{verify repair} with \texttt{repair=True}:
 
 \begin{lstlisting}[language=python]
 from ComplexGitSync.orchestre import ComplexGitSyncClient
