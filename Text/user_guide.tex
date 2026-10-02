@@ -614,6 +614,21 @@ own local branches instead. Changes nothing. Give either a branch
 name to create or \texttt{--list}, not both. \texttt{--private} narrows it
 to the writable configuration repositories.
 
+\subsection{\texttt{fetch}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync fetch [--private] [--gts <snapshot.gts>]
+\end{lstlisting}
+
+Runs \texttt{git fetch --prune origin} in every cloned repository of the
+tree, parent-first. Only the remote-tracking refs change: no local branch,
+no \texttt{HEAD}, no worktree, and no State is written. A branch pushed
+elsewhere appears in \texttt{branch --list} afterwards, and one deleted on
+origin disappears. Prints \texttt{fetched} or \texttt{skipped} (with the
+reason: not cloned, no origin, or the fetch failed) for each repository,
+then a summary; exits non-zero if any fetch failed. \texttt{--private}
+narrows it to the writable configuration repositories.
+
 \subsection{\texttt{close-branch}}
 
 \begin{lstlisting}[language=bash]
