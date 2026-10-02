@@ -212,18 +212,21 @@ State.
 is on, as \texttt{status} prints \texttt{cgitsync\_branch}: a branch name,
 \texttt{detached} or \texttt{unknown}.
 
-\paragraph{\texttt{close\_branch(branch\_name, private=False)}.} Renames
-\texttt{branch\_name} to \texttt{closed/branch\_name} across the full
-tree, leaf-first --- locally and on the remote, never deleting anything.
-Requires \texttt{READY}. Raises \texttt{GitSyncError} before touching any
-repository when \texttt{branch\_name} is the project's own default branch,
-or when any repository in scope is currently checked out on it --- the
-error names which repository. \texttt{client.last\_write\_outcomes} holds
-one \texttt{RepoOutcome} per repository visited afterward: \texttt{acted}
-is \texttt{False} for a repository that had no branch of that name at all,
-never an error. \texttt{private=True} selects the writable configuration
-repositories instead of the project's own, the same as \texttt{branch()}
-(create).
+\paragraph{\texttt{close\_branch(branch\_name, private=False)}.} Closes a
+project branch across the full tree, leaf-first, locally and on the
+remote, never deleting anything. Each repository closes the branch it
+follows under \texttt{branch\_name} (\texttt{<project>\_<branch>} in a
+private/local repository; a private/distant one is skipped). A branch that
+exists only on the remote is closed there. Requires \texttt{READY}. Raises
+\texttt{GitSyncError} before touching any repository when
+\texttt{branch\_name} is the project's own default branch, or when any
+repository in scope is currently on the branch it would close --- the
+error names which. \texttt{client.last\_write\_outcomes} holds one
+\texttt{RepoOutcome} per repository visited: \texttt{acted} is
+\texttt{False} for a repository with no such branch or a private/distant
+one, never an error. \texttt{private=True} selects the writable
+configuration repositories instead of the project's own, the same as
+\texttt{branch()} (create).
 
 \begin{lstlisting}[language=Python]
 client.close_branch("memory-dev")

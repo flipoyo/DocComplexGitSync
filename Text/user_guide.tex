@@ -635,27 +635,29 @@ narrows it to the writable configuration repositories.
 $ pixi run cgitsync close-branch <branch> [--private] [--gts <snapshot.gts>]
 \end{lstlisting}
 
-Renames \texttt{<branch>} to \texttt{closed/<branch>}, tree-wide,
-leaf-first --- locally and on the remote. Requires \texttt{READY}; the
-tree remains \texttt{READY} on success. Renames only: nothing is deleted,
-so the commits stay exactly as reachable as before, under a name that
-says what happened to them. Per repository: the branch is pushed under
-its closed name first, the old remote name is removed only once the
-commits are reachable under the new one, and only then is the local
-branch renamed --- the same order \texttt{memory reboot}'s own branch
-archiving already uses. A repository whose remote never had this branch
-published is renamed locally only, with nothing to remove remotely.
+Closes a \emph{project} branch: renames it to \texttt{closed/<branch>}
+tree-wide, leaf-first, locally and on the remote. Each repository closes
+the branch it follows under that project branch: the same name in a
+project repository, \texttt{<project>\_<branch>} in a private/local one
+(so \texttt{close-branch tmpPyPi} closes \texttt{ComplexGitSync\_tmpPyPi}
+in \texttt{.memory}), and nothing in a private/distant one, which never
+follows the project and is reported as skipped. Requires \texttt{READY};
+the tree remains \texttt{READY} on success. Renames only: nothing is
+deleted, so the commits stay exactly as reachable as before, under a name
+that says what happened to them. Per repository, the branch is pushed
+under its closed name first, never forced; the old remote name is removed
+only once the remote is seen to hold the closed one; only then is the
+local branch renamed. A branch that exists only on the remote, never
+checked out here (run \texttt{cgitsync fetch} first to see it), is
+closed there from its remote-tracking ref. A branch the remote never had
+is renamed locally only.
 
 Refuses, before touching any repository, in two cases: closing the
 project's own default branch (every repository with no branch of its own
-falls back to it, so removing it would break that fallback), and closing
-a branch that any repository in scope is currently checked out on. The
-second refusal names which repository and stops there --- this command
-closes a branch, it does not move the tree off one; check it out
-elsewhere first, then close it. A repository with no local branch named
-\texttt{<branch>} is skipped, not an error: a branch that only ever
-existed on some repositories (a private/local mount, say) is ordinary,
-not a mistake.
+falls back to it), and closing a branch that any repository in scope is
+currently checked out on, which it names, and a branch that lacks commits its remote holds, which would be lost (pull or merge it first). This command closes a branch,
+it does not move the tree off one; check it out elsewhere first. A
+repository with no such branch is skipped, not an error.
 
 \texttt{--private} selects the writable configuration repositories
 instead of the project's own, the same as \texttt{branch} (create).
