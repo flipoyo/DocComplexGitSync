@@ -192,6 +192,19 @@ for repo in client.list_branches():
     print(repo.name, repo.current, repo.branches)
 \end{lstlisting}
 
+\paragraph{\texttt{project\_branches(private=False)}.} Returns one
+\texttt{ProjectBranch} per branch of the project --- the root's local and
+origin branches, a \texttt{closed/} branch under its original name with
+\texttt{closed} set. Each carries \texttt{local}, \texttt{on\_origin},
+\texttt{current}, \texttt{following} (repositories holding the branch they
+would be on under it), \texttt{missing} and \texttt{uncloned}. Reads refs
+only: no fetch, no State written. \texttt{private} narrows the coverage,
+not the branches listed.
+
+\paragraph{\texttt{tree\_branch\_label()}.} Returns the branch the project
+is on, as \texttt{status} prints \texttt{cgitsync\_branch}: a branch name,
+\texttt{detached} or \texttt{unknown}.
+
 \paragraph{\texttt{close\_branch(branch\_name, private=False)}.} Renames
 \texttt{branch\_name} to \texttt{closed/branch\_name} across the full
 tree, leaf-first --- locally and on the remote, never deleting anything.

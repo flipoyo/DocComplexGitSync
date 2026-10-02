@@ -602,11 +602,15 @@ first: each fetches the one ref it needs, exactly when it needs it.
 \subsection{\texttt{branch --list}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync branch --list [--private] [--gts <snapshot.gts>]
+$ pixi run cgitsync branch --list [--per-repo] [--private] [--gts <snapshot.gts>]
 \end{lstlisting}
 
-Prints one line per repository of the tree with its local branches, the
-one it is on marked with \texttt{*}. Changes nothing. Give either a branch
+Prints the project's own branches: those of the root repository, local
+or on origin as of the last fetch, the one the project is on marked with
+\texttt{*}. Each line says which repositories hold the branch they would
+be on under it, or names those that lack it; a \texttt{closed/} branch is
+listed apart. \texttt{--per-repo} prints one line per repository with its
+own local branches instead. Changes nothing. Give either a branch
 name to create or \texttt{--list}, not both. \texttt{--private} narrows it
 to the writable configuration repositories.
 
