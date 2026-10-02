@@ -417,8 +417,9 @@ pull workflow.  In both cases the operation starts at the project root:
 alike --- is a plain independent clone and receives its own
 \texttt{git pull --ff-only}.  Use \texttt{launch-release} when you want to
 check out a frozen recorded release state instead of pulling current
-remotes.  If local changes block this safe pull, the CLI prints
-\texttt{You can try cgitsync pull-force command}.
+remotes.  If local changes block this safe pull, the CLI
+suggests \texttt{cgitsync autofix}, and names any repository whose commits only
+exist locally, because \texttt{pull-force} refuses while they do.
 
 Before pulling your own branch, \texttt{pull} fetches \emph{every} branch
 of each remote. That is what lets \texttt{checkout} join a branch somebody
@@ -474,8 +475,14 @@ $ pixi run cgitsync pull-force [spec.cgs|snapshot.gts] [--force-protocol {ssh,ht
 Destructively resynchronises the same tree.  Every repository --- root,
 parent, and leaf alike --- is forced to the selected remote branch,
 parent-first, with \texttt{git fetch}, \texttt{git checkout -B <branch>
-FETCH\_HEAD}, and \texttt{git clean -fd}.  This command can discard local
-uncommitted changes and untracked files; it never force-pushes.
+FETCH\_HEAD}, and \texttt{git clean -fd}.  Uncommitted changes and
+untracked files are not discarded: each repository's is set aside first
+with \texttt{git stash push -u}, a warning names it, and
+\texttt{git stash pop} brings the work back. The command never
+force-pushes, and never leaves a commit on no branch: if any repository
+holds commits that no remote has, it refuses for the whole tree before
+touching anything, names the repositories, and asks you to push or merge
+first.
 \texttt{--force-protocol} behaves exactly as described under \texttt{pull}
 above.
 
@@ -515,8 +522,8 @@ behind it is safe to reconcile automatically. This table can:
   content has no ordering invariant beyond ``these are files''. \\
 \texttt{diverged}, chain-shaped content (\texttt{.memory}'s \texttt{lgr/}
   ledger, and --- once built --- \texttt{omniscience}'s journal) &
-  \texttt{autofix}. \texttt{pull-force} discards whichever side loses the
-  race outright; a plain \texttt{merge} leaves an add/add conflict on the
+  \texttt{autofix}. \texttt{pull-force} refuses while this workspace holds
+  commits no remote has; a plain \texttt{merge} leaves an add/add conflict on the
   colliding ledger entry that nothing but \texttt{autofix} knows how to
   resolve without dropping one side's history. \\
 Anything \texttt{autofix} does not recognise & Refused outright, with the
@@ -759,7 +766,9 @@ $ pixi run cgitsync freeze-release-force <name> <message> [--gts <snapshot.gts>]
 
 Minimalist release workflow from a READY tree. It chains public operations in
 order: \texttt{add -> commit -> pull -> push -> freeze}. The force variant uses
-\texttt{pull-force} instead of \texttt{pull}. The release name becomes the
+\texttt{pull-force} instead of \texttt{pull}; since it commits first, that
+commit is one no remote holds yet, so \texttt{pull-force}'s refusal applies to
+it too, and the command stops before the tag and the push. The release name becomes the
 shared tag and freeze snapshot label; the message is used for the release
 commit.
 
@@ -1603,10 +1612,9 @@ are six values:
 \texttt{diverged(+N/-M)}   & Both, from a common ancestor. \texttt{autofix}
                              (\S\ref{sec:autofix}) diagnoses which of
                              \texttt{merge} or a chain-aware splice is
-                             safe; \texttt{pull-force} discards this
-                             workspace's own \texttt{N} commits
-                             unconditionally and should not be the first
-                             thing tried. \\
+                             safe; \texttt{pull-force} refuses to
+                             run while this workspace's own \texttt{N}
+                             commits exist nowhere else. \\
 \texttt{no-upstream}       & This branch was never pushed, so there is
                              nothing to compare it to. Normal for a branch
                              you just made, and for a \texttt{private/local}
@@ -2184,7 +2192,9 @@ committing to a private mount.
 
 \subsubsection{The two meanings of ``force''}
 
-\texttt{pull-force} is destructive: it discards local changes.
+\texttt{pull-force} is destructive, but it loses nothing: uncommitted and
+untracked work is stashed (\texttt{git stash pop} restores it), and it
+refuses rather than orphan a commit.
 \texttt{--force-protocol} is not: it only switches a remote between
 \texttt{ssh} and \texttt{https}. The two are unrelated despite the shared
 word.
