@@ -11,13 +11,13 @@ and propagating a tag target.
 For normal Multi-repo Sync usage, prefer the CLI lifecycle documented in the
 README and Getting Started guide. The reference test topology is CGSil1
 (\texttt{https://gitlab.com/CGS\_test/CGSil1}):
-\texttt{initialise -> pull -> checkout/add/commit/push -> freeze -> launch\_release}.
+\texttt{initialise -> pull -> checkout/add/commit/push -> freeze\_release -> checkout(tag, ref\_kind=TAG)}.
 
 The lower-level object/API lifecycle remains:
 \texttt{load(.cgs) -> .gts LOADED -> expand(.cgs|.gts) -> .gts PENDING ->
 validate(.cgs|.gts) -> .gts READY -> pull(.cgs|.gts) -> checkout(.gts) ->
 add -> git(tree,"commit",msg) -> git(tree,"push") -> git(tree,"tag",name) ->
-freeze}.
+freeze\_release}.
 
 \section{Programmatic Project Configuration}
 
@@ -38,8 +38,9 @@ document = client.configure(
 reference_tree = document.to_git_tree()
 \end{lstlisting}
 
-The CLI commands \texttt{configure}, \texttt{create-cgs}, and direct
-\texttt{initialise --project/--repo} authoring are adapters over this method.
+\texttt{configure} is the \texttt{.cgs} writer and has no CLI command of its
+own. \texttt{discover --write}, \texttt{init-from-submodules}, and direct
+\texttt{initialise --project/--repo} authoring are the adapters over it.
 
 \section{From Empty Registry to READY via \texttt{.gts}}
 
@@ -101,12 +102,15 @@ practice, the workflow is:
   \item \texttt{validate(...)} is the canonical step-3 name; it accepts both
     \texttt{.cgs} and \texttt{.gts} sources.
   \item \texttt{initialise(...)} bootstraps a tree and must finish in
-    \texttt{READY}; \texttt{clone(...)} is the direct clone entry point for a
-    \texttt{.cgs} source; \texttt{pull(...)} resynchronises an existing tree.
+    \texttt{READY}; \texttt{bootstrap(...)} is the standalone entry point that
+    clones the root too; \texttt{pull(...)} resynchronises an existing tree.
   \item \texttt{git(tree, command, *args)} is the unified step-5 interface for
     \texttt{"commit"}, \texttt{"push"}, and \texttt{"tag"} operations.  Each
     follows leaf-first ordering.
-  \item \texttt{freeze(...)} emits the next persisted \texttt{.gts} state.
+  \item \texttt{freeze\_release(...)} is the one release procedure. It runs
+    \texttt{freeze(...)} and \texttt{freeze\_state(...)}, internal steps that
+    emit the next persisted \texttt{.gts} state and have no CLI command of
+    their own.
 \end{itemize}
 
 \begin{lstlisting}[language=Python]
@@ -134,11 +138,9 @@ client.initialise("../CGSil1.cgs")
 # Equivalent explicit form:
 client.initialise("../CGSil1.cgs", output_path=cgspath)
 
-# Recovery path for partial/stale clone state:
-client.clean_initialise_cgs("../CGSil1.cgs", output_path=cgspath)
-
-# Cleanup only:
-client.purge_cgs("../CGSil1.cgs", output_path=cgspath)
+# initialise refuses, changing nothing, when a destination holds work that
+# exists nowhere else; there is no clean-up call. Commit and push it, or move
+# the directory aside yourself.
 
 # 5. READY methods - unified git interface
 registry = client.get_dependency_registry()
@@ -159,13 +161,16 @@ client.git(registry, "commit", "feat: update CGSil1 CGS#1")
 client.git(registry, "push")
 client.git(registry, "tag", "v1.2.3")
 
-# 6. freeze -> next .gts id
-client.freeze("release-2026.05")
+# 6. release: add, commit, pull, push, tag, then the next .gts id
+client.freeze_release("release-2026.05", "release 2026.05")
+
+# Return to the release later:
+client.checkout("release-2026.05", ref_kind=RefKind.TAG)
 \end{lstlisting}
 
 \paragraph{Every one of these that reaches a remote folds the memory first.}
 When this tree mounts and has adopted a memory (\texttt{.cgitsync/.memory}),
-\texttt{push()}, \texttt{tag()}, and \texttt{freeze()} each call
+\texttt{push()}, \texttt{tag()}, and \texttt{freeze\_release()} each call
 \texttt{memory\_push} on it before doing their own work --- regardless of
 \texttt{private}, since the memory is this project's own record of itself,
 not a configuration repository scoped by that flag. \texttt{client.last\_memory\_fold} holds what the most recent one of these folded: the
@@ -336,11 +341,10 @@ the child's working tree); the two are not interchangeable.
 \texttt{initialise\_cgs}, \texttt{initialise\_cgs\_document},
 \texttt{initialise\_gts} (the nested install from a snapshot, each repository
 at its recorded commit; \texttt{initialise} dispatches to it for a \texttt{.gts}),
-\texttt{clean\_initialise\_cgs}, \texttt{clean\_init}, \texttt{restart}, and
-\texttt{pull} (for \texttt{.cgs} sources) all accept the same four optional
+\texttt{restart}, and
+\texttt{pull} (for \texttt{.cgs} sources) all accept the same three optional
 keyword arguments, mirroring the CLI's \texttt{--commit-gitignore},
-\texttt{--force-gitignore-sync}, \texttt{--git-user-name}, and
-\texttt{--git-user-email} flags:
+\texttt{--git-user-name}, and \texttt{--git-user-email} flags:
 
 \begin{lstlisting}[language=Python]
 from ComplexGitSync import ComplexGitSyncClient, MasterConfig
@@ -350,7 +354,6 @@ client.initialise_cgs(
     "../CGSil1.cgs",
     output_path=cgspath,
     commit_gitignore=True,       # stage/commit/push each changed .gitignore
-    force_gitignore_sync=False,  # pull-force fallback for a blocked repo
     git_user_name="cgitsync-bot",
     git_user_email="bot@example.com",
 )
@@ -364,7 +367,7 @@ assert MasterConfig.resolve_identity(cgshome, client.git_runner) == (
 )
 \end{lstlisting}
 
-All four keyword arguments default to \texttt{False}/\texttt{None}: by
+All three keyword arguments default to \texttt{False}/\texttt{None}: by
 default, every repository with children (root, or any nested repository
 that itself has further nested children) is safely pulled and has its
 \texttt{.gitignore} updated, but nothing is staged, committed, or pushed,
@@ -379,15 +382,15 @@ in, and \texttt{resolve\_identity(repo\_path, git\_runner)} returns the
 \texttt{(user\_name, user\_email)} pair --- or \texttt{(None, None)} to defer
 entirely to local git config. This file is workspace-local configuration,
 not part of the \texttt{.cgs}/\texttt{.gts} project spec, and is preserved
-(not deleted) by \texttt{purge}/\texttt{clean-init}.
+never touched by \texttt{initialise}.
 
 \section{Forcing a Clone Protocol}
 
 \texttt{initialise\_cgs}, \texttt{initialise\_cgs\_document},
-\texttt{clean\_initialise\_cgs}, \texttt{clean\_init}, \texttt{bootstrap},
+\texttt{bootstrap},
 and \texttt{clone\_cgs} additionally accept \texttt{force\_access\_protocol},
 mirroring the CLI's \texttt{--force-protocol} flag on \texttt{initialise},
-\texttt{bootstrap}, and \texttt{clean-init} (\texttt{restart}/\texttt{pull}
+and \texttt{bootstrap} (\texttt{restart}/\texttt{pull}
 do not accept it):
 
 \begin{lstlisting}[language=Python]
@@ -901,7 +904,7 @@ never a refusal.
 Calling \texttt{memory\_push} by hand, as above, is for settling the memory
 on its own. \emph{READY Methods in the Client API}, earlier in this
 chapter, covers the more common case: \texttt{push}, \texttt{tag}, and
-\texttt{freeze} each call it automatically, first, once a memory is mounted
+\texttt{freeze\_release} each call it automatically, first, once a memory is mounted
 and adopted.
 
 \section{Ledger Integrity: \texttt{verify}}

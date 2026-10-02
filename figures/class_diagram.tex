@@ -94,7 +94,7 @@
   run\_logger: CommandRunLogger | None
   \nodepart{three}
   configure() / initialise()\\
-  pull() / clone() / checkout()\\
+  pull() / checkout()\\
   add() / git(tree, cmd)\\
   freeze() / verify()
 };
@@ -123,7 +123,7 @@
   \nodepart{two}
   executable: str = ``git''
   \nodepart{three}
-  clone() / checkout()\\
+  checkout()\\
   commit() / push() / pull()\\
   create\_branch() / create\_tag()\\
   status\_porcelain() / branch\_tracking\_state()
@@ -234,7 +234,7 @@ assembly, not part of any tier or ring.}
   Synchronized Git operations (\texttt{checkout},
   \texttt{add}, \texttt{git("commit")}, \texttt{git("push")},
   \texttt{git("tag")},
-  \texttt{freeze}) are gated on \texttt{READY}.}
+  \texttt{freeze-release}) are gated on \texttt{READY}.}
 \label{fig:gittree-lifecycle}
 
 \begin{tikzpicture}[

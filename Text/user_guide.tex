@@ -85,7 +85,7 @@ This guide follows the simplified canonical lifecycle:
   \item \texttt{pull(.cgs|.gts)} $\rightarrow$ resync an existing tree
   \item \texttt{checkout(.gts)} / \texttt{add} / \texttt{commit} / \texttt{push} / \texttt{tag}
         $\rightarrow$ git operations on the tree
-  \item \texttt{freeze} $\rightarrow$ emit the next \texttt{.gts} id and update \texttt{<Project\_name>.lgr}
+  \item \texttt{freeze-release} $\rightarrow$ commit, tag, emit the next \texttt{.gts} id and update \texttt{<Project\_name>.lgr}
 \end{enumerate}
 
 The project-local \texttt{.lgr} register and sync ledger are both active (T24,
@@ -103,17 +103,17 @@ from the parser the command actually runs, so it does not drift from it.
 
 The CLI exposes three command groups once a \texttt{GitTree} is \texttt{READY}.
 The minimalist level is \texttt{initialise}, \texttt{bootstrap},
-\texttt{clean-init}, \texttt{freeze-release}, \texttt{freeze-release-force},
-\texttt{status}, \texttt{view-tree}, and \texttt{launch-release}.  The expert level exposes
-the individual operations: \texttt{branch}, \texttt{checkout}, \texttt{purge},
-\texttt{validate}, \texttt{clone}, \texttt{pull}, \texttt{pull-force},
+\texttt{freeze-release}, \texttt{status}, and \texttt{view-tree}.  The expert
+level exposes the individual operations: \texttt{branch}, \texttt{checkout},
+\texttt{validate}, \texttt{pull}, \texttt{pull-force}, \texttt{fetch},
 \texttt{autofix},
-\texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag}, \texttt{freeze},
+\texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag},
 \texttt{import-submodules}, \texttt{init-from-submodules}, and
-\texttt{verify}, plus \texttt{env} and \texttt{env check}.  The configuration level, \texttt{discover},
-\texttt{configure} and
-\texttt{create-cgs}, authors a \texttt{.cgs} specification without requiring
-existing state.  Redundant
+\texttt{verify}, plus \texttt{env} and \texttt{env check}.  The configuration
+level, \texttt{discover} and \texttt{repo}, authors a \texttt{.cgs}
+specification without requiring existing state.  There is no command that
+deletes a workspace for you: to start a directory over, move it aside
+yourself.  Redundant
 inspection aliases such as \texttt{print}, \texttt{view-operation}, and
 \texttt{validate-topology} are not part of the public CLI surface.
 
@@ -121,8 +121,8 @@ inspection aliases such as \texttt{print}, \texttt{view-operation}, and
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync initialise <spec.cgs> [--output-path DIR] [--commit-gitignore]
-    [--force-gitignore-sync] [--git-user-name NAME] [--git-user-email EMAIL]
-    [--force-protocol {ssh,https}] [--force-reclone]
+    [--git-user-name NAME] [--git-user-email EMAIL]
+    [--force-protocol {ssh,https}]
 $ pixi run cgitsync initialise <snapshot.gts>
 $ pixi run cgitsync initialise --project NAME --repo PROVIDER:OWNER/REPO [--repo ...] [--output-path DIR]
 \end{lstlisting}
@@ -131,8 +131,7 @@ The \emph{nested install}. \texttt{initialise} builds the dependencies of a
 project whose root is already checked out at \texttt{CGSHOME}, with the
 running \cgscli{} inside it. It refuses --- before touching the disk, naming
 \texttt{bootstrap} --- when \texttt{CGSHOME} is not a Git checkout (a detached
-\texttt{HEAD} is fine) or the running installation is not inside it; a failed
-\texttt{initialise} suggests \texttt{clean-init} only where that could help.
+\texttt{HEAD} is fine) or the running installation is not inside it.
 A \texttt{.gts} source checks each dependency out at the commit the snapshot
 recorded, and is refused, naming every repository, when a remote no longer
 holds one. A \texttt{private}, \texttt{writable} entry clones the branch
@@ -144,16 +143,15 @@ remote's own active branch. Dispatches on file extension:
     The optional \texttt{--output-path} controls
     \texttt{CGSPATH}; \texttt{CGSHOME} is derived as
     \texttt{CGSPATH/<project-name>}. When omitted, \texttt{CGSPATH} defaults to
-    \texttt{../..}.  On success, ends in \texttt{READY}.  If clone setup fails
-    because stale generated state is still present, the CLI prints
-    \texttt{Try clean-init method}.
+    \texttt{../..}.  On success, ends in \texttt{READY}.
   \item \texttt{.gts} source (restore mode): clones the same dependencies and
     puts each on the commit the snapshot recorded, so the rebuilt tree carries
     the snapshot's State name. On success, ends in \texttt{READY}.
   \item Direct CLI authoring: requires \texttt{--project} and at least one
     repeatable \texttt{--repo}. It is mutually exclusive with a source file.
     The CLI collects values only and calls
-    \texttt{ComplexGitSyncClient.configure()}; that reusable Python API
+    \texttt{ComplexGitSyncClient.configure()} (the \texttt{.cgs} writer, which
+    has no command of its own); that reusable Python API
     delegates parsing, normalization, and validation to \texttt{cgs\_format.py}
     and produces the same canonical \texttt{CgsDocument} as an equivalent
     \texttt{.cgs} file.
@@ -171,9 +169,9 @@ Before deleting anything, \texttt{initialise} inspects each destination and
 stops the whole run when one of them holds work that exists nowhere else:
 uncommitted changes, commits that have not been pushed to the branch's
 upstream, or a branch with no upstream at all. It names every repository that
-blocked it, in one message, and deletes none of them. The two ways forward
-are to commit and push that work, or to pass \texttt{--force-reclone} and
-delete it deliberately.
+blocked it, in one message, and deletes none of them. No flag overrides this.
+The message says what to do: commit and push, or move those directories aside
+yourself.
 
 A destination that is not a Git checkout at all --- what a clone interrupted
 halfway leaves behind --- is still cleared without any flag. That is the case
@@ -188,8 +186,8 @@ this a parent's \texttt{git status}/\texttt{git add} would otherwise see a
 child's working tree as ordinary untracked content. This is logged as the
 \texttt{GT-GITIGNORE} phase, after \texttt{GT-CLONE}. If the safe pull for
 one of these repositories fails, \texttt{initialise} raises immediately and
-nothing is written; pass \texttt{--force-gitignore-sync} to instead fall
-back to a pull-force recovery for that one repository (never a force-push).
+nothing is written; run \texttt{pull-force} on that repository, then
+\texttt{initialise} again.
 By default nothing is staged, committed, or pushed by this step --- it only
 writes the file and prints what changed. Pass \texttt{--commit-gitignore}
 to explicitly approve staging (\texttt{.gitignore} alone), committing (with
@@ -235,9 +233,10 @@ The \emph{standalone install}: clones the full repository tree from a
 isolated \texttt{CGSHOME}, for running \cgscli{} from its own standalone
 clone rather than nested inside the project tree it manages --- one
 \cgspkg{} clone reused across many projects. It delegates to the same
-\texttt{ComplexGitSyncClient.clone\_cgs} pipeline as \texttt{clone} below,
-and so shares its branch-fallback and nested-discovery behaviour, but
-differs from both \texttt{clone} and \texttt{initialise} in two ways:
+\texttt{ComplexGitSyncClient.clone\_cgs} pipeline, which picks each
+repository's branch by the fallback chain and discovers nested
+\texttt{.cgs} files after the parents are cloned, but differs from
+\texttt{initialise} in two ways:
 
 \begin{itemize}
   \item \texttt{project\_name} is a required positional argument, not
@@ -339,73 +338,11 @@ directories are still left to look into, the report says so in a warning
 rather than presenting a partial answer as a complete one. Without the
 flag, the walk cannot stop early --- there is nothing to stop it at.
 
-\subsection{\texttt{configure}}
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync configure [--output FILE]
-\end{lstlisting}
-
-Interactively prompts for a project name, default branch, and one or more
-repositories (provider, owner, name, and per-repository overrides), then
-writes the resulting \texttt{.cgs} file through the same offline
-\texttt{ComplexGitSyncClient.configure()} facade used by
-\texttt{initialise --project/--repo} and \texttt{create-cgs}. The provider
-prompt accepts \texttt{github}, \texttt{gitlab}, \texttt{codeberg}, or
-\texttt{custom}; \texttt{custom} additionally prompts for the provider URL.
-When \texttt{--output} is omitted, the CLI prompts for a destination path,
-defaulting to \texttt{<project-name>.cgs}.
-
-\subsection{\texttt{create-cgs}}
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync create-cgs --project CGSil1 \
-    --repo github:flipoyo/ComplexGitSync \
-    --repo codeberg:GX4G/GX4G \
-    --output CGSil1.cgs
-\end{lstlisting}
-
-Builds the canonical \texttt{CgsDocument} through the offline format pipeline
-and serializes concise \texttt{.cgs} TOML. It performs no Git or network work.
-
-\subsection{\texttt{clean-init}}
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync clean-init <spec.cgs> [--output-path DIR] [--commit-gitignore]
-    [--force-gitignore-sync] [--git-user-name NAME] [--git-user-email EMAIL]
-    [--force-protocol {ssh,https}]
-\end{lstlisting}
-
-Recovery-oriented initialisation for a \texttt{.cgs} source. It follows the
-same high-level pipeline as \texttt{initialise(.cgs)} (including the
-\texttt{.gitignore} lifecycle sync and \texttt{--force-protocol} behaviour
-described there), but inserts a cleanup phase before cloning:
-
-\begin{center}
-\texttt{load->expand->validate->purge->clone->gitignore}
-\end{center}
-
-Use it when an earlier initialisation attempt left partial child checkouts.
-\texttt{CGSHOME/.cgitsync/master.toml} (the persisted Git identity override,
-if any) is preserved by the purge phase --- it is workspace-local
-configuration, not generated clone state.
-
-\subsection{\texttt{purge}}
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync purge <spec.cgs> [--output-path DIR]
-\end{lstlisting}
-
-Removes generated clone state from the resolved \texttt{CGSHOME} without
-cloning. It deletes child repository directories declared directly under the
-project root and project-local \texttt{*.lgr} files. Nested directories that
-are not immediate root children, and \texttt{.cgitsync/master.toml} (see
-\texttt{clean-init} above), are left untouched by this command.
-
 \subsection{\texttt{pull}}
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync pull [spec.cgs|snapshot.gts] [--commit-gitignore]
-    [--force-gitignore-sync] [--git-user-name NAME] [--git-user-email EMAIL]
+    [--git-user-name NAME] [--git-user-email EMAIL]
     [--force-protocol {ssh,https}]
 \end{lstlisting}
 
@@ -415,7 +352,7 @@ sources load the saved registry as the starting point and then run the same
 pull workflow.  In both cases the operation starts at the project root:
 \texttt{root -> parent -> leaf}.  Every repository --- root, parent, and leaf
 alike --- is a plain independent clone and receives its own
-\texttt{git pull --ff-only}.  Use \texttt{launch-release} when you want to
+\texttt{git pull --ff-only}.  Use \texttt{checkout <tag> --ref-kind tag} when you want to
 check out a frozen recorded release state instead of pulling current
 remotes.  If local changes block this safe pull, the CLI
 suggests \texttt{cgitsync autofix}, and names any repository whose commits only
@@ -425,11 +362,12 @@ Before pulling your own branch, \texttt{pull} fetches \emph{every} branch
 of each remote. That is what lets \texttt{checkout} join a branch somebody
 else pushed rather than starting a new one of the same name (see
 \texttt{checkout} below). It also repairs a workspace whose clone left a
-single-branch fetch refspec behind, described under \texttt{clone}.
+single-branch fetch refspec behind: a clone downloads one branch, and a
+workspace cloned by an older build may still carry that narrow refspec.
 
 For a \texttt{.cgs} source, \texttt{pull} also runs the same
 \texttt{.gitignore} lifecycle sync described under \texttt{initialise} ---
-including \texttt{--commit-gitignore}, \texttt{--force-gitignore-sync}, and
+including \texttt{--commit-gitignore} and
 the \texttt{--git-user-name}/\texttt{--git-user-email} identity override ---
 once the tree-wide pull completes. A \texttt{.gts} source runs no discovery,
 so there is nothing new for the sync to find. \texttt{pull-force} does not
@@ -540,34 +478,6 @@ result, and complete a real two-parent merge commit. It never
 force-pushes and never rewrites history; a repair it cannot verify as
 correct is refused, leaving the conflict exactly as \texttt{git} left it,
 rather than writing something that looks resolved and is not.
-
-\subsection{\texttt{clone}}
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync clone <spec.cgs> [--target-dir DIR] [--output-path DIR]
-\end{lstlisting}
-
-Clones the full repository tree declared by the \texttt{.cgs} file. This CLI
-command delegates to \texttt{ComplexGitSyncClient.clone}. When
-\texttt{--target-dir} is omitted, the project root is derived from the
-specification.  \texttt{--output-path} provides the parent directory used to
-derive the project root.
-
-For each repository, \cgscli{} tries the repo target branch first and falls
-back to the repo fallback branch when the preferred branch does not exist on
-the remote. The section ``Branches in a \texttt{.cgs}'' sets out which branch
-each repository targets and why. Nested \texttt{.cgs} files are discovered after parent repositories
-are cloned, so explicit and automatic nested trees are materialised during the
-same command.
-
-\paragraph{What the clone leaves behind.} A clone still downloads one
-branch --- that is what keeps it quick. What it no longer does is
-\emph{remember} that restriction: it leaves no single-branch fetch refspec
-in \texttt{.git/config}, so a later \texttt{fetch} sees the whole remote
-rather than the one branch cloned. A workspace cloned before this still
-carries the narrow refspec; the first \texttt{pull} or \texttt{push} widens
-it, with no re-clone needed. \texttt{status} deliberately does not: it is a
-read-only command and never rewrites \texttt{.git/config}.
 
 \subsection{\texttt{checkout}}
 
@@ -760,19 +670,19 @@ perform it.
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync freeze-release <name> <message> [--gts <snapshot.gts>] [--dry-run]
     [--force-protocol {ssh,https}]
-$ pixi run cgitsync freeze-release-force <name> <message> [--gts <snapshot.gts>] [--dry-run]
-    [--force-protocol {ssh,https}]
 \end{lstlisting}
 
 Minimalist release workflow from a READY tree. It chains public operations in
-order: \texttt{add -> commit -> pull -> push -> freeze}. The force variant uses
-\texttt{pull-force} instead of \texttt{pull}; since it commits first, that
-commit is one no remote holds yet, so \texttt{pull-force}'s refusal applies to
-it too, and the command stops before the tag and the push. The release name becomes the
-shared tag and freeze snapshot label; the message is used for the release
+order: \texttt{add -> commit -> pull -> push}, then it creates and pushes the
+shared tag and writes the \texttt{.gts} snapshot. It is the one freeze
+procedure: there is no bare \texttt{freeze} command and no force variant. To
+release from a branch that has fallen behind, run \texttt{pull-force} first
+(it refuses while a commit exists that no remote holds, so commit and push
+before it), then \texttt{freeze-release}. The release name becomes the
+shared tag and snapshot label; the message is used for the release
 commit.
 
-The \texttt{pull}/\texttt{pull-force} step is skipped (not attempted) when
+The \texttt{pull} step is skipped (not attempted) when
 the current branch has no upstream configured yet — e.g. a branch just
 created and checked out this same session, never pushed before. There is
 nothing to pull in that case; \texttt{push} (already upstream-aware, adding
@@ -780,48 +690,42 @@ nothing to pull in that case; \texttt{push} (already upstream-aware, adding
 publishes the branch on its own. On any branch that already has an
 upstream, the workflow is unchanged.
 
-\texttt{--force-protocol} is forwarded to the \texttt{pull}/\texttt{pull-force}
+\texttt{--force-protocol} is forwarded to the \texttt{pull}
 and \texttt{push} steps above, behaving exactly as described under
 \texttt{pull}; the remote rewrite it makes persists, so the final
-\texttt{freeze} step's own tag push picks it up too without needing the
+release's own tag push picks it up too without needing the
 flag itself.
 
-Unlike a bare \texttt{freeze}, this records a \texttt{release} row on the
+The release also records a \texttt{release} row on the
 ledger entry it writes: the installed package's own SemVer and build
 counter, plus \texttt{<name>} as the tag actually applied. Name the release
 \texttt{v<semver>} (for example \texttt{v3.1.0}) to keep the tag and the
 recorded SemVer in agreement.
 
-\subsection{\texttt{freeze}}
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync freeze <name> [--gts <snapshot.gts>] [--dry-run]
-\end{lstlisting}
-
-Performs a release freeze across all repos, leaf-first: stage/commit,
-create+push the shared release tag, refresh SHA/state, and write a
-\texttt{.gts} snapshot. Loads the READY registry from \texttt{--gts}.
-Requires \texttt{READY} and leaves the tree \texttt{READY}. Freeze preflight
+The freeze step stages and commits, creates and pushes the shared release
+tag, refreshes SHA/state, and writes a \texttt{.gts} snapshot, leaf-first.
+Its preflight
 checks remote availability, branch alignment, detached HEADs, unresolved
 merges, and tag absence. Dirty worktrees and stale recorded \texttt{commit\_sha} values are
-reported as warnings because freeze will stage, commit, and snapshot them.
-Freeze snapshots also include a deterministic \texttt{freeze\_manifest} section
+reported as warnings because the freeze will stage, commit, and snapshot them.
+The snapshot also includes a deterministic \texttt{freeze\_manifest} section
 that records freeze invariants (immutable snapshot, validated workspace,
 synchronized tag, \texttt{release-name}, ledger checkpoint) and declares
-\texttt{launch\_state} as the canonical restore operation. Their immutable
+\texttt{launch\_state} as the canonical restore operation. Its immutable
 snapshot filename includes the release, for example
 \texttt{gts-000001-release-2026.05.gts}, while the ledger id remains
-\texttt{gts-000001}.
+\texttt{gts-000001}. To return to a release later, run
+\texttt{checkout <name> --ref-kind tag}.
 With \texttt{--dry-run}, \cgscli{} prints the planned add/commit/tag/push graph
 for the loaded workspace without mutating it.
 
 \paragraph{Folds this project's own memory first, same as \texttt{push}.}
-\texttt{freeze} (and, through it, \texttt{tag}, which folds the same way on
+\texttt{freeze-release} (and \texttt{tag}, which folds the same way on
 its own combined commit-tag-push) crosses the \texttt{.cgitsync}
 $\rightarrow$ \texttt{.cgitsync/.memory} frontier before doing anything
-else, under the same conditions \texttt{push} does. \texttt{freeze-release}
-folds twice in one run --- once via its own \texttt{push} step, once via
-its own \texttt{freeze} step --- which is harmless: a fold with nothing new
+else, under the same conditions \texttt{push} does. A release
+folds twice in one run --- once via its \texttt{push} step, once via
+the freeze step --- which is harmless: a fold with nothing new
 pending commits nothing and only re-sends the branch.
 
 \subsection{\texttt{import-submodules}}
@@ -1142,7 +1046,7 @@ else, so it prints the command that creates the repository and waits.
 Nothing is ever pushed automatically --- a machine with no network keeps a
 complete, verifiable memory and sends it later.
 
-\texttt{clone} refuses to write over a memory that is already here, because
+Cloning a memory refuses to write over a memory that is already here, because
 a memory nobody has pushed is the only copy of itself.
 
 \paragraph{Starting a memory's history over.}\label{sec:memory-reboot} A
@@ -1398,21 +1302,6 @@ manifests = ["Cargo.lock"]
 The root must name a configured repository (or \texttt{root}). Manifest
 contents remain in Git; the Environment record stores only tree-relative
 paths and digests.
-
-\subsection{\texttt{launch-release}}
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync launch-release <name> [--gts <snapshot.gts>]
-\end{lstlisting}
-
-Checks out the frozen release tag \texttt{<name>} across the loaded READY tree,
-parent-first, and writes a fresh \texttt{.gts} snapshot.  This is the release
-oriented CLI path for returning a workspace to a frozen version; direct tag
-creation remains available from the Python client API as \texttt{tag()}.
-
-The integration suite validates local no-network lifecycle coverage through
-the CLI path, including initialisation and the READY git command cycle
-\texttt{add -> commit -> push -> freeze -> launch-release}.
 
 \subsection{\texttt{view-tree}}
 
@@ -2073,10 +1962,11 @@ documentation written for an unfinished feature is live on the default
 branch describing code that is not there.
 
 \paragraph{\texttt{--private} everywhere.} Every command that touches Git
-takes it: \texttt{clone} aside, that is \texttt{pull},
-\texttt{pull-force}, \texttt{checkout}, \texttt{branch},
+takes it: twelve commands, \texttt{pull},
+\texttt{pull-force}, \texttt{fetch}, \texttt{checkout}, \texttt{branch},
 \texttt{close-branch}, \texttt{add}, \texttt{rm}, \texttt{commit},
-\texttt{push}, \texttt{merge}, \texttt{tag} and \texttt{freeze}. It
+\texttt{merge}, \texttt{push} and \texttt{tag}. \texttt{freeze-release}
+does not take it: it is a whole-tree release. It
 narrows the command to the writable
 configuration repositories alone, so they can be worked on without
 reaching for plain \texttt{git}. Read-only configuration repositories are
@@ -2149,7 +2039,7 @@ repository can never be more open than the one that contains it.
 the same, \texttt{--private}                   & writable config repos  & shared, but on your own branch \\
 \texttt{branch}, \texttt{checkout}              & this project's own     & a branch must not spread \\
 \texttt{tag}, \texttt{freeze-release}           & everything writable    & they create \emph{and push} a tag \\
-\texttt{clone}, \texttt{pull}, \texttt{status}  & everything             & reading a shared repo is the point \\
+\texttt{pull}, \texttt{status}                  & everything             & reading a shared repo is the point \\
 \end{tabular}
 \end{center}
 
@@ -2194,7 +2084,8 @@ committing to a private mount.
 
 \texttt{pull-force} is destructive, but it loses nothing: uncommitted and
 untracked work is stashed (\texttt{git stash pop} restores it), and it
-refuses rather than orphan a commit.
+refuses, for the whole tree, while a commit exists that no remote holds, so
+it never drops a commit.
 \texttt{--force-protocol} is not: it only switches a remote between
 \texttt{ssh} and \texttt{https}. The two are unrelated despite the shared
 word.
@@ -2377,8 +2268,8 @@ instead.
     blocks without a \texttt{repository} shorthand, include
     \texttt{project\_owner\_name} and \texttt{project\_name}.
   \item[\texttt{Clone destination already exists and is not empty}]
-    Re-run \texttt{clone} with \texttt{--target-dir} to force a clean location,
-    or let \cgscli{} choose a suffixed default directory.
+    Move the existing directory aside yourself, or point \texttt{bootstrap}
+    at a fresh \texttt{--cgs-path}.
   \item[\texttt{No cloneable branch found for <repo>}]
     Confirm that the remote exposes either the repo's
     \texttt{default\_branch} or its \texttt{fallback\_branch}.

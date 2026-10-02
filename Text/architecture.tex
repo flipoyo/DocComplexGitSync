@@ -61,7 +61,7 @@ Figure~\ref{fig:positioning-matrix} summarizes this positioning.
 \input{figures/positioning_matrix}
 \end{figure}
 
-\texttt{freeze} materializes deterministic checkpoints as
+\texttt{freeze-release} materializes deterministic checkpoints as
 \texttt{.gts} snapshots (schema + SHA-256 hash), while \texttt{.lgr}
 assigns stable local ids and stores append-only ledger events for replayable
 local evolution.
@@ -88,7 +88,7 @@ Figure~\ref{fig:gittree-nodes} shows a representative project tree.
 \caption{\texttt{WorkingGitTree} is a parent--leaf graph of
   \texttt{WorkingRepo} nodes.
   Root and parent nodes own nested \texttt{.cgs} files discovered during
-  \texttt{clone} or \texttt{discover\_nested\_configs}.}
+  \texttt{initialise}, \texttt{bootstrap} or \texttt{discover\_nested\_configs}.}
 \label{fig:gittree-nodes}
 \input{figures/gittree_nodes}
 \end{figure}
@@ -156,8 +156,6 @@ internal steps of those workflows.
 \textbf{Action} & \textbf{Minimum state} & \textbf{Produces} \\
 \hline
 \texttt{initialise(.cgs)}              & none        & clone tree + \textbf{READY} \\
-\texttt{clean-init(.cgs)}              & none        & purge generated state + clone tree + \textbf{READY} \\
-\texttt{purge(.cgs)}                   & none        & removed generated root-level clone state \\
 \texttt{initialise(.gts)}              & none        & loaded/restored \textbf{READY} \\
 \texttt{pull(.cgs|.gts)}               & READY       & resynchronised \textbf{READY} \\
 \texttt{checkout(.gts)}                & READY       & \textbf{READY} \\
@@ -165,7 +163,7 @@ internal steps of those workflows.
 \texttt{commit <msg>}                  & \textbf{READY only} & READY \\
 \texttt{push}                          & \textbf{READY only} & READY + updated hash \\
 \texttt{tag <name>}                    & \textbf{READY only} & READY + updated tag \\
-\texttt{freeze}                        & \textbf{READY only} & next \texttt{.gts} id \\
+\texttt{freeze-release}                & \textbf{READY only} & next \texttt{.gts} id \\
 \hline
 \end{tabular}
 \end{center}
@@ -190,8 +188,8 @@ callers can use the same method directly. The facade delegates to
 \texttt{CgsDocument}; neither it nor the CLI owns repository grammar or
 normalization. Loading an equivalent \texttt{.cgs} file and using either
 definition path produce semantically identical canonical documents.
-\texttt{create-cgs} runs the same offline pipeline and serializes the result
-without entering Git runtime.
+\texttt{discover --write} runs the same offline pipeline and serializes the
+result without entering Git runtime.
 
 The boundary is also responsible for the reverse projection.
 \texttt{CgsDocument.to\_git\_tree()} creates the reference model and
@@ -237,7 +235,7 @@ known-host entry and requires an explicit \texttt{gitprovider\_url}; no
 fallback host is guessed.
 
 Before any mutating workflow step (\texttt{commit}, \texttt{push},
-\texttt{tag}, or \texttt{freeze}), the action layer now runs a workspace
+\texttt{tag}, or \texttt{freeze-release}), the action layer now runs a workspace
 preflight validator. It checks dirty worktrees, detached HEADs, missing
 remotes, branch divergence, unresolved merges, and stale recorded
 \texttt{commit\_sha} values. Diagnostics are severity-based:
@@ -321,7 +319,7 @@ on the live tree state.
 \caption{Client state-gating: the Client reads \texttt{TreeLifecycleState}
   before delegating to an action.  READY-gated actions (\texttt{checkout},
   \texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag},
-  \texttt{freeze}) are blocked unless the tree is \texttt{READY}.}
+  \texttt{freeze-release}) are blocked unless the tree is \texttt{READY}.}
 \label{fig:client-gating}
 \input{figures/client_gating}
 \end{figure}

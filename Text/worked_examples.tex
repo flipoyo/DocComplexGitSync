@@ -81,11 +81,11 @@ $ pixi run cgitsync add
 $ pixi run cgitsync commit "my commit message"
 $ pixi run cgitsync push
 
-# 6. Minimalist release: stage, commit, pull, push, freeze in one call.
+# 6. Minimalist release: stage, commit, pull, push, tag and snapshot in one call.
 $ pixi run cgitsync freeze-release v1.1.0 "release v1.1.0"
 
 # 7. Return to a frozen release at any later point.
-$ pixi run cgitsync launch-release v1.1.0
+$ pixi run cgitsync checkout v1.1.0 --ref-kind tag
 \end{lstlisting}
 
 The only \texttt{.cgs} idea this level relies on is the

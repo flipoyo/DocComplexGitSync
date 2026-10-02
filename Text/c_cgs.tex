@@ -474,7 +474,7 @@ With that in place, \texttt{cgitsync branch feature-x} creates
 tree's.
 
 Two limits are worth knowing. Pinning governs \emph{branch} propagation
-only: restoring a frozen release with \texttt{launch-release} puts every
+only: restoring a frozen release with \texttt{checkout <tag> --ref-kind tag} puts every
 repository back on the commit the snapshot records, private or not, so a
 release stays reproducible. And a repository declared in a \emph{nested}
 \.cgs is private by that file, which lives in the repository that owns it ---
@@ -627,23 +627,16 @@ $ pixi run cgitsync discover ~/work/myproject --write draft.cgs
 $ pixi run cgitsync validate draft.cgs
 \end{lstlisting}
 
-\subsubsection{configure: Interactive Prompt}
+\subsubsection{initialise: Direct CLI Authoring}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync configure --output myproject.cgs
-\end{lstlisting}
-
-\subsubsection{create-cgs: Direct CLI Authoring}
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync create-cgs \
+$ pixi run cgitsync initialise \
     --project myproject \
     --repo github:owner/repo1 \
-    --repo gitlab:group/repo2 \
-    --output myproject.cgs
+    --repo gitlab:group/repo2
 \end{lstlisting}
 
-All three use the same offline pipeline as direct TOML parsing.
+Both use the same offline pipeline as direct TOML parsing.
 
 % =======================================================================
 % VALIDATION AND COMMON ERRORS
