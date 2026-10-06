@@ -98,7 +98,9 @@ DAG event in the \texttt{[[ledger]]} section of the \texttt{.lgr} file.
 Every command answers \texttt{--help} with what it does, its options and
 examples. A group such as \texttt{cgitsync memory --help} lists each
 subcommand with its options, and \texttt{cgitsync help --all} prints every
-command and option on one page, ready for \texttt{grep}. The help is generated
+command and option on one page, ready for \texttt{grep}. \texttt{help} is a
+command of its own: \texttt{cgitsync help memory explore} is the same as
+\texttt{cgitsync memory explore --help}. The help is generated
 from the parser the command actually runs, so it does not drift from it.
 
 Every command follows one grammar. A subcommand is a plain word
@@ -1458,6 +1460,28 @@ The object carries \texttt{schema\_version}. The promise attached to it is
 \textbf{additive only}: new fields may appear, existing fields do not change
 meaning and do not vanish.
 
+\paragraph{What is stable, and what is not.} This is the contract the
+version number is measured against: a change that breaks a line marked
+stable is a new major version.
+
+\begin{center}
+\begin{tabular}{lp{9.0cm}}
+\textbf{Surface} & \textbf{Promise} \\
+\hline
+Command names and documented flags & Stable within a major version. \\
+Exit codes & Stable within a major version. \\
+\texttt{--json} output & \textbf{Additive only}, as above. \\
+\texttt{.cgs} and \texttt{.gts} grammar & Versioned in the file, and the
+  version is read on load. \\
+Python modules under \texttt{src/ComplexGitSync/} & \textbf{Not a public
+  interface.} \texttt{ComplexGitSyncClient} is the CLI's own
+  implementation; import it and a refactor may break you, with no
+  deprecation owed. The CLI is the product. \\
+\texttt{verify} & \textbf{Experimental.} The ledger it reads is still
+  changing, so its output and findings may change. \\
+\end{tabular}
+\end{center}
+
 \subsection{Where a command works: the default workspace}
 
 Every command that is not given an explicit path finds its workspace from
@@ -2124,6 +2148,11 @@ behind its upstream, or sitting on its own branch, never blocks a
 of the commit. Under \texttt{--private} it is in scope, and its branch is
 then checked against the branch it is \emph{private} to, not against the
 one the project is on.
+
+\textbf{Which commands accept \texttt{--private}.} Exactly these:
+\texttt{pull}, \texttt{fetch}, \texttt{checkout}, \texttt{branch},
+\texttt{add}, \texttt{rm}, \texttt{commit}, \texttt{merge}, \texttt{push}
+and \texttt{tag} --- and nothing else.
 
 \texttt{--private} is exclusive, not additive: it selects \emph{only} the
 writable configuration repositories, so a shared repository gets its own

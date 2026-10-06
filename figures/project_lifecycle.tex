@@ -1,0 +1,55 @@
+% project_lifecycle.tex — TikZ figure: the lifecycle of a project under ComplexGitSync
+% Included by docs/Text/getting_started.tex (Figure project-lifecycle).
+% Mirrors the "The project lifecycle" mermaid diagram of the root README.md.
+
+\begin{tikzpicture}[
+  phase/.style={
+    rectangle, rounded corners=5pt, draw, thick, align=center,
+    font=\sffamily\small, minimum height=1.2cm, text width=2.7cm,
+  },
+  repo/.style={
+    rectangle, rounded corners=2pt, draw, align=center,
+    font=\ttfamily\scriptsize, minimum width=2.2cm, minimum height=0.7cm,
+  },
+  flow/.style={-{Stealth[length=7pt]}, very thick},
+  link/.style={-{Stealth[length=5pt]}, gray},
+  lbl/.style={font=\sffamily\scriptsize, align=center},
+  node distance=0.5cm and 0.4cm,
+]
+
+% 1. Describe
+\node[phase, fill=blue!10, draw=blue!50] (src) at (0,0)
+  {\textbf{1. Describe}\\ \texttt{.cgs} specification\\ or \texttt{.gts} State};
+
+% 3. Operating Space: the local file system
+\node[repo, fill=white] (root) at (6.6,1.2) {my-project/\\ root repo};
+\node[repo, fill=white] (doc)  at (5.3,0) {docs/\\ repo};
+\node[repo, fill=white] (data) at (7.9,0) {data/\\ repo};
+\node[repo, fill=white] (tuto) at (5.3,-1.2) {docs/tutorials/\\ nested repo};
+\node[repo, fill=orange!15] (agent) at (7.9,-1.2) {.agent/rules/\\ private repo};
+\draw[link] (root) -- (doc);
+\draw[link] (root) -- (data);
+\draw[link] (root.south) -- (agent.north);
+\draw[link] (doc) -- (tuto);
+
+\begin{scope}[on background layer]
+  \node[draw=green!50!black, fill=green!6, thick, rounded corners=6pt,
+        inner sep=8pt, fit=(root)(doc)(data)(agent)(tuto),
+        label={[font=\sffamily\small\bfseries]above:3. Operating Space --- local file system (CGSHOME)}]
+        (os) {};
+\end{scope}
+
+% 2. Materialise
+\draw[flow] (src.east) -- node[lbl, above]{\textbf{2. Materialise}\\ \texttt{bootstrap}\\ (nested: \texttt{initialise})} (src.east -| os.west);
+
+% 4. Work and 5. Persist, on one row below
+\node[phase, fill=yellow!12, draw=yellow!50!black, below=1.0cm of os] (work)
+  {\textbf{4. Work}\\ edit, build, compute, analyse --- any tool};
+\node[phase, fill=purple!10, draw=purple!50] (state) at (src |- work)
+  {\textbf{5. Persist}\\ new State: \texttt{.gts}\\ + memory ledger};
+
+\draw[flow] (os.south) -- (work.north);
+\draw[flow] (work.west) -- node[lbl, above]{\texttt{add} $\cdot$ \texttt{commit} $\cdot$ \texttt{push} $\cdot$ \texttt{tag}} (state.east);
+\draw[flow, dashed] (state.north) -- node[lbl, right]{restore, here or\\ on another machine} (src.south);
+
+\end{tikzpicture}

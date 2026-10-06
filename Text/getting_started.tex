@@ -1,37 +1,167 @@
-% getting_started.tex -- CLI-first guide from installation to first sync
+% getting_started.tex -- from installation to a first persisted State.
+% Follows the root README.md section by section, with the detail the README
+% leaves out; the command reference itself is Chapter~\ref{chap:user-guide}.
 
 \chapter{Getting Started}
+\label{chap:getting-started}
 
-This chapter guides a new user through the Multi-repo Sync CLI. The documented
-entry point is \cgscli{}.
-
-The primary lifecycle is:
-
-\begin{enumerate}
-  \item \texttt{initialise(.cgs)} $\rightarrow$ clone all repositories
-        $\rightarrow$ \texttt{READY}
-  \item \texttt{initialise(.gts)} $\rightarrow$ load or restore a saved
-        snapshot $\rightarrow$ \texttt{READY}
-  \item \texttt{pull(.cgs|.gts)} $\rightarrow$ resynchronise an existing tree
-  \item \texttt{checkout} / \texttt{add} / \texttt{commit} / \texttt{push} /
-        \texttt{tag} $\rightarrow$ tree-wide Git operations
-  \item \texttt{freeze-release} $\rightarrow$ commit, tag, write the next
-        \texttt{.gts} snapshot and update the project-local \texttt{.lgr}
-\end{enumerate}
+This chapter takes a new user from installation to a first persisted State of
+a project. It follows the structure of the project's \texttt{README.md}, with
+the detail needed to act on each part. Every command and option is described
+in full in the User Guide.
 
 % -----------------------------------------------------------------------
-\section{Prerequisites}
+\section{What \cgspkg{} is for}
 
-\begin{itemize}
-  \item Python~3.11 or later.
-  \item Git~2.30 or later available on \texttt{PATH}.
-  \item Working Git authentication for every remote used by the workspace.
-\end{itemize}
+Scientific projects are becoming more complex: beyond source code, they rely
+on documentation, tutorials, data, continuous integration and deployment, and
+the persistence of their results --- each often held in a Git repository of
+its own. \cgspkg{} manages such a project as a distributed, git-native
+operating space, in the form of a \textbf{GitTree}: a tree of nested Git
+repositories that is synchronised, versioned and restored as one unit.
+
+A project can couple \textbf{public and private repositories}, so that
+intellectual property is preserved even when the project is developed
+collaboratively. Private repositories can also carry the configuration of
+\textbf{agentic assistance} for different parts of the project. Every state
+the project goes through is recorded, which gives the project
+\textbf{persistence and reproducibility}: any recorded state can be rebuilt,
+exactly, on another machine.
+
+% -----------------------------------------------------------------------
+\section{The project lifecycle}
+\label{sec:project-lifecycle}
+
+\begin{figure}[ht]
+\centering
+\input{figures/project_lifecycle}
+\caption{The lifecycle of a project: a description is materialised as a local
+  file system, the Operating Space; the project is worked on with any tool;
+  its new state is persisted, and can be restored from there.}
+\label{fig:project-lifecycle}
+\end{figure}
+
+Figure~\ref{fig:project-lifecycle} shows the five steps every project goes
+through. Each is described below with the vocabulary the rest of this manual
+uses.
+
+\paragraph{1. Describe.} The project's topology is written once in a
+\texttt{.cgs} specification, a short TOML file: which repositories the project
+is made of, where each one sits in the tree, and which are private. A
+\texttt{.cgs} names branches, so it always gives the latest work. A
+\texttt{.gts} snapshot recorded earlier can be used in its place: it names
+exact commits, so it gives the project exactly as it was.
+
+\begin{lstlisting}
+project = "my-project"
+repos = [
+  "github:me/my-project",          # the root repository
+  "github:me/my-project-docs",     # a project repository
+  { repository = "github:me/.myRules",
+    private = true, writable = true },   # a private one
+]
+\end{lstlisting}
+
+Each identifier has the form \texttt{provider:owner/name}; the providers are
+\texttt{github}, \texttt{gitlab}, \texttt{codeberg} and \texttt{custom}.
+Branch, protocol and path all have defaults, and the file
+\url{examples/template.cgs} is a starting point. Before anything is
+cloned, \texttt{validate} checks a \texttt{.cgs} and \texttt{view-tree}
+draws the tree it describes:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync validate my-project.cgs
+$ pixi run cgitsync view-tree my-project.cgs
+\end{lstlisting}
+
+\paragraph{2. Materialise.} \texttt{bootstrap}, the generic command for any
+kind of project, clones every repository the description names and places it
+at its path in the tree. \texttt{initialise} is its nested counterpart, run
+from inside the project (Section~\ref{sec:standalone-nested}).
+
+\paragraph{3. The Operating Space.} The result is an ordinary directory tree
+on the local disk, called the project's \texttt{CGSHOME}. Some of its
+sub-directories are Git repositories of their own, public or private, nested
+at the paths the description gave them. ComplexGitSync keeps its own records
+in \texttt{CGSHOME/.cgitsync/}: the States, the ledger, and a log of every
+command it ran.
+
+\paragraph{4. Work.} The project files are used with any tool, exactly as in
+any other directory: editors, compilers, notebooks, simulation codes, plain
+\texttt{git} inside one repository. ComplexGitSync does not intervene.
+
+\paragraph{5. Persist.} \cgscli{} runs each Git operation across the whole
+tree, in the right order, and checks every repository before changing any of
+them. Each command that changes the tree records the resulting
+\textbf{State}: a \texttt{.gts} snapshot holding the exact commit of every
+repository, entered in the project's \textbf{memory}, a hash-chained ledger
+that can be verified. A State can be given to \texttt{bootstrap} (or, in
+the nested mode, to \texttt{initialise}) to restore it --- which closes the
+cycle.
+
+% -----------------------------------------------------------------------
+\section{Public and private repositories}
+
+A GitTree holds two kinds of repositories.
+
+\begin{description}
+  \item[Project repositories] are the work itself: code, documents, public
+    data. They all follow the project's branch: \texttt{cgitsync checkout
+    feature} moves every one of them to \texttt{feature}.
+  \item[Private repositories] are how the project is run: pipelines, agent
+    instructions, internal rules, private data. They are declared with
+    \texttt{private = true}, are often shared between several projects, and
+    keep their own branch rather than following the project's.
+\end{description}
+
+A private repository is read-only unless its entry adds \texttt{writable =
+true}. A writable one is written to only on request: commands act on the
+project repositories by default, and on the writable private ones with
+\texttt{--private}. ComplexGitSync never writes to a read-only one.
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync commit "update the analysis"            # project repositories
+$ pixi run cgitsync commit --private "tighten a rule"       # writable private ones
+\end{lstlisting}
+
+\url{tutorials/04_private_repos.md} works through a complete example.
+
+% -----------------------------------------------------------------------
+\section{Memory and persistence}
+
+Every State, and every operation that produced one, is entered in the
+project's memory, together with the tool versions and the environment it ran
+in. A project with no private repository keeps its memory on the local disk
+only. A project with private repositories is expected to keep it in a private
+repository of its own, so that its history outlives any single machine;
+\cgscli{} offers to set this up the first time it records something:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync memory setup      # create and adopt the memory repository
+$ pixi run cgitsync memory list       # every recorded State, newest first
+$ pixi run cgitsync memory as-of 2026-09-01  # the project on that date
+$ pixi run cgitsync verify check      # does the recorded history verify?
+\end{lstlisting}
+
+Once adopted, the memory is sent with every \texttt{push}, \texttt{tag} and
+\texttt{freeze-release}. \url{tutorials/05_memory.md} covers it in full.
 
 % -----------------------------------------------------------------------
 \section{Installation}
 
-Install \cgspkg{} from source with the Pixi-managed environment:
+\begin{center}
+\begin{tabular}{lp{9.5cm}}
+\textbf{Tool} & \textbf{Why it is needed} \\
+\hline
+Git & Clones and synchronises every repository. \\
+Pixi & Installs the locked Python environment and runs \cgscli{}; Python
+  itself comes with it. \\
+\texttt{gh}, \texttt{glab} or \texttt{tea} & Optional: creates repositories
+  on GitHub, GitLab or Codeberg (\texttt{repo create}, \texttt{memory setup}). \\
+\end{tabular}
+\end{center}
+
+Git authentication must also work for every remote the project uses.
 
 \begin{lstlisting}[language=bash]
 $ git clone https://github.com/flipoyo/ComplexGitSync.git
@@ -40,174 +170,147 @@ $ pixi install
 $ pixi run cgitsync --help
 \end{lstlisting}
 
-% -----------------------------------------------------------------------
-\section{Create or Check a Project Spec}
-
-A \texttt{.cgs} file is the local authoring spec for the repository tree. It
-normally contains only a project name and repository identifiers:
-
-\begin{lstlisting}
-project = "CGSil1"
-repos = [
-  "gitlab:CGS_test/CGSil1",
-  "gitlab:CGS_test/CGSil2",
-  "github:flipoyo/CGSih1",
-]
-\end{lstlisting}
-
-Each identifier uses \texttt{provider:owner/repository}.  ComplexGitSync runs
-\texttt{PARSE -> NORMALIZE -> VALIDATE} and supplies deterministic defaults:
-\texttt{main} branches, \texttt{ssh}, \texttt{nested\_config = auto}, and the
-repository name as its path.  A unique repository matching the project name
-is mounted at \texttt{.}.  Advanced tables are reserved for overrides.
-
-Canonical providers are \texttt{github}, \texttt{gitlab},
-\texttt{codeberg}, and \texttt{custom}. Their known hosts are
-\texttt{github.com}, \texttt{gitlab.com}, and \texttt{codeberg.org}; SSH and
-HTTPS remotes are generated automatically. Custom hosting requires an explicit
-\texttt{gitprovider\_url} and never guesses a host. For example,
-\texttt{codeberg:GX4G/GX4G} identifies owner \texttt{GX4G} and repository
-\texttt{GX4G} on Codeberg.
-
-Copy \texttt{examples/template.cgs} when starting a specification. It combines
-plain repository identifiers with one inline override. Developers can compare
-it with \texttt{examples/normalized\_template.cgs}, which shows the complete
-canonical document after normalization and is not intended as the usual
-hand-authored form.
-
-The common inline options are \texttt{default\_branch},
-\texttt{fallback\_branch}, \texttt{access\_protocol},
-\texttt{relative\_path}, and \texttt{nested\_config}. A relative path is
-resolved from the parent repository. Nested config can be \texttt{auto} to
-load the sole root-level \texttt{*.cgs}, \texttt{disabled} to stop discovery,
-or a relative \texttt{.cgs} path to select an exact file inside the repository.
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync validate install.cgs
-$ pixi run cgitsync view-tree install.cgs
-\end{lstlisting}
-
-A valid declared tree prints a lifecycle line such as:
-
-\begin{lstlisting}[language=bash]
-DECLARED ready=false complete=true
-\end{lstlisting}
+\cgscli{} is a Pixi task, not a globally installed program: every command is
+typed as \texttt{pixi run cgitsync ...} from inside the ComplexGitSync clone.
 
 % -----------------------------------------------------------------------
-\section{Initialise the Workspace}
+\section{Standalone or nested}
+\label{sec:standalone-nested}
 
-Use \texttt{initialise} as the canonical first command. From a \texttt{.cgs}
-file it clones the full repository tree, validates it, writes the runtime
-snapshot under \texttt{<workspace>/.cgitsync/state/}, and leaves the tree
-\texttt{READY}.
+The ComplexGitSync clone can manage a project from outside it or from inside
+it. The choice is made once, by the command used to materialise the project.
 
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync initialise install.cgs
-\end{lstlisting}
-
-The same canonical project definition can be authored directly. The
-\texttt{--repo} option is repeatable:
+\paragraph{Standalone (recommended).} ComplexGitSync stays where it was
+cloned, and \texttt{bootstrap} clones the whole project tree, root included,
+into a new workspace of its own, by default under
+\texttt{\$HOME/.cgs/CGS<timestamp>/}:
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync initialise --project CGSil1 \
-    --repo gitlab:CGS_test/CGSil1 \
-    --repo codeberg:GX4G/GX4G
-\end{lstlisting}
-
-Use either a source file or \texttt{--project} plus \texttt{--repo}, never
-both. To write a \texttt{.cgs} without initializing a workspace, use
-\texttt{discover --write FILE} on an existing checkout, or
-\texttt{submodules init}.
-
-When \texttt{--output-path} is omitted, \cgscli{} uses the workspace-level
-default \texttt{CGSPATH=../..}, then derives
-\texttt{CGSHOME=CGSPATH/<project-name>}. The explicit equivalent is:
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync initialise install.cgs --output-path "$CGSPATH"
-\end{lstlisting}
-
-From a previously generated snapshot (resolved automatically via the
-project's \texttt{.lgr} register; pass the path explicitly only to override
-that discovery):
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync initialise
-\end{lstlisting}
-
-Successful \texttt{.cgs} initialisation prints a readable operation sequence
-\texttt{GT-LOAD->GT-DISCOVER->GT-VALIDATE->GT-CLONE->GT-GITIGNORE}, the
-explicit workflow \texttt{load->expand->validate->clone->gitignore}, the
-per-repository \texttt{git clone} action, the resolved root path, a report of
-any \texttt{.gitignore} changes, and a compact tree outline. Structured log
-records also put the operation code first, for example \texttt{GT-DISCOVER},
-\texttt{GT-VALIDATE}, \texttt{GT-CLONE}, or \texttt{GT-GITIGNORE}.
-If a stale partial checkout blocks the clone step, or a destination holds
-work that exists nowhere else, \texttt{initialise} fails explicitly and
-changes nothing. There is no clean-up command: commit and push that work, or
-move those directories aside yourself, then run \texttt{initialise} again.
-
-% -----------------------------------------------------------------------
-\section{Inspect the Runtime State}
-
-\begin{lstlisting}[language=bash]
-$ pixi run cgitsync view-tree
-$ pixi run cgitsync view-tree --depth 2 --collapse parent_2
+$ pixi run cgitsync bootstrap my-project.cgs my-project
+$ export CGSHOME=/home/me/.cgs/CGS<timestamp>/my-project   # printed by bootstrap
 $ pixi run cgitsync status
 \end{lstlisting}
 
-If a command accepts an optional snapshot and none is provided, \cgscli{}
-discovers the latest \texttt{.gts} automatically via the project's
-\texttt{.lgr} register under \texttt{CGSHOME/.cgitsync/}. Each generated
-\texttt{.gts} snapshot actually lives under its own content-addressed
-\texttt{CGSHOME/.cgitsync/state/} directory; pass an explicit
-path (e.g. \texttt{--gts FILE}, or a positional source, depending on the
-command) only to override that discovery.
-\texttt{CGSHOME} can be set explicitly; for \texttt{initialise(.cgs)} the
-default is \texttt{CGSPATH=../..}, and later commands can also discover the
-workspace by walking upward from the current directory.
+Since commands are run from the ComplexGitSync clone, the \texttt{CGSHOME}
+variable tells them which workspace to act on. Every command prints the
+workspace it picked and why --- from \texttt{\$CGSHOME}, or from the current
+directory --- and warns
+when that is not where you are standing --- the usual sign of an export left
+over from an earlier project.
 
-% -----------------------------------------------------------------------
-\section{Run the Git Cycle}
-
-Once the tree is \texttt{READY}, the Multi-repo Sync commands operate on every
-repository in deterministic order:
+\paragraph{Nested.} The project's root repository is cloned first, and
+ComplexGitSync is cloned inside it; \texttt{initialise} then builds the rest
+of the tree around them, with no export needed. This suits projects that ship
+the tool along with their own content, such as hydrological digital twins,
+where whoever obtains the project obtains the means to synchronise it:
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync pull
-$ pixi run cgitsync checkout feature/my-branch
-$ pixi run cgitsync add
-$ pixi run cgitsync commit "feat: update project CGS#1"
-$ pixi run cgitsync push
-$ pixi run cgitsync freeze-release release-2026.05 "release 2026.05"
-$ pixi run cgitsync checkout release-2026.05 --ref-kind tag
+$ git clone https://gitlab.com/CGS_test/CGSil1.git
+$ cd CGSil1
+$ git clone https://github.com/flipoyo/ComplexGitSync.git
+$ cd ComplexGitSync
+$ pixi install
+$ pixi run cgitsync initialise ../CGSil1.cgs
 \end{lstlisting}
 
-\texttt{pull} walks the tree parent-first, including the project root:
-\texttt{root -> parent -> leaf}.  Mutation commands such as \texttt{add},
-\texttt{commit}, \texttt{push}, and \texttt{freeze-release} walk the opposite direction:
-\texttt{leaf -> parent -> root}.
-When local files block the safe pull, the CLI suggests
-\texttt{cgitsync pull --force}; that recovery command force-updates the same tree.
-It sets uncommitted and untracked work aside with \texttt{git stash push -u},
-and refuses, before changing anything, while a commit exists that no remote
-holds.
-
-Pass \texttt{--gts <snapshot.gts>} when you want to pin a command to an
-explicit snapshot, and pass \texttt{--dry-run} to \texttt{add},
-\texttt{commit}, \texttt{push}, or \texttt{freeze-release} to preview
-the plan without mutating repositories.
+Each command refuses the other's job by name before touching the disk:
+\texttt{initialise} run from outside a checked-out root names
+\texttt{bootstrap}, and \texttt{bootstrap} into a directory that already holds
+a checkout names \texttt{initialise}. \texttt{status} reports which case is
+in force, as \texttt{use\_case=standalone} or as
+\texttt{use\_case=nested}.
 
 % -----------------------------------------------------------------------
-\section{Log Files}
+\section{A first project}
 
-Every CLI command writes a timestamped log file. On Linux the default location
-is \texttt{~/.local/state/ComplexGitSync/logs/}; if
-\texttt{XDG\_STATE\_HOME} is set, logs are written under that state directory
-instead. The CLI prints the resolved path as \texttt{log\_file=<path>}.
+Choose the starting point that matches the project; each has a tutorial
+that walks through it end to end.
+
+\paragraph{To discover the tool on a sample tree.} The small public tree
+\texttt{CGSil1} has nothing of your own at risk.
+\url{tutorials/01_first_multi_repo_workspace.md} installs it with
+\texttt{bootstrap}, shows the same tree installed nested with
+\texttt{initialise} so the difference is concrete, then runs the whole
+lifecycle on it.
+
+\paragraph{The project already provides a \texttt{.cgs}.} This is the usual
+case, for any kind of project: use \texttt{bootstrap}, as in
+Section~\ref{sec:standalone-nested}.
+\url{tutorials/02_onboarding_a_real_build_tree.md} does this for a real
+19-repository project.
+
+\paragraph{The project is on disk but has no \texttt{.cgs}.} \texttt{discover}
+scans a directory for Git repositories and drafts the \texttt{.cgs} from what
+is checked out. It writes nothing until \texttt{--write} is given; review the
+draft before using it.
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync discover ~/work/my-project --write my-project.cgs
+$ pixi run cgitsync validate my-project.cgs
+\end{lstlisting}
+
+\paragraph{The project uses git submodules.} \texttt{submodules init} adopts
+the checkout in one command --- discover, write the \texttt{.cgs},
+initialise, then turn each submodule into a plain nested repository --- and
+\texttt{--dry-run} shows the plan first. It leaves the conversion staged, not
+committed. \url{tutorials/03_adopting_a_real_project.md} walks through
+it.
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync submodules init ~/work/my-project --dry-run
+$ pixi run cgitsync submodules init ~/work/my-project
+\end{lstlisting}
 
 % -----------------------------------------------------------------------
-\section{Next Steps}
+\section{Day-to-day work}
 
-See Chapter~\ref{chap:user-guide} for the command reference, document formats,
-preflight checks, and troubleshooting notes.
+Once the tree is materialised, each Git operation is run once, for the whole
+tree:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync status                 # where every repository stands
+$ pixi run cgitsync view-tree              # the tree, drawn
+$ pixi run cgitsync pull                   # bring every repository up to date
+$ pixi run cgitsync checkout my-feature    # move the project to a branch
+  ... work on the files ...
+$ pixi run cgitsync add
+$ pixi run cgitsync commit "what changed"
+$ pixi run cgitsync push
+$ pixi run cgitsync freeze-release v1.0 "first release"   # add, commit, pull, push, record
+\end{lstlisting}
+
+\texttt{status} prints one row per repository --- its branch, whether its
+files are \texttt{clean} or \texttt{dirty}, and whether it is
+\texttt{synced}, \texttt{ahead} or \texttt{behind} its remote --- and a
+summary line naming the project's branch. \texttt{pull} visits the tree
+from the root down; \texttt{add}, \texttt{commit} and \texttt{push} from the
+leaves up, so a parent never records a child that is not yet committed.
+\texttt{add}, \texttt{commit}, \texttt{push} and \texttt{freeze-release}
+accept \texttt{--dry-run} to show what they would do.
+
+Commands that could lose work refuse instead. \texttt{merge} checks every
+repository before merging any, so a conflict anywhere leaves the whole tree
+untouched; \texttt{pull --force} refuses while a commit exists that no remote
+holds, and sets uncommitted work aside with \texttt{git stash} rather than
+discarding it.
+
+% -----------------------------------------------------------------------
+\section{Getting help}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync --help             # every command, grouped by purpose
+$ pixi run cgitsync <command> --help   # one command: purpose, options, examples
+$ pixi run cgitsync help --all         # every command and option on one page
+\end{lstlisting}
+
+\texttt{-h} is accepted wherever \texttt{--help} is. When a command fails, it
+prints one line saying why, and its full log is kept in
+\texttt{CGSHOME/.cgitsync/logs/}; \texttt{cgitsync autofix} reads the last
+one and diagnoses the situation.
+
+% -----------------------------------------------------------------------
+\section{Next steps}
+
+The five tutorials under \url{tutorials/} work through the cases above, from
+the simplest to the most advanced. The User Guide is the
+reference for every command, option, document format and error.
