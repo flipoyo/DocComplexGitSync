@@ -124,7 +124,7 @@ $ pixi run cgitsync commit "update the analysis"            # project repositori
 $ pixi run cgitsync commit --private "tighten a rule"       # writable private ones
 \end{lstlisting}
 
-\url{tutorials/04_private_repos.md} works through a complete example.
+\url{tutorials/05_private_repos.md} works through a complete example.
 
 % -----------------------------------------------------------------------
 \section{Memory and persistence}
@@ -144,7 +144,7 @@ $ pixi run cgitsync verify check      # does the recorded history verify?
 \end{lstlisting}
 
 Once adopted, the memory is sent with every \texttt{push}, \texttt{tag} and
-\texttt{freeze-release}. \url{tutorials/05_memory.md} covers it in full.
+\texttt{freeze-release}. \url{tutorials/06_memory.md} covers it in full.
 
 % -----------------------------------------------------------------------
 \section{Installation}
@@ -229,14 +229,15 @@ that walks through it end to end.
 \paragraph{To discover the tool on a sample tree.} The small public tree
 \texttt{CGSil1} has nothing of your own at risk.
 \url{tutorials/01_first_multi_repo_workspace.md} installs it with
-\texttt{bootstrap}, shows the same tree installed nested with
-\texttt{initialise} so the difference is concrete, then runs the whole
-lifecycle on it.
+\texttt{bootstrap}, and shows the same tree installed nested with
+\texttt{initialise} so the difference is concrete;
+\url{tutorials/02_working_with_a_tree.md} then runs the whole lifecycle on
+it.
 
 \paragraph{The project already provides a \texttt{.cgs}.} This is the usual
 case, for any kind of project: use \texttt{bootstrap}, as in
 Section~\ref{sec:standalone-nested}.
-\url{tutorials/02_onboarding_a_real_build_tree.md} does this for a real
+\url{tutorials/03_onboarding_a_real_build_tree.md} does this for a real
 19-repository project.
 
 \paragraph{The project is on disk but has no \texttt{.cgs}.} \texttt{discover}
@@ -253,7 +254,7 @@ $ pixi run cgitsync validate my-project.cgs
 the checkout in one command --- discover, write the \texttt{.cgs},
 initialise, then turn each submodule into a plain nested repository --- and
 \texttt{--dry-run} shows the plan first. It leaves the conversion staged, not
-committed. \url{tutorials/03_adopting_a_real_project.md} walks through
+committed. \url{tutorials/04_adopting_a_real_project.md} walks through
 it.
 
 \begin{lstlisting}[language=bash]
@@ -265,7 +266,8 @@ $ pixi run cgitsync submodules init ~/work/my-project
 \section{Day-to-day work}
 
 Once the tree is materialised, each Git operation is run once, for the whole
-tree:
+tree. \url{tutorials/02_working_with_a_tree.md} works through these commands
+on the sample tree, including going back to a release from its State:
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync status                 # where every repository stands
@@ -311,6 +313,6 @@ one and diagnoses the situation.
 % -----------------------------------------------------------------------
 \section{Next steps}
 
-The five tutorials under \url{tutorials/} work through the cases above, from
+The six tutorials under \url{tutorials/} work through the cases above, from
 the simplest to the most advanced. The User Guide is the
 reference for every command, option, document format and error.
