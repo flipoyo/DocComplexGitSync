@@ -182,12 +182,12 @@ it. The choice is made once, by the command used to materialise the project.
 
 \paragraph{Standalone (recommended).} ComplexGitSync stays where it was
 cloned, and \texttt{bootstrap} clones the whole project tree, root included,
-into a new workspace of its own, by default under
-\texttt{\$HOME/.cgs/CGS<timestamp>/}:
+into a new workspace of its own, by default
+\texttt{\$HOME/.cgs/<project name>-<timestamp>}:
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync bootstrap my-project.cgs my-project
-$ export CGSHOME=/home/me/.cgs/CGS<timestamp>/my-project   # printed by bootstrap
+$ pixi run cgitsync bootstrap my-project.cgs
+$ export CGSHOME=/home/me/.cgs/my-project-<timestamp>   # printed by bootstrap
 $ pixi run cgitsync status
 \end{lstlisting}
 

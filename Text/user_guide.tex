@@ -236,7 +236,7 @@ exactly as without the flag.
 \subsection{\texttt{bootstrap}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync bootstrap <spec.cgs|snapshot.gts> <project_name> [--cgs-path DIR]
+$ pixi run cgitsync bootstrap <spec.cgs|snapshot.gts> [project_name] [--cgs-path DIR]
     [--force-protocol {ssh,https}]
 \end{lstlisting}
 
@@ -251,17 +251,19 @@ repository's branch by the fallback chain and discovers nested
 \texttt{initialise} in two ways:
 
 \begin{itemize}
-  \item \texttt{project\_name} is a required positional argument, not
-    inferred from the \texttt{.cgs} document. It always forms the final
-    path segment of \texttt{CGSHOME}, regardless of the specification's own
-    \texttt{project} name.
-  \item \texttt{CGSPATH} does not default to \texttt{../..} relative to the
+  \item The workspace is named after the project: the \texttt{[project]}
+    \texttt{name} the \texttt{.cgs} or \texttt{.gts} declares. The optional
+    \texttt{project\_name} argument replaces it, for instance to keep two
+    copies of one project apart.
+  \item \texttt{CGSHOME} does not default to \texttt{../..} relative to the
     current directory (that default assumes \cgspkg{} is cloned inside the
     tree it manages --- the nested-mode case \texttt{initialise} is for).
-    When \texttt{--cgs-path} is omitted, \texttt{CGSPATH} instead defaults
-    to a fresh \texttt{\$HOME/.cgs/CGS<timestamp>/} directory, created
-    automatically if it does not exist, so a bootstrapped project can never
-    land inside \cgspkg{}'s own clone.
+    When \texttt{--cgs-path} is omitted, \texttt{CGSHOME} is instead a fresh
+    \texttt{\$HOME/.cgs/<name>-<timestamp>} directory --- for example
+    \texttt{\$HOME/.cgs/CGSil1-20261007104123} --- so each workspace says
+    which project it holds, and a bootstrapped project can never land
+    inside \cgspkg{}'s own clone. With \texttt{--cgs-path DIR},
+    \texttt{CGSHOME} is \texttt{DIR/<name>}, with no timestamp.
 \end{itemize}
 
 \texttt{--force-protocol \{ssh,https\}} behaves exactly as described under
@@ -2371,8 +2373,8 @@ the \texttt{initialise(.cgs)} output-path default is \texttt{CGSPATH=../..}
 (nested mode: \cgspkg{} cloned inside the tree it manages); later
 commands can also walk upward from the current directory to find
 \texttt{.cgitsync/state/}. \texttt{bootstrap(.cgs)} uses a different
-default instead --- \texttt{CGSPATH=\$HOME/.cgs/CGS<timestamp>/}, created
-automatically --- since it is meant for a \cgspkg{} clone that is not
+default instead --- \texttt{CGSHOME=\$HOME/.cgs/<project name>-<timestamp>},
+created automatically --- since it is meant for a \cgspkg{} clone that is not
 nested inside any project tree; see \texttt{bootstrap} above. The logging
 and runtime-state subsystems use the user state directory by default:
 
