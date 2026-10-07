@@ -408,14 +408,12 @@ repos = [
 
 \subsubsection{Branch Resolution Order}
 
-When cloning or pulling:
-
-\begin{enumerate}
-  \item Repository's \texttt{default\_branch}
-  \item Project's \texttt{default\_branch}
-  \item Repository's \texttt{fallback\_branch}
-  \item Project's \texttt{fallback\_branch} (defaults to \texttt{main})
-\end{enumerate}
+When cloning or pulling, the target is the repository's
+\texttt{default\_branch}, else the project's \texttt{default\_branch}, else
+\texttt{main}. Only when that target is missing on the remote is the
+repository's \texttt{fallback\_branch} cloned instead; it defaults to
+\texttt{main} (a private, writable repository: its own
+\texttt{default\_branch}).
 
 \subsubsection{Practical Branch Patterns}
 

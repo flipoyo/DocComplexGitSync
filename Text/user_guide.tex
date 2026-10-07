@@ -1889,7 +1889,8 @@ only by explicit Git operations during runtime resolution and execution.
 
 Normalization supplies \texttt{default\_branch = main} (see ``Branches in a
 \texttt{.cgs}'' below for the full chain), makes
-\texttt{fallback\_branch} equal to that default, selects
+\texttt{fallback\_branch = main} (a private, writable entry: its own
+\texttt{default\_branch}), selects
 \texttt{access\_protocol = ssh}, enables \texttt{nested\_config = auto}, and
 uses the repository name as \texttt{relative\_path}. If exactly one repository
 name matches \texttt{project}, its path is inferred as \texttt{.}.
@@ -1992,11 +1993,15 @@ turns out not to exist on the remote}.
 \texttt{repos[].tag}              & one repository entry & --- (unset) \\
 \texttt{repos[].default\_branch}  & one repository entry & the project's \\
 \texttt{project.default\_branch}  & the \texttt{project} table & \texttt{main} \\
-\texttt{repos[].fallback\_branch} & one repository entry & that repository's own \\
+\texttt{repos[].fallback\_branch} & one repository entry & \texttt{main}${}^{*}$ \\
 \texttt{repos[].private}           & one repository entry & \texttt{false} \\
 \texttt{repos[].writable}         & one repository entry & \texttt{false} \\
 \end{tabular}
 \end{center}
+
+${}^{*}$A private, writable repository falls back to its own
+\texttt{default\_branch} instead, so a configuration repository shared by
+several projects never lands on another project's \texttt{main}.
 
 \textbf{The target} is decided by the first four, read as one chain, a tag
 winning outright over any branch:
@@ -2032,6 +2037,13 @@ branch that differs from the root's own also needs an explicit
 \texttt{default\_branch}, not only a \texttt{fallback\_branch}, or
 re-materialising it retargets that repository at the root's branch instead
 of reproducing what was scanned.
+
+A repository that declares no \texttt{fallback\_branch} falls back to
+\texttt{main}, no longer to its own \texttt{default\_branch}: a fallback equal
+to the target is no second chance, and a missing branch would fail the clone instead
+(\texttt{No cloneable branch found \ldots expected one of ['lMOLO',
+'lMOLO']}). Writing \texttt{fallback\_branch = "main"} on an entry is
+therefore no longer needed.
 
 Each link in the target chain is silent. Nothing warns you that a decision
 was made, so \textbf{state \texttt{project.default\_branch} in every
