@@ -472,15 +472,18 @@ for repo in report.repos:
 for warning in report.warnings:
     print("unresolved:", warning)
 
-# Write the draft out (same call, with an output path)
+# Write the draft out: a relative output lands inside the scanned
+# directory, so this writes /path/to/checkout/draft.cgs
 report = client.discover_repos("/path/to/checkout", output="draft.cgs")
+print(report.written_to)
 \end{lstlisting}
 
 The method returns a \texttt{DiscoverReport} dataclass with fields
 \texttt{root} (the scanned directory), \texttt{repos} (a tuple of
 \texttt{DiscoveredRepo}), \texttt{cgs\_entries} (authoring-form repo tables
-ready for \texttt{configure()}), \texttt{warnings}, and
-\texttt{project\_name}.  Each \texttt{DiscoveredRepo} carries
+ready for \texttt{configure()}), \texttt{warnings}, \texttt{project\_name},
+and \texttt{written\_to} (the path the draft was written to, or
+\texttt{None}).  Each \texttt{DiscoveredRepo} carries
 \texttt{relative\_path}, \texttt{absolute\_path}, \texttt{remote\_url},
 \texttt{identifier}, \texttt{branch}, and \texttt{has\_cgs}.
 

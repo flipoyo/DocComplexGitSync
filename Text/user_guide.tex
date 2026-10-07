@@ -286,7 +286,9 @@ describing it yet.
 
 The command is a pure read of the filesystem and of each repository's git
 config: nothing is cloned, fetched, staged, or modified, and no network
-call is made. Without \texttt{--write} it only prints what it found,
+call is made. \texttt{--write FILE} saves the draft; a relative
+\texttt{FILE} is written inside \texttt{ROOT}, the tree it describes, not
+in the current directory. Without \texttt{--write} it only prints what it found,
 matching the ``report first, write only when asked'' posture of
 \texttt{--commit-gitignore} and of \texttt{submodules report} before
 \texttt{submodules import}.

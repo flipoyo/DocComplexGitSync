@@ -242,12 +242,13 @@ Section~\ref{sec:standalone-nested}.
 
 \paragraph{The project is on disk but has no \texttt{.cgs}.} \texttt{discover}
 scans a directory for Git repositories and drafts the \texttt{.cgs} from what
-is checked out. It writes nothing until \texttt{--write} is given; review the
-draft before using it.
+is checked out. It writes nothing until \texttt{--write} is given, and a
+relative file name is written inside the scanned directory; review the draft
+before using it.
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync discover ~/work/my-project --write my-project.cgs
-$ pixi run cgitsync validate my-project.cgs
+$ pixi run cgitsync validate ~/work/my-project/my-project.cgs
 \end{lstlisting}
 
 \paragraph{The project uses git submodules.} \texttt{submodules init} adopts
