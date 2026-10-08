@@ -1029,7 +1029,9 @@ flags and defaults as given.
         commands that recorded it. A State with no timestamp is one no
         entry records: history from before the ledger, or a file that
         arrived some other way.
-  \item \texttt{show <state>} --- the environment that State's own commits
+  \item \texttt{show <state>} --- the State's integrity schema and the
+        root hash of its tree (\texttt{integrity\_schema},
+        \texttt{gittree\_root}); the environment that State's own commits
         ran under, as a bare reference; that State's own topology right
         after, drawn exactly the way \texttt{view-tree} draws the live one
         (\texttt{format\_view\_tree}) but as it was at that State, not as it
@@ -1372,6 +1374,15 @@ stored snapshot whose content no longer hashes to the name it is filed
 under (\texttt{STATE\_DIGEST\_MISMATCH}), and a State on disk that no entry
 records (\texttt{ORPHAN\_STATE}). The second is what naming a State by its
 content bought: a stored snapshot can no longer be edited quietly.
+
+A State is hashed at three levels: each repository (\texttt{repo\_hash}),
+the tree of repositories (\texttt{merkle\_root}), and the State itself. So an
+edited snapshot is reported bottom-up --- \texttt{REPO\_HASH\_MISMATCH} naming
+the repository by its path, then \texttt{GITTREE\_ROOT\_MISMATCH}, then
+\texttt{STATE\_DIGEST\_MISMATCH} --- and you see which repository changed, not
+only that something did. A State written before this scheme
+(\texttt{integrity\_schema = 1}) is refused rather than measured: run
+\texttt{memory reboot} to start a new memory under it.
 
 \paragraph{Where the history lives.} \texttt{.cgitsync/lgr/}, one file per
 entry, appended to by every command that writes a State. Each entry records
