@@ -702,6 +702,27 @@ raises \texttt{GitSyncError} when the mount is not a repository yet, and
 when today's archived name already exists --- a second reboot the same day
 needs a name of its own rather than colliding with the first.
 
+\subsection{Keeping a branch's memory when its project branch is merged: \texttt{memory\_merge}}
+
+\begin{lstlisting}[language=python]
+answer = client.memory_merge("/path/to/CGSHOME", "feature-x", into="main", keep="ours")
+answer["status"]   # "merge" | "fast-forward" | "already-merged"
+answer["detail"]   # "kept the memory of MyProject; MyProject_feature-x is kept as history"
+answer["source"], answer["target"]   # the memory branches, derived from the project branches
+answer["commit"]   # the merge commit, or None when nothing was due
+answer["pushed"]   # False for a defaulted memory or one with no remote
+\end{lstlisting}
+
+\texttt{keep} is \texttt{"ours"} (keep \texttt{into}'s memory) or
+\texttt{"theirs"} (keep the source's), Git's meaning, and is required: any
+other value raises \texttt{GitSyncError} before anything is touched.
+\texttt{into} defaults to the project branch checked out. A memory is never
+merged file by file; the commit takes one side's files whole and records the
+other as its second parent. A missing source or target memory branch raises
+\texttt{GitSyncError} naming it (and, for the target,
+\texttt{memory\_branch}); a push the remote would reject raises one that says
+the merge is already done locally. Nothing is forced.
+
 \subsection{Recording one piece of agent work: \texttt{self\_history\_add}}
 
 \begin{lstlisting}[language=python]

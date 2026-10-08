@@ -1205,6 +1205,36 @@ ever force-pushed or deleted. \texttt{cgitsync memory adopt
 first time. Appending --- the ordinary \texttt{memory adopt}, and the only
 thing \texttt{memory push} ever does --- stays the default either way.
 
+\paragraph{Keeping a branch's memory when its project branch is merged.}\label{sec:memory-merge}
+A memory is a hash chain: one numbered file per ledger entry, plus
+\texttt{HEAD}. Two memories that grew apart hold \emph{different} entries
+under the \emph{same} numbers, so merging them file by file either collides
+or interleaves them into a chain that no longer verifies --- and a memory
+started afresh by \texttt{memory reboot} shares no commit with the one it
+replaced at all. So a memory is never merged file by file.
+\texttt{memory merge} keeps one side whole and the other as history:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync memory merge <branch> [--into TARGET] (--ours | --theirs)
+\end{lstlisting}
+
+\texttt{<branch>} and \texttt{TARGET} are \textbf{project} branches (the
+target defaults to the one checked out); the memories merged are the branches
+derived from them. The words are Git's: merging \texttt{<branch>} into
+\texttt{TARGET}, \texttt{--ours} keeps the memory of \texttt{TARGET} and
+\texttt{--theirs} keeps the memory of \texttt{<branch>}. Exactly one is
+required, because which chain continues is never guessed.
+
+It writes one commit whose files are the kept side's, with the target's branch
+as first parent and the other as second, so the whole history of both is
+reachable and \texttt{verify check} reads one intact chain. What is pending
+in \texttt{.cgitsync} is folded and committed first, so nothing recorded is
+lost; the result is pushed without force, and a push the remote would refuse
+is reported as such, saying the merge is already done here. Nothing is
+rewritten and nothing is spliced. Merging a memory that is already part of the
+target does nothing, whichever side is asked for, and \texttt{--theirs} on a
+target that is simply behind moves it forward without a new commit.
+
 \paragraph{What a memory carries off your machine.} One path: the tree's own
 root, with \texttt{\$HOME} substituted. Every other path it records --- each
 repository's, and any path in a command line it logged --- is written
@@ -1756,6 +1786,27 @@ having moved yet.
 \texttt{--private} merges the writable configuration repositories instead
 of the project's own. Read-only ones are never merged.
 
+\paragraph{The memory is kept, never merged.} Whatever the scope, the memory
+(\texttt{.cgitsync/.memory}) is not merged file by file (\S\ref{sec:memory-merge}):
+the tree-wide \texttt{merge}, \texttt{merge --into} and \texttt{pull
+--private} act on it as \texttt{memory merge --ours}. The target's memory
+stays exactly as it was, so \texttt{verify check} on it does not change, and
+the source's memory is recorded as history, so \texttt{branch delete} of the
+source then finds its entries held by another branch. The plan and the
+report say so in those words: \emph{kept}, never \emph{merged}. A memory
+the branch's own memory already contains is \emph{up to date} and never
+blocks the other repositories --- it no longer turns a rebooted memory into a
+conflict that names no file.
+
+\paragraph{Branches with nothing in common.} A repository whose two branches
+share no commit is not a conflict: Git will not merge unrelated histories, and
+there is no file to resolve. The tree is refused by name, \texttt{--dry-run}
+included, and \texttt{--resolve} is not offered:
+
+\begin{lstlisting}[language=bash]
+merge refused; no repository was merged: conf: 'demo_feature' and 'demo' share no commit; Git will not merge unrelated histories
+\end{lstlisting}
+
 \begin{center}
 \emph{A conflict in any repository leaves no repository merged.}
 \end{center}
@@ -1824,7 +1875,9 @@ The other direction. While a project feature branch is open, work lands on
 a private/local repository's base branch and its derived branch does not
 see it. This fetches and merges the base branch into each one, so a
 settings branch does not drift behind the project's. A repository already
-on its base branch has nothing to take.
+on its base branch has nothing to take. The memory is kept and not merged
+here either (as above), and a repository whose base shares no commit with its
+branch is refused by name.
 
 % -----------------------------------------------------------------------
 \section{Document Formats}
