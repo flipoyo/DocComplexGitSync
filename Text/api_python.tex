@@ -11,7 +11,7 @@ and propagating a tag target.
 For normal Multi-repo Sync usage, prefer the CLI lifecycle documented in the
 README and Getting Started guide. The reference test topology is CGSil1
 (\texttt{https://gitlab.com/CGS\_test/CGSil1}):
-\texttt{initialise -> pull -> checkout/add/commit/push -> freeze\_release -> checkout(tag, ref\_kind=TAG)}.
+\texttt{initialise -> pull -> checkout/add/commit/push -> freeze\_release -> list\_releases -> load\_release}.
 
 The lower-level object/API lifecycle remains:
 \texttt{load(.cgs) -> .gts LOADED -> expand(.cgs|.gts) -> .gts PENDING ->
@@ -107,10 +107,30 @@ practice, the workflow is:
   \item \texttt{git(tree, command, *args)} is the unified step-5 interface for
     \texttt{"commit"}, \texttt{"push"}, and \texttt{"tag"} operations.  Each
     follows leaf-first ordering.
-  \item \texttt{freeze\_release(...)} is the one release procedure. It runs
-    \texttt{freeze(...)} and \texttt{freeze\_state(...)}, internal steps that
-    emit the next persisted \texttt{.gts} state and have no CLI command of
-    their own.
+  \item \texttt{freeze\_release(commit\_message, *, force\_tag=None,
+    output\_gts=None, stage\_all=True, force\_access\_protocol=None)} is the
+    one release procedure, \texttt{release freeze} on the command line. It
+    tags \texttt{<project-name>-<suffix>}: \texttt{force\_tag}, else the
+    version in the root's \texttt{pixi.toml}, else the next number. The
+    root's tag is annotated and carries the project-scope State.
+    \texttt{next\_release\_tag(force\_tag=None)} returns that tag, the
+    version and where the suffix came from, without changing anything.
+    \texttt{freeze(...)} and \texttt{freeze\_state(...)} are internal steps
+    that emit the next persisted \texttt{.gts} state and have no CLI command
+    of their own.
+  \item \texttt{list\_releases()} returns one dict per release of the
+    project, newest first: \texttt{tag}, \texttt{version},
+    \texttt{recorded\_at}, \texttt{by}, \texttt{state},
+    \texttt{made\_with}, \texttt{source} (\texttt{ledger}, \texttt{tag},
+    \texttt{ledger+tag} or \texttt{tag only}) and \texttt{loadable}. It
+    reads the ledger and the root repository's tags, so a release another
+    user made is listed too.
+  \item \texttt{load\_release(name, *, workspace=None, cgs\_path=None)}
+    puts every repository back at the release's recorded commit, detached,
+    and refuses a tree with uncommitted changes; with \texttt{workspace} it
+    builds a new workspace from the release's State, as \texttt{bootstrap}
+    does. \texttt{name} is the whole tag or what follows the project's
+    name.
 \end{itemize}
 
 \begin{lstlisting}[language=Python]
@@ -161,11 +181,14 @@ client.git(registry, "commit", "feat: update CGSil1 CGS#1")
 client.git(registry, "push")
 client.git(registry, "tag", "v1.2.3")
 
-# 6. release: add, commit, pull, push, tag, then the next .gts id
-client.freeze_release("release-2026.05", "release 2026.05")
+# 6. release: add, commit, pull, push, tag CGSil1-<version or number>, record the State
+client.freeze_release("release 2026.05")
+client.freeze_release("a beta", force_tag="beta")  # tagged CGSil1-beta
 
-# Return to the release later:
-client.checkout("release-2026.05", ref_kind=RefKind.TAG)
+# Every release of the project, whoever made it, and back to one later:
+for release in client.list_releases():
+    print(release["tag"], release["source"])
+client.load_release("beta")
 \end{lstlisting}
 
 \paragraph{Every one of these that reaches a remote folds the memory first.}

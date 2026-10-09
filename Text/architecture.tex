@@ -61,8 +61,11 @@ Figure~\ref{fig:positioning-matrix} summarizes this positioning.
 \input{figures/positioning_matrix}
 \end{figure}
 
-\texttt{freeze-release} materializes deterministic checkpoints as
-\texttt{.gts} snapshots (schema + SHA-256 hash), while \texttt{.lgr}
+\texttt{release freeze} materializes deterministic checkpoints as
+\texttt{.gts} snapshots (schema + SHA-256 hash), and carries the
+project-scope State in the root repository's annotated tag, so
+\texttt{release list} and \texttt{release load} find a release from any
+workspace; \texttt{.lgr}
 assigns stable local ids and stores append-only ledger events for replayable
 local evolution.
 
@@ -163,7 +166,8 @@ internal steps of those workflows.
 \texttt{commit <msg>}                  & \textbf{READY only} & READY \\
 \texttt{push}                          & \textbf{READY only} & READY + updated hash \\
 \texttt{tag <name>}                    & \textbf{READY only} & READY + updated tag \\
-\texttt{freeze-release}                & \textbf{READY only} & next \texttt{.gts} id \\
+\texttt{release freeze}                & \textbf{READY only} & next \texttt{.gts} id \\
+\texttt{release load}                  & \textbf{READY only} & READY, detached at the release \\
 \hline
 \end{tabular}
 \end{center}
@@ -235,7 +239,7 @@ known-host entry and requires an explicit \texttt{gitprovider\_url}; no
 fallback host is guessed.
 
 Before any mutating workflow step (\texttt{commit}, \texttt{push},
-\texttt{tag}, or \texttt{freeze-release}), the action layer now runs a workspace
+\texttt{tag}, or \texttt{release freeze}), the action layer now runs a workspace
 preflight validator. It checks dirty worktrees, detached HEADs, missing
 remotes, branch divergence, unresolved merges, and stale recorded
 \texttt{commit\_sha} values. Diagnostics are severity-based:
@@ -319,7 +323,7 @@ on the live tree state.
 \caption{Client state-gating: the Client reads \texttt{TreeLifecycleState}
   before delegating to an action.  READY-gated actions (\texttt{checkout},
   \texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag},
-  \texttt{freeze-release}) are blocked unless the tree is \texttt{READY}.}
+  \texttt{release freeze}) are blocked unless the tree is \texttt{READY}.}
 \label{fig:client-gating}
 \input{figures/client_gating}
 \end{figure}

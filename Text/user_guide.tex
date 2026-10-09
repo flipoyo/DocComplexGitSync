@@ -85,7 +85,7 @@ This guide follows the simplified canonical lifecycle:
   \item \texttt{pull(.cgs|.gts)} $\rightarrow$ resync an existing tree
   \item \texttt{checkout(.gts)} / \texttt{add} / \texttt{commit} / \texttt{push} / \texttt{tag}
         $\rightarrow$ git operations on the tree
-  \item \texttt{freeze-release} $\rightarrow$ commit, tag, emit the next \texttt{.gts} id and update \texttt{<Project\_name>.lgr}
+  \item \texttt{release freeze} $\rightarrow$ commit, tag \texttt{<project>-<version>}, record the State; \texttt{release list} and \texttt{release load} find it and go back to it
 \end{enumerate}
 
 The project-local \texttt{.lgr} register and sync ledger are both active (T24,
@@ -112,7 +112,7 @@ such as \texttt{close-branch} is not run: \cgscli{} names its new form
 
 The CLI exposes three command groups once a \texttt{GitTree} is \texttt{READY}.
 The minimalist level is \texttt{initialise}, \texttt{bootstrap},
-\texttt{freeze-release}, \texttt{status}, and \texttt{view-tree}.  The expert
+\texttt{release}, \texttt{status}, and \texttt{view-tree}.  The expert
 level exposes the individual operations: \texttt{branch create},
 \texttt{branch list}, \texttt{branch close}, \texttt{branch check},
 \texttt{branch delete}, \texttt{checkout},
@@ -541,7 +541,7 @@ every repository that holds the tag on it, detached, and creates no branch.
 Every writable repository is asked for the tag first --- fetching that one
 tag from its remote when this clone lacks it --- and if any still lacks it,
 the command refuses, naming each, and nothing is checked out. A read-only
-repository is left where it is: \texttt{tag} and \texttt{freeze-release}
+repository is left where it is: \texttt{tag} and \texttt{release freeze}
 only tag what this project may push, so it holds no such tag, and a warning
 says so. The memory, everything under \texttt{.cgitsync/}, stays on its
 branch as well: it records the tree's history, and a release does not rewind
@@ -729,9 +729,12 @@ hold \texttt{.agent/.distant/dev-sync/AgentConduct.md} commits with no
 check at all.
 \begin{itemize}
   \item \textbf{The message}, when the root also holds a
-    \texttt{pyproject.toml} naming the project and its version. It must
-    start with \texttt{<project-name><version>} (for example
-    \texttt{cgitsync\cgsversion}, no space and no \texttt{v}), be three
+    \texttt{pyproject.toml} naming the project. It must start with
+    \texttt{<project-name>-<version>} (for example
+    \texttt{cgitsync-\cgsversion}: one dash, no space and no \texttt{v}),
+    the version read from the root's \texttt{pixi.toml} like a release's
+    (from \texttt{pyproject.toml} only when \texttt{pixi.toml} declares
+    none). It must be three
     lines at most, and carry no backtick, no \texttt{\$(} and no
     agent-credit trailer.
   \item \textbf{An archived planning ticket needs its orchestrator's
@@ -789,71 +792,118 @@ leaf-first, and pushes it. The worktrees must be clean. Tagging moves no
 \texttt{HEAD}: every repository stays on its branch, and the next
 \texttt{commit} and \texttt{push} carry on there. \texttt{tag} writes no State.
 
-\subsection{\texttt{freeze-release}}
+\subsection{\texttt{release}: \texttt{freeze}, \texttt{list}, \texttt{load}}
 
 \begin{lstlisting}[language=bash]
-$ pixi run cgitsync freeze-release <name> <message> [--gts <snapshot.gts>] [--dry-run]
-    [--force-protocol {ssh,https}]
+$ pixi run cgitsync release freeze <message> [--force-tag TAG] [--dry-run]
+    [--force-protocol {ssh,https}] [--gts <snapshot.gts>]
+$ pixi run cgitsync release list [--json]
+$ pixi run cgitsync release load <version | number | tag> [--workspace NAME [--cgs-path DIR]]
 \end{lstlisting}
 
-Minimalist release workflow from a READY tree. It chains public operations in
-order: \texttt{add -> commit -> pull -> push}, then it creates and pushes the
-shared tag and writes the \texttt{.gts} snapshot. It is the one freeze
-procedure: there is no bare \texttt{freeze} command and no force variant. To
-release from a branch that has fallen behind, run \texttt{pull --force} first
-(it refuses while a commit exists that no remote holds, so commit and push
-before it), then \texttt{freeze-release}. The release name becomes the
-shared tag and snapshot label; the message is used for the release
-commit.
+A release is the tree as it was, every repository at an exact commit, under
+a name anyone can find again. \texttt{release} has three subcommands, and
+replaces \texttt{freeze-release}, which no longer exists: typing it names
+\texttt{release freeze} instead.
 
-The \texttt{pull} step is skipped (not attempted) when
-the current branch has no upstream configured yet — e.g. a branch just
-created and checked out this same session, never pushed before. There is
-nothing to pull in that case; \texttt{push} (already upstream-aware, adding
-\texttt{-u} automatically the same way plain \texttt{git push -u} would)
-publishes the branch on its own. On any branch that already has an
-upstream, the workflow is unchanged.
+\paragraph{\texttt{release freeze}} is the release workflow from a READY
+tree. It chains public operations in order: \texttt{add -> commit -> pull ->
+push}, then it creates and pushes the release tag and writes the
+\texttt{.gts} State. It is the one freeze procedure: there is no force
+variant. To release from a branch that has fallen behind, run \texttt{pull
+--force} first (it refuses while a commit exists that no remote holds, so
+commit and push before it). The message is used for the release commit.
 
-\texttt{--force-protocol} is forwarded to the \texttt{pull}
-and \texttt{push} steps above, behaving exactly as described under
-\texttt{pull}; the remote rewrite it makes persists, so the final
-release's own tag push picks it up too without needing the
-flag itself.
+\textbf{The tag is always \texttt{<project-name>-<suffix>}}, the project
+name being the one the tree's root records. The suffix is, in this order:
+the \texttt{TAG} of \texttt{--force-tag} (the prefix is added for you); the
+version the root repository's \texttt{pixi.toml} declares, as written, a
+SemVer or a build version alike (\texttt{[workspace]} first, then
+\texttt{[project]}); or, with no version there, the next number after the
+project's highest numbered release (\texttt{1}, then \texttt{2}). The
+project's name is in the tag because one repository can belong to several
+projects, and each project's releases must keep their own names in it. A
+tag any repository already holds is refused before anything moves, naming
+the repository and, when its tag says so, the project that released it: to
+release again, bump the version in \texttt{pixi.toml}, or choose a name with
+\texttt{--force-tag}. \texttt{--dry-run} prints the tag, where its suffix
+came from, and the planned steps; nothing is committed, tagged or pushed.
 
-The release also records a \texttt{release} row on the
-ledger entry it writes: the installed package's own SemVer and build
-counter, plus \texttt{<name>} as the tag actually applied. Name the release
-\texttt{v<semver>} (for example \texttt{v3.1.0}) to keep the tag and the
-recorded SemVer in agreement.
+\textbf{The root repository's tag carries the release.} Every other
+repository gets a plain tag; the root's is annotated, and its message holds
+the project name, the version and the release's State restricted to the
+project's own repositories. A private repository, read-only or writable, is
+never written into it: the tag may be public. That is what lets any user
+find and load the release, including in a tree whose memory never leaves the
+disk.
 
-The freeze step stages and commits, creates and pushes the shared release
-tag --- and the branch too, when this step itself made a commit, so the
-remote branch is never behind its release --- refreshes each commit, and
-writes a \texttt{.gts} snapshot, leaf-first. Its preflight
-checks remote availability, branch alignment, detached HEADs, unresolved
-merges, and tag absence. Dirty worktrees and stale recorded \texttt{commit\_sha} values are
-reported as warnings because the freeze will stage, commit, and snapshot them.
-The snapshot also includes a deterministic \texttt{freeze\_manifest} section
-that records freeze invariants (immutable snapshot, validated workspace,
-synchronized tag, \texttt{release-name}, ledger checkpoint) and declares
-\texttt{launch\_state} as the canonical restore operation. To return to a
-release later, run \texttt{checkout <name> --ref-kind tag} in place, or
-\texttt{bootstrap} the release's \texttt{.gts} for an exact copy elsewhere.
-With \texttt{--dry-run}, \cgscli{} prints the planned add/commit/tag/push graph
-for the loaded workspace without mutating it.
+The ledger entry the release writes carries a \texttt{release} row: the
+tag (\texttt{git\_tag}), the \texttt{project}, the project's version
+(\texttt{project:version}, when \texttt{pixi.toml} declares one), and the
+installed \cgscli{}'s own version and build (\texttt{semver},
+\texttt{artefact:src}). The keys are additive, so every ledger written
+before them still verifies.
+
+The \texttt{pull} step is skipped (not attempted) when the current branch
+has no upstream configured yet --- a branch just created and never pushed.
+There is nothing to pull in that case; \texttt{push} (already
+upstream-aware, adding \texttt{-u} the way plain \texttt{git push -u} would)
+publishes the branch on its own. \texttt{--force-protocol} is forwarded to
+the \texttt{pull} and \texttt{push} steps, behaving exactly as described
+under \texttt{pull}; the remote rewrite persists, so the tag push picks it
+up too.
+
+The freeze step stages and commits, creates and pushes the tag --- and the
+branch too, when this step itself made a commit, so the remote branch is
+never behind its release --- refreshes each commit, and writes the
+\texttt{.gts} State, leaf-first, the root last. Its preflight checks remote
+availability, branch alignment, detached HEADs and unresolved merges. Dirty
+worktrees and stale recorded \texttt{commit\_sha} values are reported as
+warnings because the freeze will stage, commit, and record them. The State
+includes a deterministic \texttt{freeze\_manifest} section recording the
+freeze invariants and the release's name.
+
+\paragraph{\texttt{release list}} prints every release of the project,
+newest first: its tag, the project's version, when it was recorded, who
+tagged it, and where it was read. \texttt{ledger} is this workspace's own
+record; \texttt{tag} is the root repository's tag, fetched from its remote
+(only this project's tags, and nothing else moves);
+\texttt{ledger+tag} is both. So a release another user made is listed too.
+A tag named like a release but carrying no State is listed as \texttt{tag
+only}. \texttt{--json} prints the same rows for a script. It moves no
+branch and no file, and writes nothing to a remote; it only brings the
+project's release tags from the root's remote. \texttt{BY} is the tagger
+named by the root's tag, empty for a release only the ledger knows.
+
+\paragraph{\texttt{release load}} puts the tree back at a release. The name
+is the whole tag, or what follows the project's name: \texttt{release load
+1.2.0} loads \texttt{<project>-1.2.0}. The State comes from this disk, from
+the memory, or from the root repository's tag. In place, every repository
+the release recorded is left \emph{detached} at its recorded commit,
+fetching the commit if needed; no branch moves, and \texttt{checkout
+<branch>} goes back to work. The memory (everything under
+\texttt{.cgitsync/}) stays on its branch, as with \texttt{checkout <tag>}: a
+release does not rewind history. If Git cannot move one repository, every
+one already moved is put back before the refusal. It is refused, by name and before anything
+moves, when a repository has uncommitted changes to tracked files, when the
+release records a repository this tree does not hold, or for a \texttt{tag
+only} release, which \texttt{checkout <tag> --ref-kind tag} can still look
+at. With \texttt{--workspace NAME} the release is loaded into a new
+workspace instead, exactly as \texttt{bootstrap} would build it from the
+State, and the current one is left alone.
 
 \paragraph{After a release, the tree is still on its branch.} The tag names
 the release; nothing checks it out. The next \texttt{add}, \texttt{commit}
 and \texttt{push} work on the branch as before, and the State the release
 recorded names that branch and the exact commit of every repository. Before
-4.2.4, \texttt{freeze-release} recorded the tag as every repository's branch,
+4.2.4, the release command recorded the tag as every repository's branch,
 so the next \texttt{push} pushed the tag again and sent nothing, while
 reporting \texttt{origin/<name> (+N)}. A workspace in that state is put
 right when its next command loads the State, with a warning; check with
 \texttt{status} and push any commit it shows ahead.
 
 \paragraph{Folds this project's own memory first, same as \texttt{push}.}
-\texttt{freeze-release} (and \texttt{tag}, which folds the same way on
+\texttt{release freeze} (and \texttt{tag}, which folds the same way on
 its own combined commit-tag-push) crosses the \texttt{.cgitsync}
 $\rightarrow$ \texttt{.cgitsync/.memory} frontier before doing anything
 else, under the same conditions \texttt{push} does. A release
@@ -2223,7 +2273,7 @@ branch describing code that is not there.
 takes it: ten commands, \texttt{pull} (with or without \texttt{--force}),
 \texttt{fetch}, \texttt{checkout}, \texttt{branch} (on \texttt{create},
 \texttt{list} and \texttt{close}), \texttt{add}, \texttt{rm},
-\texttt{commit}, \texttt{merge}, \texttt{push} and \texttt{tag}. \texttt{freeze-release}
+\texttt{commit}, \texttt{merge}, \texttt{push} and \texttt{tag}. \texttt{release freeze}
 does not take it: it is a whole-tree release. It
 narrows the command to the writable
 configuration repositories alone, so they can be worked on without
@@ -2296,7 +2346,7 @@ repository can never be more open than the one that contains it.
 \texttt{add}, \texttt{commit}, \texttt{push}    & this project's own     & they write this project's history \\
 the same, \texttt{--private}                   & writable config repos  & shared, but on your own branch \\
 \texttt{branch create}, \texttt{checkout}       & this project's own     & a branch must not spread \\
-\texttt{tag}, \texttt{freeze-release}           & everything writable    & they create \emph{and push} a tag \\
+\texttt{tag}, \texttt{release freeze}           & everything writable    & they create \emph{and push} a tag \\
 \texttt{pull}, \texttt{status}                  & everything             & reading a shared repo is the point \\
 \end{tabular}
 \end{center}
@@ -2325,10 +2375,11 @@ scoped command reports what it left alone:
 scope=project skipped=5 configuration repo(s) (.claude, .localSpec with --private)
 \end{lstlisting}
 
-\texttt{tag} and \texttt{freeze-release} stop at read-only repositories
+\texttt{tag} and \texttt{release freeze} stop at read-only repositories
 because they push. Nothing is lost: a \texttt{.gts} snapshot records every
 repository's exact \texttt{commit\_sha}, read-only ones included, so an
-exact tree is rebuilt from the snapshot rather than from tags.
+exact tree is rebuilt from the snapshot rather than from tags, which is what
+\texttt{release load} does.
 
 In practice shared config mounts are usually dot-named
 (\texttt{.agentSpec}, \texttt{.localSpec}), and \texttt{cgitsync discover}

@@ -144,7 +144,7 @@ $ pixi run cgitsync verify check      # does the recorded history verify?
 \end{lstlisting}
 
 Once adopted, the memory is sent with every \texttt{push}, \texttt{tag} and
-\texttt{freeze-release}. \url{tutorials/06_memory.md} covers it in full.
+\texttt{release freeze}. \url{tutorials/06_memory.md} covers it in full.
 
 % -----------------------------------------------------------------------
 \section{Installation}
@@ -279,7 +279,9 @@ $ pixi run cgitsync checkout my-feature    # move the project to a branch
 $ pixi run cgitsync add
 $ pixi run cgitsync commit "what changed"
 $ pixi run cgitsync push
-$ pixi run cgitsync freeze-release v1.0 "first release"   # add, commit, pull, push, record
+$ pixi run cgitsync release freeze "first release"   # add, commit, pull, push, tag, record
+$ pixi run cgitsync release list                     # every release, whoever made it
+$ pixi run cgitsync release load 1                   # back to a release, detached
 \end{lstlisting}
 
 \texttt{status} prints one row per repository --- its branch, whether its
@@ -288,7 +290,7 @@ files are \texttt{clean} or \texttt{dirty}, and whether it is
 summary line naming the project's branch. \texttt{pull} visits the tree
 from the root down; \texttt{add}, \texttt{commit} and \texttt{push} from the
 leaves up, so a parent never records a child that is not yet committed.
-\texttt{add}, \texttt{commit}, \texttt{push} and \texttt{freeze-release}
+\texttt{add}, \texttt{commit}, \texttt{push} and \texttt{release freeze}
 accept \texttt{--dry-run} to show what they would do.
 
 Commands that could lose work refuse instead. \texttt{merge} checks every
