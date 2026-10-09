@@ -722,7 +722,27 @@ values.
 With \texttt{--dry-run}, \cgscli{} prints the planned stage/commit sequence
 without performing git writes.
 
-The commit message conventionally ends with \texttt{CGS\#VERSION}.
+\paragraph{Two refusals, only in a tree that adopted DevSpec.} Both run
+before anything is staged, and either one refuses the whole commit, naming
+what it broke; nothing is committed anywhere. A tree whose root does not
+hold \texttt{.agent/.distant/dev-sync/AgentConduct.md} commits with no
+check at all.
+\begin{itemize}
+  \item \textbf{The message}, when the root also holds a
+    \texttt{pyproject.toml} naming the project and its version. It must
+    start with \texttt{<project-name><version>} (for example
+    \texttt{cgitsync\cgsversion}, no space and no \texttt{v}), be three
+    lines at most, and carry no backtick, no \texttt{\$(} and no
+    agent-credit trailer.
+  \item \textbf{An archived planning ticket needs its orchestrator's
+    record}, when an \texttt{.agent/.local} mount holds a
+    \texttt{DevTickets/archive}. A commit that would add a planning ticket stamped on or after
+    2026-10-09 to \texttt{DevTickets/archive/} is refused unless a
+    \texttt{self-history} record names that ticket and was written by an
+    orchestrator, a role other than the worker's (see
+    \texttt{self-history} below). Only the tickets the commit adds are
+    checked; \texttt{pixi run check-tickets} checks the whole archive.
+\end{itemize}
 
 \subsection{\texttt{push}}
 
@@ -1264,6 +1284,9 @@ from \texttt{.localSpec/AGENT.md}'s roster, a vendor and a model version
 --- and a three-part conformity score (spec respect, \texttt{.PUBLIC}/
 \texttt{.PRIVATE} gating, quality of production), each part marked
 \texttt{measured} or \texttt{asserted} rather than blending the two.
+In a tree that adopted DevSpec, this record is what lets a finished
+planning ticket be committed: \texttt{commit} refuses to add an archived
+ticket that no orchestrator's record names (see \texttt{commit} above).
 
 The score is out of \textbf{100}: spec respect is scored from 0 to 33,
 gating from 0 to 33 and quality from 0 to 34, and the total is their plain
