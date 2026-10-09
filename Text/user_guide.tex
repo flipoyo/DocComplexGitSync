@@ -1851,6 +1851,22 @@ call --- your Git configuration is never written. With no merge tool
 available at all, the command prints the command to run by hand and stops,
 rather than failing.
 
+A memory is never merged file by file, here or in any other mode: it is
+kept whole and the other side recorded as history, and it is never a stop.
+A repository whose branches share no commit stops the run by name; nothing
+is attempted there, since Git refuses it.
+
+\paragraph{\texttt{--all-conflicts}: go on past a text conflict.} Used with
+\texttt{--resolve}, once your merge tool leaves no conflict in a repository
+it commits that merge (\texttt{Merge branch '<source>'}), lists it with the
+others as merged, and goes on. It stops, naming the repository, on
+histories with no common commit, on a binary conflict (it names the file,
+says that Git left this branch's version and on which branch the other one
+is), on a file left unresolved, and when no merge tool is available, in
+which case it prints the command to run by hand. It never resolves,
+regenerates or stages a file in silence, and it always ends.
+Tutorial 7 teaches merging a tree end to end.
+
 \paragraph{Check out the target first.} \texttt{merge} brings a branch
 \emph{into} the one the tree is on, exactly as \texttt{git merge} does.
 Running \texttt{cgitsync merge multi-branch} while the tree is still on

@@ -305,7 +305,15 @@ time, stops at the first that conflicts, and returns a
 \texttt{ResolveOutcome} naming what it merged, where it stopped, the files
 that stopped it, and the repositories it never reached. It gives up the
 all-or-nothing guarantee on purpose: that is the only way to reach the
-conflicted worktree a merge tool needs.
+conflicted worktree a merge tool needs. \texttt{ResolveOutcome.stopped\_status}
+is \texttt{"conflicts"}, \texttt{"unrelated"} (no common commit; nothing was
+attempted) or \texttt{None} when the run did not stop;
+\texttt{stopped\_source} names the branch the stopped repository was
+merging, and \texttt{binary\_paths} the conflicting files that are not text.
+\texttt{merge\_resolve\_all(...)} repeats it: each text conflict the merge
+tool resolves is committed and added to \texttt{merged}, which gathers every
+pass, and it stops on anything else, with \texttt{hand\_command} set when no
+merge tool could be opened. It always ends.
 
 \texttt{open\_merge\_tool(repo\_name)} then opens one repository's conflicts
 in a merge tool. It returns \texttt{None} once the tool has run, or the
