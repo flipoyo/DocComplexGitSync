@@ -461,6 +461,24 @@ names which mounted repository to repair when it cannot be guessed from
 the error text (a chain-shaped repository's name is usually visible in
 its own remote URL, which \texttt{git}'s error text already includes).
 
+\paragraph{When the last command did not fail.} A commit made with a bare
+\texttt{git commit}, outside \cgscli{}, raises no error and leaves no log, so
+there is nothing to start from. When the log holds no failing command,
+\texttt{autofix} reads instead the tip commit of every repository this project
+may write, and reports each one whose message breaks the commit-message rule
+of a tree that adopted DevSpec, or shows signs of shell damage: two spaces in a
+row, or a space before punctuation that is followed by a space or the end of the
+message (a dotted name such as \texttt{.cgs} is not flagged), where a
+backtick-quoted phrase may have been replaced by nothing. The damage is called \emph{suspected}, because a person can
+type either. Every writable repository is judged with the root's project prefix, private
+mounts included. Only a commit authored under the repository's own
+\texttt{user.email} is judged, so a commit pulled from someone else is not
+reported. The report names the repository and the commit and gives the
+commands that extract the message intact (\texttt{git show -s --format=\%B
+<sha>}, \texttt{git cat-file commit <sha>}). It changes nothing: no commit is
+amended, rebased or force-pushed, pushed or not. A logged error still takes
+precedence, and \texttt{--repo} narrows the inspection to one repository.
+
 \paragraph{Tricky git states, and the safe \cgscli{} command for each.}
 The \texttt{SYNC} column \texttt{status} prints (\S\ref{sec:status-sync},
 below) names the git-level situation; it cannot say whether the content

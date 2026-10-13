@@ -1087,6 +1087,14 @@ outcome = client.autofix(
 print(outcome.repaired, outcome.detail)
 \end{lstlisting}
 
+With no failing command in the log, \texttt{autofix()} falls back to the tip
+commit of each writable repository, judging only commits authored under the
+repository's own \texttt{user.email}. It returns an outcome with
+\texttt{repaired=False} whose \texttt{detail} reports each message that breaks
+the tree's commit-message rule or looks shell-damaged, with the commands that
+extract it intact, and changes nothing; \texttt{NoMatchingRepairError} is
+raised when no tip commit is reported.
+
 Returns an \texttt{autofix.RepairOutcome}: \texttt{repaired} (bool) and
 \texttt{detail} (str, one line naming what changed or why nothing did).
 \texttt{repaired=False} is not a failure --- it also covers the case
