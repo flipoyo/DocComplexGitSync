@@ -812,7 +812,9 @@ push}, then it creates and pushes the release tag and writes the
 \texttt{.gts} State. It is the one freeze procedure: there is no force
 variant. To release from a branch that has fallen behind, run \texttt{pull
 --force} first (it refuses while a commit exists that no remote holds, so
-commit and push before it). The message is used for the release commit.
+commit and push before it). The message is used for the release commit, and
+it titles the release's tag: the first line of it follows the tag's name in
+the tag's subject, so a Git provider's tag page says what the release is.
 
 \textbf{The tag is always \texttt{<project-name>-<suffix>}}, the project
 name being the one the tree's root records. The suffix is, in this order:
@@ -830,9 +832,13 @@ release again, bump the version in \texttt{pixi.toml}, or choose a name with
 came from, and the planned steps; nothing is committed, tagged or pushed.
 
 \textbf{The root repository's tag carries the release.} Every other
-repository gets a plain tag; the root's is annotated, and its message holds
-the project name, the version and the release's State restricted to the
-project's own repositories. A private repository, read-only or writable, is
+repository gets a plain tag; the root's is annotated. Its message is the
+subject line, then one TOML document that reads like a \texttt{.gts} file:
+a \texttt{[cgitsync\_release]} table (the project, the tag, the message in
+full, the version, the \cgscli{} version) followed by the release's State,
+restricted to the project's own repositories, in the \texttt{.gts}'s own
+tables. A release tagged before 6.1 keeps the State as one escaped string in
+that table, and still loads. A private repository, read-only or writable, is
 never written into it: the tag may be public. That is what lets any user
 find and load the release, including in a tree whose memory never leaves the
 disk.
@@ -878,19 +884,47 @@ named by the root's tag, empty for a release only the ledger knows.
 \paragraph{\texttt{release load}} puts the tree back at a release. The name
 is the whole tag, or what follows the project's name: \texttt{release load
 1.2.0} loads \texttt{<project>-1.2.0}. The State comes from this disk, from
-the memory, or from the root repository's tag. In place, every repository
-the release recorded is left \emph{detached} at its recorded commit,
-fetching the commit if needed; no branch moves, and \texttt{checkout
-<branch>} goes back to work. The memory (everything under
+the memory, or from the root repository's tag. Without \texttt{--workspace}
+the release goes into the workspace the command resolves (the \texttt{cgshome=}
+line it prints), and nowhere else. A repository the release records and the
+tree lacks is cloned, at its recorded commit, as \texttt{bootstrap} would
+clone it; a commit its remote no longer holds is refused by name before
+anything is cloned. Every recorded repository, the cloned ones included, is
+then left \emph{detached} at its recorded commit, fetching the commit if
+needed; no branch moves. A repository the tree holds and the release does
+not record is left as it is and named. The memory (everything under
 \texttt{.cgitsync/}) stays on its branch, as with \texttt{checkout <tag>}: a
 release does not rewind history. If Git cannot move one repository, every
-one already moved is put back before the refusal. It is refused, by name and before anything
-moves, when a repository has uncommitted changes to tracked files, when the
-release records a repository this tree does not hold, or for a \texttt{tag
-only} release, which \texttt{checkout <tag> --ref-kind tag} can still look
-at. With \texttt{--workspace NAME} the release is loaded into a new
-workspace instead, exactly as \texttt{bootstrap} would build it from the
-State, and the current one is left alone.
+one already moved is put back before the refusal. It is refused, by name and
+before anything moves, when a repository has uncommitted changes to tracked
+files, or for a \texttt{tag only} release, which \texttt{checkout <tag>
+--ref-kind tag} can still look at. With \texttt{--workspace NAME} the release
+is loaded into a new workspace instead, exactly as \texttt{bootstrap} would
+build it from the State, with each repository on its branch at the recorded
+commit, and the current workspace is left alone; the command prints the
+\texttt{export CGSHOME=...} line \texttt{bootstrap} prints, with the
+timestamped path it built.
+
+\paragraph{Leaving a loaded release.} A tree loaded in place, or put on a tag
+with \texttt{checkout <tag>}, is detached: \texttt{status} prints
+\texttt{cgitsync\_branch=detached}, and \texttt{release load} ends by naming
+the branch the tree was on. There are two ways back onto a branch.
+\begin{itemize}
+  \item \texttt{checkout <branch>} goes back to work and leaves the release
+    behind: every repository returns to its branch (a private repository to
+    \texttt{<project>\_<branch>}), the ones the load cloned included. The
+    tag still names the release, and \texttt{release load} reaches it again.
+  \item \texttt{branch create <name>} then \texttt{checkout <name>} works
+    \emph{from} the release, for a fix to a released version. Each
+    repository's new branch starts where it is, at the release commit or at
+    a later commit made while detached, so nothing is lost. \texttt{push}
+    then publishes the new branch.
+\end{itemize}
+\texttt{cgitsync commit} refuses on a detached tree, so a commit made there
+was made with plain \texttt{git}. Such a commit is on no branch, and
+\texttt{checkout} refuses to leave it: it names each repository and its
+unnamed commits, moves nothing, and points to the second way. A load into a
+new workspace needs neither, since its repositories are on their branches.
 
 \paragraph{After a release, the tree is still on its branch.} The tag names
 the release; nothing checks it out. The next \texttt{add}, \texttt{commit}

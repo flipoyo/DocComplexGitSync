@@ -112,7 +112,8 @@ practice, the workflow is:
     one release procedure, \texttt{release freeze} on the command line. It
     tags \texttt{<project-name>-<suffix>}: \texttt{force\_tag}, else the
     version in the root's \texttt{pixi.toml}, else the next number. The
-    root's tag is annotated and carries the project-scope State.
+    root's tag is annotated: its subject carries the freeze message, and
+    its body is the project-scope State as TOML.
     \texttt{next\_release\_tag(force\_tag=None)} returns that tag, the
     version and where the suffix came from, without changing anything.
     \texttt{freeze(...)} and \texttt{freeze\_state(...)} are internal steps
@@ -127,10 +128,13 @@ practice, the workflow is:
     user made is listed too.
   \item \texttt{load\_release(name, *, workspace=None, cgs\_path=None)}
     puts every repository back at the release's recorded commit, detached,
-    and refuses a tree with uncommitted changes; with \texttt{workspace} it
-    builds a new workspace from the release's State, as \texttt{bootstrap}
-    does. \texttt{name} is the whole tag or what follows the project's
-    name.
+    cloning any the tree lacks, and refuses a tree with uncommitted changes;
+    afterwards \texttt{last\_release\_load} (a \texttt{ReleaseLoad}: the tag,
+    the branch the tree was on, the repositories cloned, the ones left
+    alone) says what it did. With \texttt{workspace} it builds a new
+    workspace from the release's State, as \texttt{bootstrap} does.
+    \texttt{name} is the whole tag or what follows the project's name. Each
+    row of \texttt{list\_releases()} also carries the freeze \texttt{message}.
 \end{itemize}
 
 \begin{lstlisting}[language=Python]
