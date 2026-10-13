@@ -670,6 +670,16 @@ then is the branch deleted, on origin first and then locally, leaf-first;
 a local branch is removed only while it still points at the commit that
 was checked. A step that fails refuses with nothing deleted.
 
+\textbf{Developer trees only.} \texttt{branch close} and \texttt{branch
+delete} are refused, before any repository is touched, in a user's tree: one
+whose \texttt{.cgs} holds no private repository. Both remove the branch on the
+remote for everyone, and a plain \texttt{install.cgs} is such a tree.
+\texttt{branch check} and \texttt{branch list} still work there. There is no
+flag to override it: a maintainer closes the branch on the provider's page. This
+is a guard against a mistake, not a lock. The tree's kind comes from the
+\texttt{.cgs} its user holds, and \texttt{git push --delete} needs no
+\cgscli{}; only the provider's branch protection stops someone set on it.
+
 \subsection{\texttt{add}}
 
 \begin{lstlisting}[language=bash]
@@ -1100,7 +1110,8 @@ a developer's privilege.
 \texttt{status} prints \texttt{profile=user} or \texttt{profile=dev} on its
 summary line, and \texttt{status --json} carries the same word as
 \texttt{profile}. A tree whose \texttt{.cgs} holds no private repository is a
-user's, and its memory never leaves the disk. A tree holding at least one
+user's, its memory never leaves the disk, and \texttt{branch close} and
+\texttt{branch delete} are refused in it. A tree holding at least one
 private repository, read-only or not, is a developer's, and its memory is meant
 to be sent to the repository its \texttt{.cgs} declares. When a developer's
 \texttt{.cgs} declares none, the work is still recorded locally, and the first

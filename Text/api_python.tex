@@ -246,7 +246,9 @@ is on, as \texttt{status} prints \texttt{cgitsync\_branch}: a branch name,
 
 \paragraph{\texttt{close\_branch(branch\_name, private=False)}.} Closes a
 project branch across the full tree, leaf-first, locally and on the
-remote, never deleting anything. Each repository closes the branch it
+remote, never deleting anything. Like \texttt{delete\_branch}, it raises
+\texttt{GitSyncError} in a user's tree, one that holds no private repository,
+before touching any repository. Each repository closes the branch it
 follows under \texttt{branch\_name} (\texttt{<project>\_<branch>} in a
 private/local repository; a private/distant one is skipped). A branch that
 exists only on the remote is closed there. Requires \texttt{READY}. Raises
