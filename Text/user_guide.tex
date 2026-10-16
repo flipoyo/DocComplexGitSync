@@ -554,6 +554,19 @@ own, and remains the cheapest way to bring many refs across at once.
 \texttt{checkout} and \texttt{branch create} no longer depend on it having run
 first: each fetches the one ref it needs, exactly when it needs it.
 
+\paragraph{An untracked copy of a file the branch holds does not stop it.}
+Git refuses to check out a ref over an untracked file that ref tracks, even
+when the two hold the same bytes. \texttt{bootstrap} leaves such a file in
+every root: the \texttt{.gitignore} that names the child repositories. Once
+a branch commits it and \texttt{main} never receives it --- a protected
+\texttt{main} does not --- a second install from the \texttt{.cgs} could not
+join that branch, nor load a release made on it. When every file Git names
+holds exactly the bytes the target ref holds, \cgscli{} sets them aside and
+checks out again, which writes them back unchanged; if that second checkout
+fails, they are put back as they were. Any file that differs is Git's
+refusal, by name, and nothing is touched. The same holds for
+\texttt{release load} and for every other command that checks out a ref.
+
 \paragraph{Checking out a tag.} \texttt{checkout <tag> --ref-kind tag} puts
 every repository that holds the tag on it, detached, and creates no branch.
 Every writable repository is asked for the tag first --- fetching that one
@@ -919,7 +932,10 @@ tree lacks is cloned, at its recorded commit, as \texttt{bootstrap} would
 clone it; a commit its remote no longer holds is refused by name before
 anything is cloned. Every recorded repository, the cloned ones included, is
 then left \emph{detached} at its recorded commit, fetching the commit if
-needed; no branch moves. A repository the tree holds and the release does
+needed; no branch moves. An untracked file the release's commit holds byte
+for byte, such as \texttt{bootstrap}'s root \texttt{.gitignore} in an install
+whose \texttt{main} never received it, does not stop the move (see
+\texttt{checkout}). A repository the tree holds and the release does
 not record is left as it is and named. The memory (everything under
 \texttt{.cgitsync/}) stays on its branch, as with \texttt{checkout <tag>}: a
 release does not rewind history. If Git cannot move one repository, every
@@ -1235,7 +1251,7 @@ one level inside it is checked out and merged like any other private
 repository, never blocked by activity that is not its own. A developer gets
 there with one command, run at any time: \texttt{memory setup}
 (\S\ref{sec:tree-profile}). The five commands below are the same path
-step by step, run once per project; \texttt{tutorials/05\_memory.md} walks
+step by step, run once per project; \texttt{tutorials/06\_memory.md} walks
 both.
 
 \begin{lstlisting}[language=bash]
@@ -2134,18 +2150,19 @@ Two checked-in files document this boundary. Copy
 provided as a developer reference for the canonical \texttt{CgsDocument}
 shape. The two files are regression-tested for semantic equivalence.
 
-The repository also keeps three checked-in, didactically ordered tutorials
+The repository also keeps seven checked-in, didactically ordered tutorials
 under \texttt{tutorials/} --- easiest first, see
-\texttt{tutorials/README.md} for the guided order --- exercising this
-authoring surface end to end:
-\texttt{tutorials/01\_first\_multi\_repo\_workspace.md} walks a fully
-exercised local sandbox topology (\texttt{CGSil1}) through the complete CLI
-lifecycle;
-\texttt{tutorials/02\_onboarding\_a\_real\_build\_tree.md} hand-authors
+\texttt{tutorials/README.md} for the guided order. Three of them exercise
+this authoring surface end to end:
+\texttt{tutorials/01\_first\_multi\_repo\_workspace.md} installs a small
+sandbox topology (\texttt{CGSil1}), which
+\texttt{tutorials/02\_working\_with\_a\_tree.md} then works on, on a branch
+of its own, through the complete CLI lifecycle;
+\texttt{tutorials/03\_onboarding\_a\_real\_build\_tree.md} hand-authors
 a \texttt{.cgs} for the larger, real-world \texttt{cawaqs} tree and the
 point where \cgscli{} hands off to the project's existing
 \texttt{make}-based build workflow; and
-\texttt{tutorials/03\_adopting\_a\_real\_project.md} covers the
+\texttt{tutorials/04\_adopting\_a\_real\_project.md} covers the
 real-world \texttt{cawaqsviz} project (not synthetic), which has no
 \texttt{.cgs} of its own and still tracks three repositories on two levels
 as git submodules,
@@ -2155,7 +2172,7 @@ tree with \texttt{submodules init} (\texttt{discover} +
 \texttt{branch create}/\texttt{checkout}/\texttt{add}/\texttt{commit}/\texttt{push}.
 
 \texttt{examples/cawaqsviz.cgs}, the hand-authored alternative mentioned in
-\texttt{tutorials/03\_adopting\_a\_real\_project.md} above,
+\texttt{tutorials/04\_adopting\_a\_real\_project.md} above,
 describes \url{https://gitlab.com/cawaqs/gviz/cawaqsviz} and exercises
 several patterns above at once: a nested GitLab subgroup path
 (\texttt{cawaqs/gviz/cawaqsviz}, three segments rather than a plain
@@ -2172,7 +2189,7 @@ an invalid \texttt{default\_branch}; it was corrected and given real
 end-to-end test coverage
 (\texttt{tests/integration/test\_cgsi\_topology.py}, and one verified run
 against the live repositories).
-See \texttt{tutorials/03\_adopting\_a\_real\_project.md}
+See \texttt{tutorials/04\_adopting\_a\_real\_project.md}
 for the full worked example, and \texttt{bootstrap} above for running
 \cgspkg{} against it without cloning \cgspkg{} inside the tree it manages.
 

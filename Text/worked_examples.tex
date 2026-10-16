@@ -55,7 +55,8 @@ mixed-provider tree with every field left at its default. Its full
 \texttt{.cgs} and the rationale for each line are in \S\ref{chap:user-guide}
 ``Local Authoring Spec'' above;
 \texttt{tutorials/01\_first\_multi\_repo\_workspace.md} installs it and
-\texttt{tutorials/02\_working\_with\_a\_tree.md} works on it, with the
+\texttt{tutorials/02\_working\_with\_a\_tree.md} works on it, on a branch
+of its own because the sandbox's \texttt{main} is protected, with the
 expected output of each step. What follows is the command sequence itself.
 
 \begin{lstlisting}[language=bash]
@@ -76,7 +77,10 @@ $ pixi run cgitsync initialise ../CGSil1.cgs
 
 # 5. The ordinary git cycle, run tree-wide from here on --- no path
 #    argument needed, the .gts snapshot is discovered automatically.
+#    main is protected on GitLab, so the work goes on a branch first.
 $ pixi run cgitsync pull
+$ pixi run cgitsync branch create feature
+$ pixi run cgitsync checkout feature
 $ pixi run cgitsync add
 $ pixi run cgitsync commit "my commit message"
 $ pixi run cgitsync push

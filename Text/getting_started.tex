@@ -232,7 +232,7 @@ that walks through it end to end.
 \texttt{bootstrap}, and shows the same tree installed nested with
 \texttt{initialise} so the difference is concrete;
 \url{tutorials/02_working_with_a_tree.md} then runs the whole lifecycle on
-it.
+it, on a branch of its own.
 
 \paragraph{The project already provides a \texttt{.cgs}.} This is the usual
 case, for any kind of project: use \texttt{bootstrap}, as in
@@ -274,6 +274,8 @@ on the sample tree, including going back to a release from its State:
 $ pixi run cgitsync status                 # where every repository stands
 $ pixi run cgitsync view-tree              # the tree, drawn
 $ pixi run cgitsync pull                   # bring every repository up to date
+$ pixi run cgitsync branch create my-feature   # a branch in every repository
+$ pixi run cgitsync branch list            # the project's branches, * on the current one
 $ pixi run cgitsync checkout my-feature    # move the project to a branch
   ... work on the files ...
 $ pixi run cgitsync add
@@ -316,6 +318,6 @@ one and diagnoses the situation.
 % -----------------------------------------------------------------------
 \section{Next steps}
 
-The six tutorials under \url{tutorials/} work through the cases above, from
+The seven tutorials under \url{tutorials/} work through the cases above, from
 the simplest to the most advanced. The User Guide is the
 reference for every command, option, document format and error.
