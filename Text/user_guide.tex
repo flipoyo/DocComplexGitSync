@@ -556,13 +556,14 @@ first: each fetches the one ref it needs, exactly when it needs it.
 
 \paragraph{An untracked copy of a file the branch holds does not stop it.}
 Git refuses to check out a ref over an untracked file that ref tracks, even
-when the two hold the same bytes. \texttt{bootstrap} leaves such a file in
+when the two hold the same content. \texttt{bootstrap} leaves such a file in
 every root: the \texttt{.gitignore} that names the child repositories. Once
 a branch commits it and \texttt{main} never receives it --- a protected
 \texttt{main} does not --- a second install from the \texttt{.cgs} could not
 join that branch, nor load a release made on it. When every file Git names
-holds exactly the bytes the target ref holds, \cgscli{} sets them aside and
-checks out again, which writes them back unchanged; if that second checkout
+has the same content as Git would store it (the same blob id, so a copy with
+Windows line endings under \texttt{core.autocrlf} counts), \cgscli{} sets them
+aside and checks out again, which writes the branch's copy; if that second checkout
 fails, they are put back as they were. Any file that differs is Git's
 refusal, by name, and nothing is touched. The same holds for
 \texttt{release load} and for every other command that checks out a ref.

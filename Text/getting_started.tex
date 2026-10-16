@@ -220,6 +220,21 @@ a checkout names \texttt{initialise}. \texttt{status} reports which case is
 in force, as \texttt{use\_case=standalone} or as
 \texttt{use\_case=nested}.
 
+\paragraph{On Windows.} The command line is Linux-like and the tutorials are
+written for bash, which on Windows is Git Bash (it comes with Git for
+Windows). The lines to paste are printed with forward slashes
+(\texttt{export CGSHOME=C:/Users/you/.cgs/my-project-<timestamp>}), so they
+work as printed and no backslash is ever doubled; other messages may still
+show a path with backslashes. \texttt{\textasciitilde}
+and \texttt{\$HOME} name the same directory to the shell and to the tool,
+and the default workspace root is \texttt{\$HOME/.cgs}; only when
+\texttt{HOME} is unset does the tool use the profile directory. In another
+shell, only the lines that are shell syntax change:
+\texttt{\$env:CGSHOME = "C:/Users/you/.cgs/my-project-<timestamp>"} in
+PowerShell, \texttt{set CGSHOME=C:/Users/you/.cgs/my-project-<timestamp>} in
+\texttt{cmd}, and \texttt{curl.exe} for PowerShell's \texttt{curl} alias;
+\texttt{tutorials/README.md} has the table.
+
 % -----------------------------------------------------------------------
 \section{A first project}
 
