@@ -193,6 +193,10 @@ client.freeze_release("a beta", force_tag="beta")  # tagged CGSil1-beta
 for release in client.list_releases():
     print(release["tag"], release["source"])
 client.load_release("beta")
+# A repository the load clones takes the declared protocol (SSH by default);
+# force_access_protocol, as in initialise() and bootstrap(), overrides it,
+# in place or into a new workspace:
+client.load_release("beta", workspace="beta-look", force_access_protocol="https")
 \end{lstlisting}
 
 \paragraph{Every one of these that reaches a remote folds the memory first.}

@@ -210,7 +210,7 @@ $ cd CGSil1
 $ git clone https://github.com/flipoyo/ComplexGitSync.git
 $ cd ComplexGitSync
 $ pixi install
-$ pixi run cgitsync initialise ../CGSil1.cgs
+$ pixi run cgitsync initialise ../CGSil1.cgs --force-protocol https
 \end{lstlisting}
 
 Each command refuses the other's job by name before touching the disk:
@@ -234,6 +234,18 @@ shell, only the lines that are shell syntax change:
 PowerShell, \texttt{set CGSHOME=C:/Users/you/.cgs/my-project-<timestamp>} in
 \texttt{cmd}, and \texttt{curl.exe} for PowerShell's \texttt{curl} alias;
 \texttt{tutorials/README.md} has the table.
+
+\paragraph{SSH or HTTPS.} A \texttt{.cgs} clones over SSH by default, and
+that stays the default for your own projects. Without an SSH key on GitLab or
+GitHub (\texttt{ssh -T git@gitlab.com} tells you), add
+\texttt{--force-protocol https} to the command that clones, as above: the
+tutorials do it on every such line, because their reader usually has no key
+yet. To push over HTTPS, let the provider's tool give Git your credentials
+once (\texttt{glab auth login}; \texttt{gh auth login} then \texttt{gh auth
+setup-git}); \cgscli{} never reads a token. Once you have a key,
+\texttt{pixi run cgitsync pull --force-protocol ssh} switches the whole tree
+to SSH and changes no State. The memory's repository is always reached over
+SSH. Every detail is in Chapter~\ref{chap:user-guide}, Section~\ref{sec:ssh-or-https}.
 
 % -----------------------------------------------------------------------
 \section{A first project}

@@ -220,8 +220,9 @@ root regardless of tree shape, so it is excluded the same idempotent way,
 via the same underlying write \texttt{sync\_gitignore()} already uses for
 child mount points.
 
-\texttt{--force-protocol \{ssh,https\}} is an expert option, typically used
-systematically in CI rather than for everyday development. It overrides
+\texttt{--force-protocol \{ssh,https\}} is for whoever has no SSH key: CI,
+and a reader of the tutorials, which pass \texttt{https} on every line that
+clones (Section~\ref{sec:ssh-or-https}). It overrides
 \texttt{access\_protocol} in memory for every repository this run clones ---
 including ones discovered later from a nested \texttt{.cgs} living in a
 different, separately-cloned repository --- so no \texttt{.cgs} file is ever
@@ -841,6 +842,7 @@ $ pixi run cgitsync release freeze <message> [--force-tag TAG] [--dry-run]
     [--force-protocol {ssh,https}] [--gts <snapshot.gts>]
 $ pixi run cgitsync release list [--json]
 $ pixi run cgitsync release load <version | number | tag> [--workspace NAME [--cgs-path DIR]]
+    [--force-protocol {ssh,https}]
 \end{lstlisting}
 
 A release is the tree as it was, every repository at an exact commit, under
@@ -949,6 +951,13 @@ build it from the State, with each repository on its branch at the recorded
 commit, and the current workspace is left alone; the command prints the
 \texttt{export CGSHOME=...} line \texttt{bootstrap} prints, with the
 timestamped path it built.
+
+\texttt{--force-protocol \{ssh,https\}} is the protocol of every repository
+the load clones, in place or into the new workspace, as for
+\texttt{bootstrap}. Without it, a clone takes the protocol the release's State
+declares, which is the \texttt{.cgs} default, SSH, even in a tree you cloned
+over HTTPS. A repository already cloned keeps its remote (see \emph{SSH or
+HTTPS}, Section~\ref{sec:ssh-or-https}).
 
 \paragraph{Leaving a loaded release.} A tree loaded in place, or put on a tag
 with \texttt{checkout <tag>}, is detached: \texttt{status} prints
@@ -2635,6 +2644,65 @@ and runtime-state subsystems use the user state directory by default:
 
 If \texttt{XDG\_STATE\_HOME} is set, these directories are rooted there
 instead.
+
+% -----------------------------------------------------------------------
+\section{SSH or HTTPS}
+\label{sec:ssh-or-https}
+
+Every repository in a \texttt{.cgs} is cloned over \textbf{SSH} unless its
+entry says \texttt{access\_protocol = "https"}. That default stays: a
+developer has an SSH key, and SSH is the better daily protocol, with no token
+to renew. The \textbf{tutorials} clone over \textbf{HTTPS} instead, because
+their reader usually has no SSH key on GitLab or GitHub yet, and a first
+command that fails with \texttt{Permission denied (publickey)} teaches
+nothing. Every tutorial command that clones carries \texttt{--force-protocol
+https}. Tutorial~5 is the exception: it works on a developer's tree, stays on
+SSH, and shows HTTPS only as a way through the tutorial.
+
+\paragraph{Do I have an SSH key?} \texttt{ssh -T git@gitlab.com} and
+\texttt{ssh -T git@github.com} greet you by name when a key is registered.
+To make one, follow the provider's own page; \cgscli{} does not.
+
+\paragraph{Cloning over HTTPS.} \texttt{bootstrap}, \texttt{initialise},
+\texttt{submodules init}, \texttt{release load}, and \texttt{pull <x.gts>}
+when it restores a missing repository, take \texttt{--force-protocol https}.
+It overrides the declared protocol for every repository that run clones,
+nested \texttt{.cgs} files included, and writes nothing to a \texttt{.cgs}.
+The clone's remote is HTTPS, so every later \texttt{pull} and \texttt{push}
+on it uses HTTPS too. A clone made later by a command run \emph{without} the
+flag takes the declared protocol, SSH: repeat the flag on \texttt{release
+load} and \texttt{pull <x.gts>}.
+
+\paragraph{Pushing over HTTPS.} A public repository clones over HTTPS with
+no credential, but a push needs one. Let the provider's command-line tool
+hand it to Git, once: \texttt{glab auth login}, answering yes when it offers
+to set Git up for HTTPS, for GitLab; \texttt{gh auth login} then
+\texttt{gh auth setup-git} for GitHub. They become Git's credential helper.
+\cgscli{} never reads, stores or asks for a token.
+
+\paragraph{The memory.} \texttt{repo create}, \texttt{memory mount},
+\texttt{memory adopt} and \texttt{memory setup} always give the memory
+repository an SSH remote, whatever the tree uses. A memory with a remote
+therefore needs an SSH key, and Tutorial~6 is where a tutorial reader
+switches.
+
+\paragraph{Switching a tree to SSH.} Once a key is registered:
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync pull --force-protocol ssh
+\end{lstlisting}
+rewrites the remote of every repository, private ones included, with
+\texttt{git remote set-url}, then pulls as usual (fast-forward only). The
+change persists, so no later command needs the flag. \texttt{push
+--force-protocol ssh} does the same before a push. Avoid \texttt{pull
+--force} for this: it also resets branches. Switching changes no State and
+no release, because a State's hash ignores \texttt{access\_protocol}. To make
+your own \texttt{.cgs} clone over HTTPS for everyone, write
+\texttt{access\_protocol = "https"} in its entries instead.
+
+\paragraph{When authentication fails.} A clone over SSH that fails
+authentication ends with a hint naming \texttt{--force-protocol https}; a
+push over HTTPS that fails names \texttt{--force-protocol ssh} and the
+credential helper.
 
 % -----------------------------------------------------------------------
 \section{Error Reference}

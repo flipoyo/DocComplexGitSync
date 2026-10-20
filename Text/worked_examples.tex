@@ -72,8 +72,9 @@ $ pixi run cgitsync validate ../CGSil1.cgs
 # 3. Preview the topology before touching disk.
 $ pixi run cgitsync view-tree ../CGSil1.cgs
 
-# 4. Clone every declared repo and reach READY.
-$ pixi run cgitsync initialise ../CGSil1.cgs
+# 4. Clone every declared repo and reach READY, over HTTPS so that no
+#    SSH key is needed (the .cgs default is SSH; see SSH or HTTPS).
+$ pixi run cgitsync initialise ../CGSil1.cgs --force-protocol https
 
 # 5. The ordinary git cycle, run tree-wide from here on --- no path
 #    argument needed, the .gts snapshot is discovered automatically.
@@ -91,7 +92,7 @@ $ pixi run cgitsync release freeze "release v1.1.0"
 
 # 7. Return to a release at any later point, from any workspace.
 $ pixi run cgitsync release list
-$ pixi run cgitsync release load 1
+$ pixi run cgitsync release load 1 --force-protocol https
 \end{lstlisting}
 
 The only \texttt{.cgs} idea this level relies on is the
@@ -115,7 +116,7 @@ shared branch-fallback convention. Full narrative in
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync validate examples/cawaqs.cgs
-$ pixi run cgitsync bootstrap examples/cawaqs.cgs cawaqs-smoke-test
+$ pixi run cgitsync bootstrap examples/cawaqs.cgs cawaqs-smoke-test --force-protocol https
 $ pixi run cgitsync view-tree --search-dir <path bootstrap printed>
 
 # Move the whole 19-repo tree to a shared branch in one call, falling
@@ -167,7 +168,7 @@ Authoring Spec''; this level is about running it, not re-deriving it:
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync validate examples/cawaqsviz.cgs
-$ pixi run cgitsync bootstrap examples/cawaqsviz.cgs cawaqsviz-demo
+$ pixi run cgitsync bootstrap examples/cawaqsviz.cgs cawaqsviz-demo --force-protocol https
 $ pixi run cgitsync view-tree --search-dir <path bootstrap printed>
 \end{lstlisting}
 
