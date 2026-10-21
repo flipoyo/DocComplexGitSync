@@ -1425,13 +1425,23 @@ $ pixi run cgitsync omniscience record <state> [--json] [--search-dir DIR]
 $ pixi run cgitsync omniscience register [--state HASH] [--json] [--search-dir DIR]
 $ pixi run cgitsync omniscience observe [PROJECT] [--json] [--search-dir DIR]
 $ pixi run cgitsync omniscience observe [PROJECT] --confirm-deleted REPOSITORY --reason TEXT
+$ pixi run cgitsync omniscience get PROJECT [--checkpoint NAME] [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience branches PROJECT [--checkpoint NAME] [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience history PROJECT [--branch NAME] [--checkpoint NAME] [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience state PROJECT STATE [--out FILE] [--checkpoint NAME] [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience proof PROJECT STATE [--checkpoint NAME] [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience verify PROJECT STATE [--checkpoint NAME] [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience status PROJECT REPOSITORY [--checkpoint NAME] [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience report PROJECT [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience memory PROJECT BRANCH [--checkpoint NAME] [--json] [--search-dir DIR]
 \end{lstlisting}
 
 For developers. Omniscience is one private repository, shared by every
 project, in which each project's registered States are kept as content-addressed
 records, with one Merkle root over all of them. \texttt{mount} and \texttt{record}
 write nothing; \texttt{register} and \texttt{observe} only ever \emph{append}, and
-none of the four ever forces, rebases or removes anything.
+none of the four ever forces, rebases or removes anything. The nine query
+subcommands (\texttt{get} to \texttt{memory}, below) only read.
 
 \texttt{omniscience mount} adds the repository to the \texttt{.cgs} (by default
 \texttt{github:flipoyo/omniscience}, at \texttt{.omniscience}) and clones this
@@ -1492,6 +1502,65 @@ apart it becomes a \emph{permanent failure} and the command exits 1. Only
 your note, made with \texttt{--confirm-deleted} and a \texttt{--reason}, only for
 a repository the host still says is not there, and recorded in a \emph{signed}
 commit (Git must be able to sign; otherwise nothing is recorded).
+
+\paragraph{Asking the register.} The nine query subcommands answer from the
+shared register and write nothing to it, to the tree or to any memory. Anyone the
+provider lets read the \texttt{omniscience} repository may use them, and
+\texttt{cgitsync} adds no check of its own; they need the register mounted in the
+workspace (\texttt{omniscience mount}, read-only is enough). Each fetches the
+register first, answers from the newest checkpoint or, with \texttt{--checkpoint},
+from the one named by any unambiguous beginning of its name (the earlier
+registrations keep verifying under later checkpoints), and takes \texttt{--json}.
+Every answer starts with \texttt{status=} and exits 0 only for \texttt{verified}:
+
+\begin{description}
+\item[\texttt{verified}] the registration holds: its inclusion proof ends at a sound
+  checkpoint, or the memory read matches the record. It never says a repository is available.
+\item[\texttt{invalid}] something that should hold does not (a proof, a checkpoint, a ledger,
+  a State, a rewritten register); the reason says what. Nothing is repaired.
+\item[\texttt{unavailable}] the honest ``cannot tell'': a remote that did not answer, a commit
+  nobody serves, nothing observed yet. Never ``deleted''.
+\item[\texttt{unauthorized}] the provider would not serve this reader; none of the refused
+  content is shown.
+\item[\texttt{not\_registered}] no such project, State, branch, checkpoint or repository in the
+  register. A file added by hand that no checkpoint accepts is only proposed.
+\end{description}
+
+\texttt{get} says whether the project is registered, its \texttt{os\_id}, branches and
+number of States; \texttt{branches} gives each branch's newest State; \texttt{history}
+lists every registration oldest first, in the order the checkpoints accepted them
+(the time and contributor shown are the contributor's claims). \texttt{proof} prints
+the inclusion proof of a State's registration (its leaf index, the sibling hashes and
+the root) after checking it against the checkpoint's root and size: it proves
+registration and nothing about the repositories. \texttt{verify} adds a judgement on
+the register itself: \texttt{intact}; \texttt{attested} (intact, and the index's tip
+commit carries a good signature); \texttt{rewritten} (the remote's index no longer
+contains the tip this tree last found sound; only a tree that has registered or
+observed has one to compare, and the answer says so); or \texttt{contradicted} (a
+forked or broken chain, a checkpoint naming a record that is gone, a root that does
+not recompute). It also lists the protections it checked; branch protection is
+\texttt{not checked}, because the host enforces it. A rewrite is reported and never repaired.
+
+\texttt{memory PROJECT BRANCH} reads the \texttt{.memory} the branch's newest record
+names: it clones it into a temporary directory under \texttt{.cgitsync/}, reads the ledger
+and the State at the registered commit, checks them against the record, and removes the
+clone. \texttt{state PROJECT STATE} does the same for one State, adds its proof, and with
+\texttt{--out FILE} writes its \texttt{.gts} to a file that does not exist yet (it never
+overwrites), ready for \texttt{cgitsync bootstrap}. A \texttt{detail} says why a read did not
+verify: \texttt{remote\_unavailable}, \texttt{commit\_unreachable} (the ref no longer leads to
+the registered commit), \texttt{invalid\_proof} or \texttt{ledger\_corrupt}. When a State no
+longer hashes to its name, the answer names the repositories whose own hash fails
+(\texttt{diagnosis=located}), or says \texttt{diagnosis=unavailable} when the evidence cannot be
+read. A reader the provider refuses gets \texttt{unauthorized} with the registration and proof,
+which are public, and none of the memory.
+
+\texttt{status PROJECT REPOSITORY} reports one registered repository (\texttt{memory} for the
+project's \texttt{.memory}, otherwise the identifier a record names): its registration, which
+still verifies, and the newest observation. Only an observation that found it available gives
+\texttt{verified}; never observed, or found missing, closed, denied or unreachable, gives
+\texttt{unavailable} with what was seen. \texttt{report PROJECT} puts it together: the register's
+state, whether every record of the project is accepted and proved, the files that are only
+proposed with the reason, and the completeness verdict.
 
 \subsection{\texttt{self-history}}
 
@@ -2275,7 +2344,7 @@ Two checked-in files document this boundary. Copy
 provided as a developer reference for the canonical \texttt{CgsDocument}
 shape. The two files are regression-tested for semantic equivalence.
 
-The repository also keeps seven checked-in, didactically ordered tutorials
+The repository also keeps eight checked-in, didactically ordered tutorials
 under \texttt{tutorials/} --- easiest first, see
 \texttt{tutorials/README.md} for the guided order. Three of them exercise
 this authoring surface end to end:

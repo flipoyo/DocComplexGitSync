@@ -1089,6 +1089,52 @@ serves. The pure side is importable: \texttt{OmniscienceRecord},
 ordered leaves and \texttt{H\_GLOBAL} without Git; \texttt{Observation} and
 \texttt{CompletenessReport} do the same for observations.
 
+\section{Asking the register: \texttt{omniscience\_get} and its eight siblings}
+
+\begin{lstlisting}[language=Python]
+home = "/path/to/CGSHOME"        # a workspace with the register mounted (read-only is enough)
+
+client.omniscience_get(home, "MyProject")                       # registered? os_id, branches, States
+client.omniscience_branches(home, "MyProject")                  # each branch and its newest State
+client.omniscience_history(home, "MyProject", branch="main")    # every registration, oldest first
+client.omniscience_proof(home, "MyProject", "3f9a")             # the checked inclusion proof
+client.omniscience_verify(home, "MyProject", "3f9a")            # the proof, and the register's state
+client.omniscience_memory(home, "MyProject", "main")            # the registered .memory, read and checked
+client.omniscience_state(home, "MyProject", "3f9a", destination="restored.gts")
+client.omniscience_status(home, "MyProject", "memory")          # a repository: registration + newest observation
+client.omniscience_report(home, "MyProject")                    # the register, the proofs, proposals, completeness
+
+answer = client.omniscience_get(home, "MyProject", checkpoint="ab12")   # as the register stood at a checkpoint
+answer["status"]     # verified | invalid | unavailable | unauthorized | not_registered
+answer["detail"]     # None, or e.g. remote_unavailable | commit_unreachable | invalid_proof | ledger_corrupt | not_observed
+answer["reason"]     # one plain sentence; the other keys are the answer's data
+\end{lstlisting}
+
+Each method returns one flat table: \texttt{status}, \texttt{detail} and \texttt{reason}, then
+the data of that question. They only read: the register is fetched into the mount's
+remote-tracking refs, a registered \texttt{.memory} is cloned into a temporary directory
+under \texttt{.cgitsync/} and removed, and nothing is written to the register, to a memory or
+to the tree. Anyone the provider lets read the register may call them; they add no check of
+their own. A refusal by the provider is \texttt{unauthorized}, a remote that did not answer
+is \texttt{unavailable}, and neither is ever turned into ``deleted''.
+
+\texttt{proof\_verified} in an answer is the recomputed audit path against the checkpoint's
+root and size, and says that the registration is in the index, nothing more.
+\texttt{omniscience\_verify} adds \texttt{register}: \texttt{state} is \texttt{intact},
+\texttt{attested}, \texttt{rewritten} or \texttt{contradicted}, with \texttt{reason} and the
+\texttt{protections} that were checked. \texttt{omniscience\_memory} and
+\texttt{omniscience\_state} add \texttt{memory}, \texttt{states}, \texttt{ledger} and
+\texttt{state}; a State that no longer hashes to its name adds \texttt{diagnosis}
+(\texttt{located} or \texttt{unavailable}) and \texttt{located}, the repositories whose own hash
+fails. \texttt{omniscience\_state} writes \texttt{destination} only after the read verified and
+raises \texttt{GitSyncError} rather than overwrite a file. The public object behind them is
+\texttt{Omniscience(client, cgshome)} in \texttt{ComplexGitSync.orchestre.omniscience}, with
+\texttt{get}, \texttt{branches}, \texttt{history}, \texttt{get\_state}, \texttt{get\_proof},
+\texttt{verify}, \texttt{memory}, \texttt{repository\_status} and \texttt{integrity\_report}, each
+returning an \texttt{Answer} (\texttt{.to\_dict()} is what the client returns). The pure side
+is importable: \texttt{Answer}, \texttt{OmniscienceStatus} and \texttt{MemoryDetail}
+(\texttt{omniscience\_answer}) and \texttt{GlobalInclusionProof} (\texttt{inclusion\_proof}).
+
 \section{Ledger Integrity: \texttt{verify}}
 
 \texttt{verify(cgshome, *, repair=False)} checks the hash-chained
