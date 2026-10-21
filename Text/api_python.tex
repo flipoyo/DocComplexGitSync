@@ -1040,6 +1040,28 @@ chapter, covers the more common case: \texttt{push}, \texttt{tag}, and
 \texttt{freeze\_release} each call it automatically, first, once a memory is mounted
 and adopted.
 
+\section{The shared register: \texttt{omniscience\_mount} and \texttt{omniscience\_record}}
+
+\begin{lstlisting}[language=Python]
+mounted = client.omniscience_mount(None, "/path/to/CGSHOME", contribute=False)
+mounted["added"], mounted["cloned"], mounted["branch"]   # declared in the .cgs, cloned at .omniscience
+
+result = client.omniscience_record("/path/to/CGSHOME", "3f9a")   # a State's hash or prefix
+result["record"]            # the record as a TOML-ready table
+result["record_hash"]       # its hash: the name of register/<hash>.toml
+result["os_state_hash"]     # H_OS_STATE
+result["leaf"]              # its leaf in the global tree, as hex
+\end{lstlisting}
+
+\texttt{omniscience\_mount} takes the \texttt{.cgs} to edit (\texttt{None} means the one the
+tree was built from) and refuses a tree that holds no private repository.
+\texttt{omniscience\_record} reads the committed memory and raises
+\texttt{GitSyncError} for a State that is not in it, a memory with uncommitted
+changes, or a memory commit that is not on its remote. Neither writes to the
+register. The pure side is importable: \texttt{OmniscienceRecord},
+\texttt{GlobalIndex} and \texttt{GlobalIntegrity} compute a record's hashes, the
+ordered leaves and \texttt{H\_GLOBAL} without Git.
+
 \section{Ledger Integrity: \texttt{verify}}
 
 \texttt{verify(cgshome, *, repair=False)} checks the hash-chained

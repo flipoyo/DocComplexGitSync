@@ -1417,6 +1417,36 @@ repository's, and any path in a command line it logged --- is written
 against the tree as \texttt{\$CGSTREE/...}, so neither your directory
 layout nor your user name travels with it.
 
+\subsection{\texttt{omniscience}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync omniscience mount [--contribute] [--repository ID] [--cgs FILE] [--search-dir DIR]
+$ pixi run cgitsync omniscience record <state> [--json] [--search-dir DIR]
+\end{lstlisting}
+
+For developers. Omniscience is one private repository, shared by every
+project, in which each project's registered States are kept as content-addressed
+records, with one Merkle root over all of them. Nothing here registers
+anything yet; the two commands prepare for it and show what it would write.
+
+\texttt{omniscience mount} adds the repository to the \texttt{.cgs} (by default
+\texttt{github:flipoyo/omniscience}, at \texttt{.omniscience}) and clones this
+project's branch of it, or the index branch \texttt{\_global} when the project has
+none. The entry is read-only; \texttt{--contribute} makes it writable. Running it
+twice changes nothing. It is refused in a user's tree, which holds no private
+repository, before anything is touched.
+
+\texttt{omniscience record <state>} prints the record that registering a State
+would write: the project, its id (\texttt{os\_id}), the branch, the State and its
+Merkle root, the memory repository, ref and commit that hold them, the
+publication evidence, and the record's hash, which is its file name. The State
+is a hash or any unambiguous prefix. It is read from the \emph{committed}
+memory, because a reader must be able to fetch what the record names: a State
+that is still pending, a memory with uncommitted changes, or a memory commit
+that is not on its remote is refused, and \texttt{cgitsync memory push} fixes it.
+The same State always gives the same record hash. \texttt{--json} prints one
+object.
+
 \subsection{\texttt{self-history}}
 
 \begin{lstlisting}[language=bash]
