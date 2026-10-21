@@ -1040,7 +1040,7 @@ chapter, covers the more common case: \texttt{push}, \texttt{tag}, and
 \texttt{freeze\_release} each call it automatically, first, once a memory is mounted
 and adopted.
 
-\section{The shared register: \texttt{omniscience\_mount} and \texttt{omniscience\_record}}
+\section{The shared register: \texttt{omniscience\_mount}, \texttt{omniscience\_record}, \texttt{omniscience\_register} and \texttt{omniscience\_observe}}
 
 \begin{lstlisting}[language=Python]
 mounted = client.omniscience_mount(None, "/path/to/CGSHOME", contribute=False)
@@ -1051,6 +1051,16 @@ result["record"]            # the record as a TOML-ready table
 result["record_hash"]       # its hash: the name of register/<hash>.toml
 result["os_state_hash"]     # H_OS_STATE
 result["leaf"]              # its leaf in the global tree, as hex
+
+done = client.omniscience_register("/path/to/CGSHOME")       # default: the memory's newest State
+done["record_hash"], done["appended"], done["retries"]       # appended is False when it was already there
+done["checkpoint"]["status"]    # extended | unchanged | rewritten | refused
+done["checkpoint"]["unaccepted"]  # [{"branch", "path", "reason"}]: proposed files that did not validate
+
+seen = client.omniscience_observe("/path/to/CGSHOME", None)   # None: this tree's project
+seen["observations"]            # one table per finding appended
+seen["report"]["verdict"]       # ok | warning | failure
+client.omniscience_observe(home, None, confirm_deleted="github:o/r", reason="owner deleted it")
 \end{lstlisting}
 
 \texttt{omniscience\_mount} takes the \texttt{.cgs} to edit (\texttt{None} means the one the
@@ -1058,9 +1068,26 @@ tree was built from) and refuses a tree that holds no private repository.
 \texttt{omniscience\_record} reads the committed memory and raises
 \texttt{GitSyncError} for a State that is not in it, a memory with uncommitted
 changes, or a memory commit that is not on its remote. Neither writes to the
-register. The pure side is importable: \texttt{OmniscienceRecord},
+register.
+
+\texttt{omniscience\_register} and \texttt{omniscience\_observe} do, and only by
+appending: they raise \texttt{GitSyncError}, before touching anything, in a tree
+that holds no private repository, with the register not mounted, mounted
+read-only, or holding uncommitted changes. \texttt{omniscience\_register}
+validates the record against the State on disk, the project's id and the
+memory's remote, commits it and pushes fast-forward only, retrying a push another
+contributor beat and never forcing, then extends the global checkpoint; a
+checkpoint whose parent is no longer an ancestor of the remote's is reported as
+\texttt{rewritten} and neither extended nor repaired.
+\texttt{omniscience\_observe} probes only when called. \texttt{report["verdict"]} is
+\texttt{warning} while a repository is \texttt{NOT\_FOUND} and \texttt{failure} once
+that has held for two observations at least seven days apart
+(\texttt{omniscience\_completeness.PERMANENT\_AFTER}); \texttt{confirm\_deleted}
+records the owner's note as a signed commit and refuses a target the host still
+serves. The pure side is importable: \texttt{OmniscienceRecord},
 \texttt{GlobalIndex} and \texttt{GlobalIntegrity} compute a record's hashes, the
-ordered leaves and \texttt{H\_GLOBAL} without Git.
+ordered leaves and \texttt{H\_GLOBAL} without Git; \texttt{Observation} and
+\texttt{CompletenessReport} do the same for observations.
 
 \section{Ledger Integrity: \texttt{verify}}
 

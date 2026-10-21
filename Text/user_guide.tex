@@ -1422,12 +1422,16 @@ layout nor your user name travels with it.
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync omniscience mount [--contribute] [--repository ID] [--cgs FILE] [--search-dir DIR]
 $ pixi run cgitsync omniscience record <state> [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience register [--state HASH] [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience observe [PROJECT] [--json] [--search-dir DIR]
+$ pixi run cgitsync omniscience observe [PROJECT] --confirm-deleted REPOSITORY --reason TEXT
 \end{lstlisting}
 
 For developers. Omniscience is one private repository, shared by every
 project, in which each project's registered States are kept as content-addressed
-records, with one Merkle root over all of them. Nothing here registers
-anything yet; the two commands prepare for it and show what it would write.
+records, with one Merkle root over all of them. \texttt{mount} and \texttt{record}
+write nothing; \texttt{register} and \texttt{observe} only ever \emph{append}, and
+none of the four ever forces, rebases or removes anything.
 
 \texttt{omniscience mount} adds the repository to the \texttt{.cgs} (by default
 \texttt{github:flipoyo/omniscience}, at \texttt{.omniscience}) and clones this
@@ -1446,6 +1450,48 @@ that is still pending, a memory with uncommitted changes, or a memory commit
 that is not on its remote is refused, and \texttt{cgitsync memory push} fixes it.
 The same State always gives the same record hash. \texttt{--json} prints one
 object.
+
+\texttt{omniscience register} registers a State (by default the memory's newest).
+It needs the register mounted \emph{writable} (\texttt{omniscience mount
+--contribute}) and clean, and is refused in a user's tree before anything is
+touched. It first checks that the record is the State's: its \texttt{os\_id} is the
+id of the project's name, its State and tree hashes are what the State on disk
+recomputes to, and the memory's remote still holds the commit it names. It then
+commits the record to the project's branch of the register and pushes it
+fast-forward only. If another contributor pushed first, the push is retried from
+their tip, and \texttt{retries=} says how often; it is never forced. Whether you
+may push to that branch is the provider's to answer, by refusing the push. Run it
+again after a crash, or after a success, and it does nothing twice: the same
+registration is the same file. Signed commits are recommended to every
+contributor; \texttt{cgitsync} does not require them, and enforcing them is the
+host's branch protection.
+
+Then it extends the global checkpoint, which names the root over every
+\emph{accepted} record. A file somebody added to the register with plain
+\texttt{git} is only proposed: it is accepted when it parses, is named by its own
+hash, sits on the branch its project names, and its memory commit can be
+fetched. Otherwise it stays where it is and is printed as
+\texttt{unaccepted:} with the reason, and it never enters the root. If the
+remote's index was rewritten since this tree last saw it, the command prints
+\texttt{checkpoint=rewritten}, extends nothing, repairs nothing, and exits 1.
+
+\texttt{omniscience observe} asks, only when typed and never as a side effect
+of \texttt{register}, whether each repository a project's records name (its
+\texttt{.memory} and each published repository) is still there, and appends one
+observation per finding to the register: \texttt{AVAILABLE},
+\texttt{ACCESS\_DENIED}, \texttt{UNREACHABLE}, \texttt{NOT\_FOUND},
+\texttt{COMMIT\_MISSING}, \texttt{REF\_MISSING} (the branch is gone but the
+commit is still served), \texttt{CLOSED} (a branch closed on purpose, known from
+the ledger and never from a failed fetch) or \texttt{UNKNOWN}, each with its
+time, method and evidence. Nothing is removed or rewritten, and a repository that
+comes back is simply a later \texttt{AVAILABLE}. A repository the host says is not
+there is a \emph{warning} first, because it is often the provider's trouble; if
+it stays \texttt{NOT\_FOUND} across at least two observations at least seven days
+apart it becomes a \emph{permanent failure} and the command exits 1. Only
+\texttt{NOT\_FOUND} escalates. \texttt{DELETION\_CONFIRMED} is never inferred: it is
+your note, made with \texttt{--confirm-deleted} and a \texttt{--reason}, only for
+a repository the host still says is not there, and recorded in a \emph{signed}
+commit (Git must be able to sign; otherwise nothing is recorded).
 
 \subsection{\texttt{self-history}}
 
