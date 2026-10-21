@@ -810,6 +810,22 @@ With \texttt{--dry-run}, \cgscli{} prints the push plan without mutating any
 repository. \texttt{--force-protocol} behaves exactly as described under
 \texttt{pull} above.
 
+\paragraph{Asks each remote what it now holds.}
+Right after a repository is pushed, \texttt{push} asks its remote
+(\texttt{git ls-remote}, nothing is downloaded) which commit it holds at the
+pushed branch, and records the answer beside the publication row as
+\texttt{remote\_commit} and \texttt{observed\_at}. This adds one round trip
+per pushed repository and applies to a user tree's project repositories as
+well. A remote that cannot be asked leaves the row without a witness; the
+push is never undone. \texttt{memory verify --published} later asks again,
+read-only, and says per recorded push \texttt{attested} (the remote still
+has the commit on that branch, or has moved on from it fast-forward),
+\texttt{moved} (the branch no longer contains it, a finding that is never
+repaired) or \texttt{unreachable} (no answer, which is never reported as
+\texttt{moved}). It exits non-zero when any push is \texttt{moved}. To judge a
+remote that has moved on, it may fetch that branch's tip into
+\texttt{FETCH\_HEAD}; no branch of yours moves.
+
 \paragraph{Folds this project's own memory first, when one is mounted.}
 Before pushing anything else, \texttt{push} folds whatever has accumulated
 in \texttt{.cgitsync} into \texttt{.cgitsync/.memory} and sends it --- the
@@ -1134,6 +1150,7 @@ $ pixi run cgitsync memory status [--search-dir DIR]
 $ pixi run cgitsync memory list   [--branch NAME] [--search-dir DIR]
 $ pixi run cgitsync memory show <state> [--full] [--search-dir DIR]
 $ pixi run cgitsync memory explore [--branch NAME] [--timeline] [--search-dir DIR]
+$ pixi run cgitsync memory verify  [--published] [--state HASH] [--search-dir DIR]
 \end{lstlisting}
 
 Looks at what this workspace remembers. A \textbf{State} is one recorded

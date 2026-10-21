@@ -670,6 +670,12 @@ timeline = client.memory_explore("/path/to/CGSHOME", timeline=True)
 for entry in timeline["entries"]:        # every ledger entry, in order
     entry["seq"], entry["command"], entry["state"], entry["commits"], entry["published"]
     # entry["state"] is what memory_show(cgshome, entry["state"]) takes
+
+report = client.memory_verify_published("/path/to/CGSHOME")   # or state="<hash>"
+report["moved"]                          # how many pushes the remote no longer contains
+for row in report["rows"]:               # one per push recorded with the remote's answer
+    row["verdict"]                       # "attested", "moved" or "unreachable"
+    row["repository"], row["ref"], row["sha"], row["remote_commit"], row["observed_at"]
 \end{lstlisting}
 
 Commit messages come back whole. Shortening a long one to a single line is
