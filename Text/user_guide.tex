@@ -1783,6 +1783,15 @@ believes they are in one case while standing in the other is told.
 
 \subsection{\texttt{status}}
 
+\paragraph{The project's id.}
+\texttt{status --json} carries \texttt{os\_id}, and \texttt{memory show}
+prints it: the SHA-256 (64 lowercase hexadecimal characters) of the root's
+project name, Unicode NFC, case kept. It is the same on every machine and
+after a branch switch, \texttt{memory reboot} or a move. A name that is empty,
+starts or ends with whitespace, or holds a control character is not
+repaired: \texttt{os\_id} is then \texttt{null} and \texttt{validate} warns,
+and the tree keeps working.
+
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync status [--gts FILE]
 \end{lstlisting}

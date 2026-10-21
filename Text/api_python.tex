@@ -911,6 +911,7 @@ client.load_gts("/path/to/snapshot.gts")
 payload = json.loads(client.status_json())
 payload["cgitsync_branch"]          # the branch the tree is on
 payload["profile"]                  # "user" or "dev" (client.registry.profile)
+payload["os_id"]                    # OperatingSpace(client.registry).os_id, or None
 payload["summary"]["repos"]         # how many repositories it holds
 payload["repositories"][0]["sync"]  # per repository, as the table shows it
 
