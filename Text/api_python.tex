@@ -90,6 +90,27 @@ This object-level flow is the same state model used by the CLI and
 \texttt{ComplexGitSyncClient}, but exposed directly for advanced automation and
 tests.
 
+\section{The Operating Space: one name, one id, one Merkle root}
+
+\begin{lstlisting}[language=Python]
+from ComplexGitSync.operating_space import OperatingSpace
+
+registry.project_name              # the project's one name; read-only
+space = OperatingSpace(registry)
+space.os_id                        # SHA-256 of the name, Unicode NFC, case kept
+space.gittree_root                 # H_GITTREE, computed from the tree itself
+space.commit(client.git_runner, "message")   # every git operation on a READY tree
+\end{lstlisting}
+
+The tree is the reference. A \texttt{.gts} written from it records the same
+Merkle root, or is not written, and every document it produces names the
+same project. The name is set once, when the tree is built from a
+\texttt{.cgs} or a \texttt{.gts}; assigning it raises. A git operation on a
+tree that is not READY raises \texttt{TreeNotReadyError}. Clone and pull, which
+make a tree READY, stay on the tree (\texttt{GitTree.git}). The client
+methods (\texttt{commit}, \texttt{push}, ...) are unchanged and go through
+\texttt{OperatingSpace}.
+
 \section{READY Methods in the Client API}
 
 The same lifecycle model is exposed by \texttt{ComplexGitSyncClient}.  In

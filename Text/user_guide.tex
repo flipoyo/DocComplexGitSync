@@ -1785,12 +1785,25 @@ believes they are in one case while standing in the other is told.
 
 \paragraph{The project's id.}
 \texttt{status --json} carries \texttt{os\_id}, and \texttt{memory show}
-prints it: the SHA-256 (64 lowercase hexadecimal characters) of the root's
-project name, Unicode NFC, case kept. It is the same on every machine and
+prints it: the SHA-256 (64 lowercase hexadecimal characters) of the
+project's name, Unicode NFC, case kept. It is the same on every machine and
 after a branch switch, \texttt{memory reboot} or a move. A name that is empty,
 starts or ends with whitespace, or holds a control character is not
 repaired: \texttt{os\_id} is then \texttt{null} and \texttt{validate} warns,
 and the tree keeps working.
+
+\paragraph{The project's one name.}
+A project has one name: the \texttt{project} line of its \texttt{.cgs}, which a
+\texttt{.gts} records as its \texttt{[project] name}. It is set when the tree is
+loaded and never changed by a command. The private branches
+(\texttt{<project name>\_<branch>}), the memory's branch, the release tags and
+\texttt{os\_id} all follow it. The root repository's own name on its provider
+is only that repository's address. When the two differ, every load warns
+(for example \texttt{project = "MOLONARI"} with a root repository
+\texttt{MOLONARI1D}). Before version 6.7 such a tree named its private
+branches after the root repository instead. To keep the branches it already
+has, set the \texttt{.cgs} \texttt{project} line to the old name
+(\texttt{project = "MOLONARI1D"}).
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync status [--gts FILE]
