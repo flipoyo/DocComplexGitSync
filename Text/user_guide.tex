@@ -1623,8 +1623,9 @@ Every answer starts with \texttt{status=} and exits 0 only for \texttt{verified}
 number of States; \texttt{branches} gives each branch's newest State; \texttt{history}
 lists every registration oldest first, in the order the checkpoints accepted them
 (the time and contributor shown are the contributor's claims). \texttt{proof} prints
-the inclusion proof of a State's registration (its leaf index, the sibling hashes and
-the root) after checking it against the checkpoint's root and size: it proves
+where a State's registration sits (its leaf index, the tree size and the
+root) after checking its inclusion proof against the checkpoint's root and size. The proof's
+path, the sibling hashes up to the root, is a node of the Merkle tree and is never printed: it proves
 registration and nothing about the repositories. \texttt{verify} adds a judgement on
 the register itself: \texttt{intact}; \texttt{attested} (intact, and the index's tip
 commit carries a good signature); \texttt{rewritten} (the remote's index no longer

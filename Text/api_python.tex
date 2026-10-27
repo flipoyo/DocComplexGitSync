@@ -1103,7 +1103,7 @@ that has held for two observations at least seven days apart
 (\texttt{omniscience\_completeness.PERMANENT\_AFTER}); \texttt{confirm\_deleted}
 records the owner's note as a signed commit and refuses a target the host still
 serves. The pure side is importable: \texttt{OmniscienceRecord},
-\texttt{GlobalIndex} and \texttt{GlobalIntegrity} compute a record's hashes, the
+\texttt{GlobalIndex} and \texttt{MerkleRoot} (\texttt{merkle}) compute a record's hashes, the
 ordered leaves and \texttt{H\_GLOBAL} without Git; \texttt{Observation} and
 \texttt{CompletenessReport} do the same for observations.
 
@@ -1151,7 +1151,23 @@ raises \texttt{GitSyncError} rather than overwrite a file. The public object beh
 \texttt{verify}, \texttt{memory}, \texttt{repository\_status} and \texttt{integrity\_report}, each
 returning an \texttt{Answer} (\texttt{.to\_dict()} is what the client returns). The pure side
 is importable: \texttt{Answer}, \texttt{OmniscienceStatus} and \texttt{MemoryDetail}
-(\texttt{omniscience\_answer}) and \texttt{GlobalInclusionProof} (\texttt{inclusion\_proof}).
+(\texttt{omniscience\_answer}); a registration's proof is a \texttt{GlobalInclusionProof}
+(\texttt{merkle}), which says whether it holds and shows its \texttt{summary()}, never its path.
+
+\section{Every hash: \texttt{MerkleRoot}}
+
+Every hash the project computes is one class's, \texttt{ComplexGitSync.merkle.MerkleRoot}: a
+State's three levels (\texttt{repo\_leaf\_hash}, \texttt{gittree\_root}, \texttt{state\_hash}),
+the register's (\texttt{record\_hash}, \texttt{leaf\_digest}, \texttt{global\_root},
+\texttt{checkpoint\_hash}, \texttt{os\_state\_hash}, \texttt{observation\_hash}), and the
+content hashes of a ledger entry, a commit log, an Environment and the other records
+(\texttt{digest}, \texttt{prefixed}, \texttt{content\_digest}). It takes plain values and gives
+back hex strings, names and verdicts. It never returns a tree, a level, a node or a
+sibling: an inclusion proof (\texttt{inclusion\_proof}, \texttt{global\_inclusion\_proof}) has
+\texttt{verify(leaf\_hash, root, size)} and \texttt{summary()}, and keeps its path private. The
+\texttt{GtsIntegrity}, \texttt{GlobalIntegrity} and \texttt{InclusionProof.to\_dict} of earlier
+versions are gone, and no ledger, State or register written before is affected: every hash
+is the same, byte for byte.
 
 \section{A tree-wide write that fails part-way: \texttt{TreePartialFailure}}
 
