@@ -670,6 +670,7 @@ client = ComplexGitSyncClient()
 
 status = client.memory_status("/path/to/CGSHOME")
 status["states"], status["entries"]      # how much is remembered
+status["pending_entries"]               # of those entries, how many are not yet folded into the memory repository
 status["verification"]  # verified / no-history / legacy / corrupt / time-inconsistent / incomplete
 status["latest_toolchain"]["git"]        # what produced the newest record
 

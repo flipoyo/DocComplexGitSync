@@ -1194,6 +1194,10 @@ Looks at what this workspace remembers. A \textbf{State} is one recorded
 snapshot of the tree, named by its own content; the \textbf{ledger} holds
 one entry per operation, saying when that State was seen and by which tool
 versions.
+\texttt{memory status} counts the chain as \texttt{entries}, and splits it as
+\texttt{folded} (already committed into the memory repository) and
+\texttt{pending} (written since the last \texttt{memory push}, still only in
+\texttt{.cgitsync/}).
 
 A workspace whose \texttt{.cgs} declares no memory --- every install from
 \texttt{install.cgs} --- gets one made for it, locally, the first time a
