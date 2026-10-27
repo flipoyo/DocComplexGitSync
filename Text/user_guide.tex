@@ -1711,7 +1711,7 @@ $ pixi run cgitsync verify check [--search-dir DIR] [--json]
 $ pixi run cgitsync verify repair [--search-dir DIR] [--json]
 \end{lstlisting}
 
-\texttt{verify check} says which of five things is true of this workspace's recorded history.
+\texttt{verify check} says which of six things is true of this workspace's recorded history.
 One of them, never a blur of two:
 
 \begin{center}
@@ -1731,6 +1731,11 @@ One of them, never a blur of two:
                                     timestamps move backwards somewhere.
                                     Your history is intact; the clock that
                                     stamped it was not. \\
+\texttt{incomplete} & \texttt{0} & The chain held, but some commit
+                                    messages are gone: the memory push fold
+                                    before 6.8.1 deleted them, and they are
+                                    not recovered. Each such entry is listed
+                                    as \texttt{COMMIT\_LOG\_LOST}. \\
 \end{tabular}
 \end{center}
 
@@ -1747,6 +1752,17 @@ machine, or a machine that disagreed about the hour all read like this, and
 so does an entry somebody backdated: a date cannot be moved backwards
 without contradicting the chain around it. It still exits non-zero, because
 something is wrong even though your history is not.
+
+\texttt{incomplete} is not \texttt{corrupt} either, and it exits
+\texttt{0}. An entry written by a build older than 6.8.1, whose commit
+messages are \emph{all} gone, lost them to that build's memory push fold,
+which deleted the pending commit logs instead of folding them. The build that
+wrote the entry is recorded inside the entry's own hash, so it cannot be
+edited to excuse a loss: that edit is \texttt{BAD\_ENTRY\_HASH}. A log that
+is only partly gone, or changed, or one lost by 6.8.1 or later, is still
+\texttt{COMMIT\_LOG\_MISMATCH} and \texttt{corrupt}. Nothing is repaired:
+the messages are gone. \texttt{branch close} and \texttt{branch delete},
+which refuse a \texttt{corrupt} ledger, run on an \texttt{incomplete} one.
 
 When there \emph{is} a chain, what is checked: every entry's \texttt{prev}
 must match the previous entry's \texttt{entry\_hash}
