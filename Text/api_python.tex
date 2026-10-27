@@ -1153,6 +1153,39 @@ returning an \texttt{Answer} (\texttt{.to\_dict()} is what the client returns). 
 is importable: \texttt{Answer}, \texttt{OmniscienceStatus} and \texttt{MemoryDetail}
 (\texttt{omniscience\_answer}) and \texttt{GlobalInclusionProof} (\texttt{inclusion\_proof}).
 
+\section{One writer per workspace: the workspace lock}
+
+Every client method that writes a repository or the workspace's state area
+--- \texttt{add}, \texttt{commit}, \texttt{push}, \texttt{tag},
+\texttt{checkout}, \texttt{merge}, \texttt{pull}, \texttt{freeze\_release},
+\texttt{memory\_push} and the others listed in
+\texttt{orchestre.workspace\_locking.WRITING\_METHODS} --- holds
+\texttt{.cgitsync/.lock} for its whole run, so a Python caller is covered by
+the same code as the CLI. A call that finds the lock held by another process
+raises \texttt{WorkspaceBusyError} (a \texttt{GitSyncError}) before touching
+any repository; read-only methods never take or wait for it. A writing method
+that calls another (\texttt{push} calling \texttt{memory\_push}) does not meet
+its own lock.
+
+\begin{lstlisting}[language=python]
+from pathlib import Path
+from ComplexGitSync.workspace_lock import WorkspaceBusyError, WorkspaceLock
+
+try:
+    client.commit("message")
+except WorkspaceBusyError as busy:
+    print(busy)                       # who holds it, since when, and whether it is stale
+
+lock = WorkspaceLock(Path("/path/to/CGSHOME") / ".cgitsync")
+lock.holder()                          # LockHolder(pid, started_at, command) or None
+lock.clear()                           # what \texttt{cgitsync unlock} does; stale locks only
+lock.clear(force=True)                 # --force
+\end{lstlisting}
+
+A writing command whose ledger entry could not be written emits a
+\texttt{UserWarning} (``this run's State was written but its ledger entry
+was not'') as well as the \texttt{ledger\_append\_failed} run-log event.
+
 \section{Ledger Integrity: \texttt{verify}}
 
 \texttt{verify(cgshome, *, repair=False)} checks the hash-chained

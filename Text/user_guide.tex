@@ -1711,6 +1711,55 @@ oldest first --- consultation only. A workspace that has never adopted
 self-history, or has adopted it but written nothing yet, prints that
 plainly rather than erroring.
 
+\subsection{\texttt{unlock}: one \texttt{cgitsync} at a time in a workspace}\label{sec:workspace-lock}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync unlock [--search-dir DIR] [--force]
+\end{lstlisting}
+
+Every command that writes --- \texttt{add}, \texttt{commit}, \texttt{push},
+\texttt{tag}, \texttt{checkout}, \texttt{merge}, \texttt{branch create},
+\texttt{pull}, \texttt{release}, \texttt{memory push} and the rest of the
+writing \texttt{memory} and \texttt{self-history} commands --- takes a lock on
+the workspace for its whole run and gives it back at the end. A second
+writing command started meanwhile, by another terminal, an editor task, a
+scheduled job or an agent, is \textbf{refused before it touches any
+repository}, and says who holds the lock and for how long:
+
+\begin{lstlisting}
+Another cgitsync is working in /home/you/.cgs/Demo since 2026-10-27T12:00:00+00:00 (2m 05s ago): 'push' (process 4121). Nothing was touched; wait for it to finish.
+\end{lstlisting}
+
+A \texttt{pull} run from another directory locks the workspace its source file sits in, not the current one. It exits \texttt{1}: you asked, and the answer is no. Wait and run it again;
+nothing is queued. The read-only commands never wait: \texttt{status},
+\texttt{view-tree}, \texttt{verify check}, \texttt{memory status},
+\texttt{memory list}, \texttt{memory show} and \texttt{memory explore} run
+while a write holds the lock. \texttt{autofix} is not among them: it repairs,
+so it takes the lock.
+
+The lock is the file \texttt{.cgitsync/.lock}, beside \texttt{.cgitsync/logs/}:
+local, never folded into the memory and never pushed. It holds the process
+id, the moment it was taken and the command, and no user name or machine
+identity. A command that is killed leaves it behind. The next writing command
+then says the lock is \emph{stale} (its process is gone) and names this
+command, which removes it:
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync unlock
+unlocked=/home/you/.cgs/Demo was=process 4121 command='push' since=2026-10-27T12:00:00+00:00
+\end{lstlisting}
+
+``Stale'' means the process id is gone, a best-effort check (a reused id can hide a stale lock, and on Windows the check is weaker); \texttt{unlock} refuses a lock whose process is still running; \texttt{--force}
+removes it anyway, for the day a process is alive but stuck. It says so when
+there is no lock to clear, and it loads no tree and writes no State. The lock
+guards one machine: two machines, each with its own disk, are never in the
+same lock's reach, and \texttt{autofix} is what repairs a ledger they forked.
+
+A command that records a State but cannot write its ledger entry --- another
+run took the same number --- now says so on stderr (``this run's State was
+written but its ledger entry was not'') instead of only in its run log;
+running the command again records it.
+
 \subsection{\texttt{verify check} and \texttt{verify repair}}
 
 \begin{lstlisting}[language=bash]
