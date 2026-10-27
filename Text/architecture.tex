@@ -159,7 +159,7 @@ internal steps of those workflows.
 \textbf{Action} & \textbf{Minimum state} & \textbf{Produces} \\
 \hline
 \texttt{initialise(.cgs)}              & none        & clone tree + \textbf{READY} \\
-\texttt{initialise(.gts)}              & none        & loaded/restored \textbf{READY} \\
+\texttt{bootstrap(.gts)}               & none        & restored \textbf{READY} \\
 \texttt{pull(.cgs|.gts)}               & READY       & resynchronised \textbf{READY} \\
 \texttt{checkout(.gts)}                & READY       & \textbf{READY} \\
 \texttt{add}                           & \textbf{READY only} & READY \\

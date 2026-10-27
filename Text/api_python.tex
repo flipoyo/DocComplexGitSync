@@ -122,9 +122,20 @@ practice, the workflow is:
     \texttt{.cgs} discovery from parents to leaves (recursive).
   \item \texttt{validate(...)} is the canonical step-3 name; it accepts both
     \texttt{.cgs} and \texttt{.gts} sources.
-  \item \texttt{initialise(...)} bootstraps a tree and must finish in
-    \texttt{READY}; \texttt{bootstrap(...)} is the standalone entry point that
-    clones the root too; \texttt{pull(...)} resynchronises an existing tree.
+  \item \texttt{initialise(...)} bootstraps a tree from a \texttt{.cgs} and
+    must finish in \texttt{READY}; a \texttt{.gts} raises
+    \texttt{InstallFrontierError} naming \texttt{bootstrap} and
+    \texttt{release load}. \texttt{bootstrap(...)} is the standalone entry
+    point that clones the root too, from a \texttt{.cgs} or a \texttt{.gts};
+    its tree is a twin, whose memory is filed on
+    \texttt{ComplexGitSync\_<project>} (\texttt{WorkingGitTree.memory\_twin}).
+    A developer install that left a private repository on its fallback branch
+    for want of its own branch lists it in
+    \texttt{missing\_private\_branches}, each with the command that creates
+    the branch. \texttt{configure(...)} raises
+    \texttt{ConfigValidationError} for a project name holding \texttt{\_},
+    and \texttt{branch(...)} raises \texttt{GitSyncError} for a branch name
+    holding one. \texttt{pull(...)} resynchronises an existing tree.
   \item \texttt{git(tree, command, *args)} is the unified step-5 interface for
     \texttt{"commit"}, \texttt{"push"}, and \texttt{"tag"} operations.  Each
     follows leaf-first ordering.
@@ -154,7 +165,10 @@ practice, the workflow is:
     the branch the tree was on, the repositories cloned, the ones left
     alone) says what it did. With \texttt{workspace} it builds a new
     workspace from the release's State, as \texttt{bootstrap} does.
-    \texttt{name} is the whole tag or what follows the project's name. Each
+    \texttt{name} is the whole tag or what follows the project's name, or,
+    when no release is called that, a State's full hash: the State is read
+    from \texttt{.cgitsync/state/} or from the memory and loaded only when its
+    content still hashes to that name, else \texttt{GitSyncError}. Each
     row of \texttt{list\_releases()} also carries the freeze \texttt{message}.
 \end{itemize}
 
@@ -439,8 +453,6 @@ the child's working tree); the two are not interchangeable.
 \section{\texttt{.gitignore} Lifecycle Sync and Commit Identity}
 
 \texttt{initialise\_cgs}, \texttt{initialise\_cgs\_document},
-\texttt{initialise\_gts} (the nested install from a snapshot, each repository
-at its recorded commit; \texttt{initialise} dispatches to it for a \texttt{.gts}),
 \texttt{restart}, and
 \texttt{pull} (for \texttt{.cgs} sources) all accept the same three optional
 keyword arguments, mirroring the CLI's \texttt{--commit-gitignore},
@@ -790,6 +802,11 @@ other as its second parent. A missing source or target memory branch raises
 \texttt{GitSyncError} naming it (and, for the target,
 \texttt{memory\_branch}); a push the remote would reject raises one that says
 the merge is already done locally. Nothing is forced.
+\texttt{memory\_branch(cgshome, project\_branch, *, push=True)} raises
+\texttt{GitSyncError} when the branch already exists, here or on the remote,
+and otherwise returns \texttt{created}, \texttt{set\_up} (true when it also
+wrote \texttt{config-memory.cgs} and adopted \texttt{.self-history}) and
+\texttt{pushed}.
 
 \subsection{Recording one piece of agent work: \texttt{self\_history\_add}}
 

@@ -77,9 +77,7 @@ This guide follows the simplified canonical lifecycle:
 
 \begin{enumerate}
   \item \texttt{initialise(.cgs)} $\rightarrow$ clone the dependencies of a
-        checked-out root $\rightarrow$ \texttt{READY}  \textit{(nested install)}\\
-        \texttt{initialise(.gts)} $\rightarrow$ the same, each repository at the
-        commit the snapshot recorded $\rightarrow$ \texttt{READY}\\
+        checked-out root, at its branches $\rightarrow$ \texttt{READY}  \textit{(nested install)}\\
         \texttt{bootstrap(.cgs|.gts)} $\rightarrow$ clone the whole tree, root
         included $\rightarrow$ \texttt{READY}  \textit{(standalone install)}
   \item \texttt{pull(.cgs|.gts)} $\rightarrow$ resync an existing tree
@@ -135,7 +133,6 @@ inspection aliases such as \texttt{print}, \texttt{view-operation}, and
 $ pixi run cgitsync initialise <spec.cgs> [--output-path DIR] [--commit-gitignore]
     [--git-user-name NAME] [--git-user-email EMAIL]
     [--force-protocol {ssh,https}]
-$ pixi run cgitsync initialise <snapshot.gts>
 $ pixi run cgitsync initialise --project NAME --repo PROVIDER:OWNER/REPO [--repo ...] [--output-path DIR]
 \end{lstlisting}
 
@@ -144,21 +141,23 @@ project whose root is already checked out at \texttt{CGSHOME}, with the
 running \cgscli{} inside it. It refuses --- before touching the disk, naming
 \texttt{bootstrap} --- when \texttt{CGSHOME} is not a Git checkout (a detached
 \texttt{HEAD} is fine) or the running installation is not inside it.
-A \texttt{.gts} source checks each dependency out at the commit the snapshot
-recorded, and is refused, naming every repository, when a remote no longer
-holds one. A \texttt{private}, \texttt{writable} entry clones the branch
-computed from the project's name, then its \texttt{fallback\_branch}, then the
-remote's own active branch. Dispatches on file extension:
+\texttt{initialise} is \emph{branch-based}: it takes a \texttt{.cgs}, never a
+\texttt{.gts}. A \texttt{.gts} is refused by name before anything is read,
+naming the two commands that restore a State: \texttt{bootstrap <snapshot.gts>}
+into a new workspace, or \texttt{release load <State hash>} in this one. A
+\texttt{private}, \texttt{writable} entry clones the branch computed from the
+project's name, then its \texttt{fallback\_branch}, then the remote's own
+active branch. A project name holding \texttt{\_} is refused when it is
+created (\texttt{--project}): \texttt{\_} separates the parts of a private
+branch name, so a new name uses \texttt{-}. An existing \texttt{.cgs} is never
+refused for it.
 
 \begin{itemize}
-  \item \texttt{.cgs} source (clone mode): clones the workspace's dependencies.
+  \item \texttt{.cgs} source: clones the workspace's dependencies.
     The optional \texttt{--output-path} controls
     \texttt{CGSPATH}; \texttt{CGSHOME} is derived as
     \texttt{CGSPATH/<project-name>}. When omitted, \texttt{CGSPATH} defaults to
     \texttt{../..}.  On success, ends in \texttt{READY}.
-  \item \texttt{.gts} source (restore mode): clones the same dependencies and
-    puts each on the commit the snapshot recorded, so the rebuilt tree carries
-    the snapshot's State name. On success, ends in \texttt{READY}.
   \item Direct CLI authoring: requires \texttt{--project} and at least one
     repeatable \texttt{--repo}. It is mutually exclusive with a source file.
     The CLI collects values only and calls
@@ -272,6 +271,33 @@ repository's branch by the fallback chain and discovers nested
 clones --- including the root, which \texttt{bootstrap} (unlike
 \texttt{initialise}) also clones from scratch rather than assuming already
 checked out.
+
+\paragraph{A standalone tree's memory is a twin's.} A tree \texttt{bootstrap}
+builds is a twin of its project, run by a \cgspkg{} outside it, so its
+memory belongs to \cgspkg{}: it is filed on \texttt{ComplexGitSync\_<project>}
+(\texttt{ComplexGitSync\_<project>\_<branch>} on a project branch), while the
+nested tree \texttt{initialise} builds keeps \texttt{<project>}. The two never
+write to the same memory branch. A \texttt{.gts} recorded in a nested tree
+still restores every repository at its commit, but its memory is cloned on the
+twin's branch, not on the project's commit. This is decided once, when the
+memory is first installed; afterwards the branch the memory is on is the
+record, so the tree stays a twin whichever \cgspkg{} runs the next command.
+Only \texttt{.cgitsync/.memory} is concerned, with the
+\texttt{.self-history} it nests, which follows the memory's branch: every
+other private repository keeps \texttt{<project>}.
+
+\paragraph{A developer tree whose memory branch does not exist yet.} The
+memory's branch is created by its first push, so on a first install it is
+usually absent and the memory falls back to its \texttt{fallback\_branch}. In
+a developer tree, a private, writable repository that fell back and so lacks
+the nested \texttt{.cgs} it names (\texttt{config-memory.cgs}) no longer stops
+the install: \texttt{bootstrap} ends \texttt{READY}, names the repository and
+the branch it is missing, warns that it must not be committed to on the
+fallback branch (as it does for every writable private repository left on a
+fallback branch), and prints the command that creates the branch,
+\texttt{cgitsync memory branch --project-branch <branch>}. In a terminal it
+offers to run it. A nested \texttt{.cgs} missing on the branch a repository
+really targets is still refused.
 
 \subsection{\texttt{discover}}
 
@@ -596,7 +622,11 @@ $ pixi run cgitsync branch list [--per-repo] [--private] [--gts <snapshot.gts>]
 \end{lstlisting}
 
 \texttt{branch create} creates a branch across the whole \texttt{READY} tree
-without checking it out. \texttt{branch list} prints the project's own branches: those of the root repository, local
+without checking it out. A name holding \texttt{\_} is refused by name before
+anything is created: \texttt{\_} is the only separator in a private branch
+name (\texttt{ComplexGitSync\_P\_X} reads one way only: twin of \texttt{P},
+branch \texttt{X}), so a new branch uses \texttt{-}. An existing branch is
+never renamed. \texttt{branch list} prints the project's own branches: those of the root repository, local
 or on origin as of the last fetch, the one the project is on marked with
 \texttt{*}. Each line says which repositories hold the branch they would
 be on under it, or names those that lack it; a \texttt{closed/} branch is
@@ -857,7 +887,7 @@ leaf-first, and pushes it. The worktrees must be clean. Tagging moves no
 $ pixi run cgitsync release freeze <message> [--force-tag TAG] [--dry-run]
     [--force-protocol {ssh,https}] [--gts <snapshot.gts>]
 $ pixi run cgitsync release list [--json]
-$ pixi run cgitsync release load <version | number | tag> [--workspace NAME [--cgs-path DIR]]
+$ pixi run cgitsync release load <version | number | tag | State hash> [--workspace NAME [--cgs-path DIR]]
     [--force-protocol {ssh,https}]
 \end{lstlisting}
 
@@ -944,7 +974,14 @@ named by the root's tag, empty for a release only the ledger knows.
 \paragraph{\texttt{release load}} puts the tree back at a release. The name
 is the whole tag, or what follows the project's name: \texttt{release load
 1.2.0} loads \texttt{<project>-1.2.0}. The State comes from this disk, from
-the memory, or from the root repository's tag. Without \texttt{--workspace}
+the memory, or from the root repository's tag. When no release has that name,
+a State's full hash, its name (64 lowercase hexadecimal characters), loads
+that State: it is looked for in \texttt{.cgitsync/state/}, then in every
+chapter the memory reaches, and loaded only when its content still hashes to
+the name it was asked by. A Git tag can be moved and a State's name cannot,
+so a State nobody holds, or a file whose content names another State, is
+refused by name and nothing moves. \texttt{--workspace} takes a State hash
+too. Without \texttt{--workspace}
 the release goes into the workspace the command resolves (the \texttt{cgshome=}
 line it prints), and nowhere else. A repository the release records and the
 tree lacks is cloned, at its recorded commit, as \texttt{bootstrap} would
@@ -1319,7 +1356,15 @@ $ pixi run cgitsync memory branch --project-branch main
         \texttt{main} asks for a branch that has never existed. A merge
         that finds one missing names this command rather than creating the
         branch itself, because a branch that is not there is as likely to
-        be a typing mistake as a new branch.
+        be a typing mistake as a new branch. A memory branch is created once:
+        a name that already exists, here or on the remote, is refused by
+        name and nothing is created. When the memory's entry names a nested
+        \texttt{.cgs} the memory does not hold (a first developer install
+        that fell back), the new branch is checked out, given its
+        \texttt{config-memory.cgs} and \texttt{.self-history}, then committed
+        and pushed. Every condition of that set-up (an owner, a reachable
+        \texttt{.self-history} repository) is checked first, so a refusal
+        creates nothing and the command can simply be run again.
 \end{itemize}
 
 \paragraph{Migrating a memory mounted before \texttt{memory migrate}
