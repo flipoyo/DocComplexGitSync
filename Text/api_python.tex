@@ -1153,6 +1153,35 @@ returning an \texttt{Answer} (\texttt{.to\_dict()} is what the client returns). 
 is importable: \texttt{Answer}, \texttt{OmniscienceStatus} and \texttt{MemoryDetail}
 (\texttt{omniscience\_answer}) and \texttt{GlobalInclusionProof} (\texttt{inclusion\_proof}).
 
+\section{A tree-wide write that fails part-way: \texttt{TreePartialFailure}}
+
+\texttt{push}, \texttt{tag} and \texttt{freeze\_release} visit repositories
+one after the other, and cannot undo a push a remote accepted. When one fails
+they raise \texttt{TreePartialFailure}, a \texttt{GitSyncError}, so an existing
+\texttt{except GitSyncError} still works. It carries what happened, keyed by
+\texttt{repo\_id}, because a repository's name is not an identity:
+
+\begin{lstlisting}[language=python]
+from ComplexGitSync.operations.partial_failure import TreePartialFailure
+
+try:
+    client.push()
+except TreePartialFailure as stopped:
+    stopped.completed       # ((repo_id, RepoOutcome), ...) in visit order
+    stopped.failed          # (repo_id, RepoOutcome(failed=True)): where it stopped
+    stopped.not_attempted   # (repo_id, ...): never touched by this run
+    stopped.cause           # what Git said
+    stopped.retry           # the command to run again
+    stopped.labels          # repo_id -> "name (relative_path)"
+\end{lstlisting}
+
+No State and no ledger entry is written for the failed run, and nothing is
+forced or rolled back. Call the same method again once the cause is fixed: a
+repository already pushed is level with its remote, and a tag already at a
+repository's current commit is kept and pushed again, so the retry converges.
+\texttt{release freeze} resumes the same way, using the root's annotated tag
+(made last) as the mark of a finished release.
+
 \section{One writer per workspace: the workspace lock}
 
 Every client method that writes a repository or the workspace's state area

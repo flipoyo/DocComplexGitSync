@@ -870,6 +870,26 @@ somebody else's publish. \texttt{--dry-run} lists \texttt{cgitsync memory
 push} first in its plan under the same condition the real run would
 perform it.
 
+\paragraph{When a push fails part-way.}\label{sec:partial-failure}
+A push cannot be undone once a remote has accepted it, so \texttt{push} (and
+\texttt{tag} and \texttt{release freeze}, below) stops at the first failing
+repository and says exactly what happened, in four lines on stderr, with the
+exit code \texttt{1}:
+
+\begin{lstlisting}
+push stopped part-way: <what Git said>
+completed: beta (.beta) (origin/main (+1))
+failed: alpha (.alpha)
+not attempted: demo (.)
+Nothing was rolled back and no State was recorded. Once the cause is fixed, run 'cgitsync push' again: what completed is not repeated.
+\end{lstlisting}
+
+Repositories are named with their path, because two repositories may share a
+name. Nothing is forced, and no State or ledger entry is written, so the
+ledger never records an attempt. Fix the cause and run the same command
+again: \texttt{beta} is already level with its remote and is reported as
+such, and the others go on. A script reads the same lines.
+
 \subsection{\texttt{tag}}
 
 \begin{lstlisting}[language=bash]
@@ -880,6 +900,16 @@ Creates the tag \texttt{<name>} in every repository this project may write,
 leaf-first, and pushes it. The worktrees must be clean. Tagging moves no
 \texttt{HEAD}: every repository stays on its branch, and the next
 \texttt{commit} and \texttt{push} carry on there. \texttt{tag} writes no State.
+
+A tag is judged by what it points at, not by existing. A repository that
+already holds \texttt{<name>} \emph{at its current commit} is a \texttt{tag}
+that was cut short: it is kept (reported \texttt{already tagged}), pushed
+again, and the others are tagged, so running the same command again after
+fixing a failure converges, and running it after success changes nothing. A
+tag on another commit is refused before any repository is touched, naming both
+commits, and a tag that only the remote holds on another commit is never
+forced: the push is rejected and reported as the failure
+(\hyperref[sec:partial-failure]{when a push fails part-way}).
 
 \subsection{\texttt{release}: \texttt{freeze}, \texttt{list}, \texttt{load}}
 
@@ -932,6 +962,17 @@ that table, and still loads. A private repository, read-only or writable, is
 never written into it: the tag may be public. That is what lets any user
 find and load the release, including in a tree whose memory never leaves the
 disk.
+
+\textbf{An interrupted release is resumed.} The root's tag is made last, so
+it says the release is complete. If \texttt{release freeze} stops before it,
+because a push failed or the process was killed, it says what completed, what
+failed and what was never tried (\hyperref[sec:partial-failure]{as a failed
+push does}), and writes no State and no ledger entry. Run the same command
+again: a repository already tagged at its current commit is kept, the others
+are tagged, the root is tagged last, and the release is recorded once. A
+release whose root tag exists is finished, and is refused as above; a tag on
+another commit, or on a repository that still has work to commit, is refused
+before anything moves.
 
 The ledger entry the release writes carries a \texttt{release} row: the
 tag (\texttt{git\_tag}), the \texttt{project}, the project's version
