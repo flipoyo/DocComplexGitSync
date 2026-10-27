@@ -1517,7 +1517,10 @@ fast-forward only. If another contributor pushed first, the push is retried from
 their tip, and \texttt{retries=} says how often; it is never forced. Whether you
 may push to that branch is the provider's to answer, by refusing the push. Run it
 again after a crash, or after a success, and it does nothing twice: the same
-registration is the same file. Signed commits are recommended to every
+registration is the same file. A file the register already holds under that
+name with \emph{other} content is refused before anything is written, and never
+overwritten: every register file is named by its content, so that is a
+collision or a register edited by hand. Signed commits are recommended to every
 contributor; \texttt{cgitsync} does not require them, and enforcing them is the
 host's branch protection.
 
