@@ -19,6 +19,29 @@ validate(.cgs|.gts) -> .gts READY -> pull(.cgs|.gts) -> checkout(.gts) ->
 add -> git(tree,"commit",msg) -> git(tree,"push") -> git(tree,"tag",name) ->
 freeze\_release}.
 
+\section{Where the modules moved}
+\label{sec:module-paths}
+
+The package is split into the folders \texttt{git\_repo}, \texttt{merkle},
+\texttt{tree}, \texttt{operating\_space} and \texttt{omniscience}, with
+\texttt{orchestre}, \texttt{cli}, \texttt{errors} and \texttt{universal\_clock}
+above them. \texttt{git\_repo} imports nothing else of the package. Every name
+exported by \texttt{ComplexGitSync} and \texttt{ComplexGitSync.orchestre} is
+unchanged; only the paths of the modules behind them moved, for example
+\texttt{ComplexGitSync.memory.store} is now
+\texttt{ComplexGitSync.tree.memory.store}, \texttt{ComplexGitSync.git\_branch}
+is \texttt{ComplexGitSync.git\_repo.git\_branch}, and
+\texttt{ComplexGitSync.orchestre.omniscience\_view} is
+\texttt{ComplexGitSync.omniscience.omniscience\_view}.
+
+\textbf{What changed.} The old paths keep working for this release: importing
+one gives the very module that now lives at the new path, so a name patched
+through either is patched through both. The next release removes them, so
+write the new paths now. \texttt{GitRunner}, from the package or from
+\texttt{ComplexGitSync.git\_runner}, raises \texttt{GitSyncError}; the bare
+runner in \texttt{ComplexGitSync.git\_repo.git\_runner} raises its own
+\texttt{GitRepoError}.
+
 \section{Programmatic Project Configuration}
 
 Project configuration does not require the CLI or an existing \texttt{.cgs}
@@ -49,8 +72,8 @@ from pathlib import Path
 
 from ComplexGitSync import GitRepo, GitTree, RefKind, TreeLifecycleState
 from ComplexGitSync.orchestre import GtsDocument
-from ComplexGitSync.registry import RegistryTranslator
-from ComplexGitSync.git_tree import WorkingGitTree
+from ComplexGitSync.tree.registry import RegistryTranslator
+from ComplexGitSync.tree.git_tree import WorkingGitTree
 
 # 1) Empty registry lifecycle
 empty_registry = WorkingGitTree()
@@ -93,7 +116,7 @@ tests.
 \section{The Operating Space: one name, one id, one Merkle root}
 
 \begin{lstlisting}[language=Python]
-from ComplexGitSync.operating_space import OperatingSpace
+from ComplexGitSync.operating_space.operating_space import OperatingSpace
 
 registry.project_name              # the project's one name; read-only
 space = OperatingSpace(registry)
@@ -812,7 +835,7 @@ wrote \texttt{config-memory.cgs} and adopted \texttt{.self-history}) and
 \subsection{Recording one piece of agent work: \texttt{self\_history\_add}}
 
 \begin{lstlisting}[language=python]
-from ComplexGitSync.memory.self_history import AgentInfo, ConformityCriterion, ConformityScore
+from ComplexGitSync.tree.memory.self_history import AgentInfo, ConformityCriterion, ConformityScore
 
 worker = AgentInfo(role="Dev", vendor="vendor-name", model="model-name")
 orchestrator = AgentInfo(role="Orchestration", vendor="vendor-name", model="model-name")
@@ -974,7 +997,7 @@ not vanish.
 The client exposes the same read-only Environment operations as the CLI:
 
 \begin{lstlisting}[language=python]
-from ComplexGitSync.cgs_format import CgsDocument
+from ComplexGitSync.tree.cgs_format import CgsDocument
 from ComplexGitSync.orchestre import ComplexGitSyncClient
 
 client = ComplexGitSyncClient()
@@ -1146,7 +1169,7 @@ root and size, and says that the registration is in the index, nothing more.
 (\texttt{located} or \texttt{unavailable}) and \texttt{located}, the repositories whose own hash
 fails. \texttt{omniscience\_state} writes \texttt{destination} only after the read verified and
 raises \texttt{GitSyncError} rather than overwrite a file. The public object behind them is
-\texttt{Omniscience(client, cgshome)} in \texttt{ComplexGitSync.orchestre.omniscience}, with
+\texttt{Omniscience(client, cgshome)} in \texttt{ComplexGitSync.omniscience.omniscience}, with
 \texttt{get}, \texttt{branches}, \texttt{history}, \texttt{get\_state}, \texttt{get\_proof},
 \texttt{verify}, \texttt{memory}, \texttt{repository\_status} and \texttt{integrity\_report}, each
 returning an \texttt{Answer} (\texttt{.to\_dict()} is what the client returns). The pure side
@@ -1178,7 +1201,7 @@ they raise \texttt{TreePartialFailure}, a \texttt{GitSyncError}, so an existing
 \texttt{repo\_id}, because a repository's name is not an identity:
 
 \begin{lstlisting}[language=python]
-from ComplexGitSync.operations.partial_failure import TreePartialFailure
+from ComplexGitSync.tree.operations.partial_failure import TreePartialFailure
 
 try:
     client.push()
@@ -1216,7 +1239,7 @@ its own lock.
 
 \begin{lstlisting}[language=python]
 from pathlib import Path
-from ComplexGitSync.workspace_lock import WorkspaceBusyError, WorkspaceLock
+from ComplexGitSync.tree.workspace_lock import WorkspaceBusyError, WorkspaceLock
 
 try:
     client.commit("message")
@@ -1337,7 +1360,7 @@ two sides of a divergence are not disjoint enough to reconcile safely
 without a person's judgement.
 
 \texttt{autofix} is deliberately not one growing class: each situation it
-recognises lives in its own \texttt{ComplexGitSync.autofix.repair\_*}
+recognises lives in its own \texttt{ComplexGitSync.tree.autofix.repair\_*}
 module (today, \texttt{repair\_divergent\_user} --- a private repository
 whose branch diverged because two machines wrote to it independently,
 where the content itself, like \texttt{.memory}'s hash-chained ledger,

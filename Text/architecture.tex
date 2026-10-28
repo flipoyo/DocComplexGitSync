@@ -329,38 +329,43 @@ on the live tree state.
 \end{figure}
 
 % -----------------------------------------------------------------------
-\section{Module Layout by Tier}
+\section{Module Layout by Folder}
 \label{sec:module-layout}
 
-\begin{lstlisting}[language=bash,caption={Source modules grouped by architectural tier}]
+\begin{lstlisting}[language=bash,caption={Source modules grouped by folder}]
 src/ComplexGitSync/
-  # --- Tier 1: Core Data (centred on GitTree / GitRepo) ---
-  git_repo.py                  GitRepo, WorkingRepo, RepoAddress,
-                               RepoNode, enums
-  git_tree.py                  GitTree, WorkingGitTree,
-                               ProjectTreeState, tree utilities,
-                               sync_gitignore (.gitignore maintenance)
+  # --- git_repo/: the dependency; imports nothing else of the package ---
+  git_repo/git_repo.py         GitRepo, WorkingRepo, RepoAddress, enums
+  git_repo/git_branch.py       the branch fallback chain and the privacy rule
+  git_repo/git_runner.py       the one subprocess boundary (GitRunner)
+  git_repo/clone_guard.py      CloneGuard
+  git_repo/provider.py         which tool creates a repository on which host
 
-  # --- Tier 2: Actions ---
-  operations/                  BranchOperation, CommitOperation, MergeOperation,
-                               PushOperation, RestartOperation, RemovalOperation,
-                               Preflight, RepoOutcome
-  orchestre/                   discovery and render collaborators
-                               (DiscoveryCommands, Reporting)
+  # --- merkle/: every hash the project records, never a tree ---
+  merkle/merkle_root.py        MerkleRoot and its proofs
 
-  # --- Tier 3: Client / API ---
-  orchestre/                   ComplexGitSyncClient (facade) and the collaborators
-                               it delegates to; Orchestre (the tree holder)
-  cli.py                       build_parser / main
-  orchestre/                   RuntimeStateStore, CommandRunLogger
-  master.py                    MasterConfig (workspace-local Git identity
-                               for ComplexGitSync-authored commits)
+  # --- tree/: the GitTree cgitsync mounts and operates ---
+  tree/git_tree.py             GitTree, WorkingGitTree, ProjectTreeState
+  tree/cgs_format.py           CgsDocument (.cgs parse/normalize/validate)
+  tree/gts_document.py         GtsDocument (runtime state snapshot)
+  tree/registry.py             .cgs / .gts <-> WorkingGitTree
+  tree/git_runner.py           the GitRunner cgitsync uses (raises GitSyncError)
+  tree/operations/             BranchOperation, CommitOperation, MergeOperation,
+                               PushOperation, RestartOperation, RemovalOperation
+  tree/memory/                 the ledger, States, commit logs, verification
+  tree/autofix/                diagnoses and repairs a git situation
 
-  # --- Document layer (cross-cutting) ---
-  config_document.py           ConfigDocument (format-neutral base)
-  cgs_format.py                CgsDocument (.cgs parse/normalize/validate/serialize)
-  gts_document.py              GtsDocument (runtime state snapshot)
+  # --- operating_space/: the interface to the Git actions ---
+  operating_space/operating_space.py   OperatingSpace
+
+  # --- omniscience/: the register (gx4g's) ---
+  omniscience/                 records, global index, append and query commands
+
+  # --- above the folders ---
+  orchestre/                   ComplexGitSyncClient (facade) and its collaborators
+  cli/                         build_parser / main
   errors.py                    exception hierarchy
+  universal_clock.py           the one reader of the real clock
 \end{lstlisting}
 
 % -----------------------------------------------------------------------
