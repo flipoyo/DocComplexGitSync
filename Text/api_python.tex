@@ -572,8 +572,8 @@ draft is never written.
 
 \texttt{import\_submodules(repo\_root, *, apply=False, recursive=False)}
 converts git submodules in a local repository to plain ComplexGitSync
-nested clones. It is what the CLI's \texttt{submodules report}
-(\texttt{apply=False}) and \texttt{submodules import} (\texttt{apply=True})
+nested clones. It is what the CLI's \texttt{submodules import --dry-run}
+(\texttt{apply=False}) and \texttt{submodules import --now} (\texttt{apply=True})
 run:
 
 \begin{lstlisting}[language=python]
@@ -1208,7 +1208,9 @@ Every client method that writes a repository or the workspace's state area
 \texttt{.cgitsync/.lock} for its whole run, so a Python caller is covered by
 the same code as the CLI. A call that finds the lock held by another process
 raises \texttt{WorkspaceBusyError} (a \texttt{GitSyncError}) before touching
-any repository; read-only methods never take or wait for it. A writing method
+any repository; read-only methods never take or wait for it. \texttt{verify}
+is one of them, except \texttt{verify(cgshome, repair=True)}, which rewrites the
+\texttt{HEAD} cache and takes the lock. A writing method
 that calls another (\texttt{push} calling \texttt{memory\_push}) does not meet
 its own lock.
 
@@ -1221,10 +1223,11 @@ try:
 except WorkspaceBusyError as busy:
     print(busy)                       # who holds it, since when, and whether it is stale
 
+client.unlock("/path/to/CGSHOME")      # what \texttt{cgitsync unlock} does: the LockHolder it cleared, or None
+client.unlock("/path/to/CGSHOME", force=True)   # --force: even a lock whose process still runs
+
 lock = WorkspaceLock(Path("/path/to/CGSHOME") / ".cgitsync")
 lock.holder()                          # LockHolder(pid, started_at, command) or None
-lock.clear()                           # what \texttt{cgitsync unlock} does; stale locks only
-lock.clear(force=True)                 # --force
 \end{lstlisting}
 
 A writing command whose ledger entry could not be written emits a
