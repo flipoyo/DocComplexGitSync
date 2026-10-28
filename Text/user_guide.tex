@@ -617,7 +617,7 @@ looked at and removed. It is never deleted for you.
 
 \begin{lstlisting}[language=bash]
 $ pixi run cgitsync branch create <branch> [--private] [--gts <snapshot.gts>]
-$ pixi run cgitsync branch list [--per-repo] [--private] [--gts <snapshot.gts>]
+$ pixi run cgitsync branch list [--per-repo] [--json] [--private] [--gts <snapshot.gts>]
 \end{lstlisting}
 
 \texttt{branch create} creates a branch across the whole \texttt{READY} tree
@@ -632,6 +632,23 @@ be on under it, or names those that lack it; a \texttt{closed/} branch is
 listed apart. \texttt{--per-repo} prints one line per repository with its
 own local branches instead. Changes nothing. On either subcommand,
 \texttt{--private} narrows it to the writable configuration repositories.
+
+\paragraph{Dead and dying branches.} After the branches, \texttt{branch list}
+and \texttt{status} print one line for each project branch that ended outside
+\texttt{cgitsync} or is ending badly, with the repositories it was seen in:
+\texttt{error: vanished} (pushed once, gone from origin, and no
+\texttt{ancestors} relocation in the ledger kept it --- also when it was closed
+with plain Git), \texttt{warning: half-closed} (\texttt{closed/B} in some
+repositories, live \texttt{B} in others), \texttt{warning: split} (live in some,
+absent in others), \texttt{warning: orphaned-private} (a private branch
+\texttt{P\_B} survives with no project branch \texttt{B}) and
+\texttt{info: closed} (the healthy end). Branches are read as of the last fetch,
+so a tree never fetched, or whose fetch failed, reports nothing as vanished.
+The tag, the default branch, \texttt{ancestors} and a memory branch archived by
+\texttt{memory reboot} are never judged. \texttt{branch list --json} and
+\texttt{status --json} hand each finding over whole, under
+\texttt{branch\_findings}, with its hash as \texttt{name}; \texttt{cgitsync}
+writes nothing to the Omniscience register, and gx4g records them.
 
 \subsection{\texttt{fetch}}
 

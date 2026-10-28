@@ -295,6 +295,17 @@ would be on under it), \texttt{missing} and \texttt{uncloned}. Reads refs
 only: no fetch, no State written. \texttt{private} narrows the coverage,
 not the branches listed.
 
+\paragraph{\texttt{branch\_findings()}.} Returns one \texttt{BranchFinding}
+(\texttt{ComplexGitSync.tree.branch\_findings}) for each project branch that
+ended outside \texttt{cgitsync} or is ending badly, errors first. Each has
+\texttt{branch}, \texttt{kind} (\texttt{vanished}, \texttt{half-closed},
+\texttt{split}, \texttt{orphaned-private}, \texttt{closed}), its
+\texttt{evidence} (repository and what was seen), the \texttt{ledger\_seq} that
+recorded a push or a relocation of it, and a content-addressed \texttt{name};
+\texttt{to\_record()} is the JSON object \texttt{--json} prints. Reads refs
+and the ledger only, as of the last fetch: no network, no State, no register
+write. \texttt{branch\_list\_json(private=False)} is \texttt{branch list --json}.
+
 \paragraph{\texttt{fetch(private=False)}.} Runs \texttt{git fetch --prune
 origin} in every cloned repository in scope and returns one
 \texttt{RepoOutcome} per repository (also on
