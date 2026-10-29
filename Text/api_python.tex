@@ -1092,6 +1092,38 @@ chapter, covers the more common case: \texttt{push}, \texttt{tag}, and
 \texttt{freeze\_release} each call it automatically, first, once a memory is mounted
 and adopted.
 
+\section{\texttt{Op}, the boundary of a project}
+\label{sec:op-boundary}
+
+The client's writing methods (\texttt{verify} only with \texttt{repair}) and
+\texttt{fetch} can be run through \texttt{Op}
+(\texttt{ComplexGitSync.orchestre.op\_boundary}): the command line does so for
+you. Reads, the install and the \texttt{omniscience} methods go direct. An operation is one client method, asked by the
+project itself (\texttt{Origin.INTERNAL}) or by GX4G
+(\texttt{Origin.EXTERNAL}). \texttt{run()} returns what the method returns,
+refusal included; \texttt{is\_poe()} returns \texttt{OP*}, an
+\texttt{OpStar}: what of the operation can be proved to exist.
+
+\begin{lstlisting}[language=Python]
+from ComplexGitSync.orchestre.op_boundary import Op, Origin, USER
+
+op = Op(client, "push", origin=Origin.EXTERNAL, level=USER)
+op.run()
+star = op.is_poe()
+star.name      # "*demo": the PoE graph's own name
+star.poe       # {"name": ..., "merkle_root_sha256": ..., "nodes": [...]}
+star.sigma     # 2
+\end{lstlisting}
+
+\texttt{OP*} keeps the operation's name, \texttt{*NAME} and the SHA-256 of
+the tree's Merkle root, never a branch, a commit message or a path. The
+level's four-bit vector bounds it: \texttt{PUBLIC} exposes the name, the
+repositories, the mounts between them and the operation on them;
+\texttt{USER} the name and the repositories; \texttt{DEV} the name;
+\texttt{OPX} nothing. Without a \texttt{level}, it comes from the tree's
+profile. Who asked never changes \texttt{OP*}. A registration record may
+carry the same Sigma, as \texttt{OmniscienceRecord.sigma}.
+
 \section{The shared register: \texttt{omniscience\_mount}, \texttt{omniscience\_record}, \texttt{omniscience\_register} and \texttt{omniscience\_observe}}
 
 \begin{lstlisting}[language=Python]
