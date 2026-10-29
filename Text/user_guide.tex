@@ -355,6 +355,19 @@ remote. A repository scanned on a \emph{different} branch than the root
 gets its own explicit \texttt{default\_branch} too, so it is not silently
 retargeted at the root's branch on the next \texttt{initialise}; one
 scanned on the same branch as the root needs no per-entry override at all.
+\paragraph{A file named for its project.} A \texttt{.cgs} named
+\texttt{yyyy-xxx.cgs}, where \texttt{xxx} is exactly three characters and
+\texttt{yyyy}, of any length, is the file's own \texttt{project.name}, opens
+that project on branch \texttt{xxx}. Its project line must then read
+\texttt{project = \{ name = "yyyy", default\_branch = "xxx", fallback\_branch =
+"CGS-BETA" \}}; a file that says otherwise is refused by name, before anything is
+cloned, with the line it expects. \texttt{project.fallback\_branch} is the
+fallback every repository takes when it declares none; a repository that holds
+neither its target nor that branch falls back to \texttt{main}. A file whose
+name does not have that shape, or whose \texttt{yyyy} is not its project, is read
+as it always was; so is a \texttt{memory reboot} export, \texttt{<project>-v<N>.cgs}, whose
+\texttt{v10} to \texttt{v99} name a version, not an operation.
+
 Re-materialising the drafted tree therefore reproduces the tree that was
 scanned, branch included --- before this, the branch was drafted only as a
 fallback, which \texttt{initialise} never targets first, so a tree scanned
