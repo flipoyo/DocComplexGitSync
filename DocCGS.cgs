@@ -5,8 +5,9 @@
 # DocSpec used to be declared here, nested one level inside docs/. It no
 # longer is: AgentSkillsSplit mounts it directly from the top-level .cgs
 # instead, at .agent/.distant/documentation, alongside every other
-# agentic skill — a repository mounted both here and there would clone
-# twice. See examples/complexgitsync4dev.cgs's own header comment.
+# agentic skill — a request here for the same repository on the same
+# branch would now be denied (IntegrityMount). See
+# examples/complexgitsync4dev.cgs's own header comment.
 
 project = { name = "docsCGS", default_branch = "main" }
 

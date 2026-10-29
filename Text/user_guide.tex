@@ -1920,16 +1920,18 @@ only that something did. A State written before this scheme
 (\texttt{integrity\_schema = 1}) is refused rather than measured: run
 \texttt{memory reboot} to start a new memory under it.
 
-\paragraph{Nested projects that mount the same repository.} A tree holds a
-repository once. When a nested \texttt{.cgs} names a repository that the tree
-already mounts nearer its root, the nested entry is not cloned again: it becomes
-a relative symlink to the nearer mount, so the nested project's agents keep the
-paths its own spec names, and the State records the link as an alias of that
-mount. A different repository at a path the tree already uses is refused by
-name before anything is cloned. A State whose tree shares a
-\texttt{relative\_path} between two nested specs, or has an alias, is written
-under integrity schema~2 (each repository keyed by its \texttt{tree\_path} from
-the root); every other tree stays on schema~1, so no earlier State changes name.
+\paragraph{A nested request the tree refuses.} A \texttt{.cgs}, and each nested
+\texttt{.cgs}, asks for mounts; the State is what the tree holds, and it may
+refuse. A nested request is denied, before anything is cloned for it, when it
+asks for a different repository at a path the tree already uses, for a
+repository the tree already holds on the same branch, or for a
+\texttt{relative\_path} the tree already uses. The request farther from the
+root loses. The command prints \texttt{denied:} with the reason, writes a
+\texttt{mount\_denied} event to its run log, and completes with the tree it can
+hold; the State does not mention the denial. A private repository that a
+nested project's \texttt{.cgs} declares is on
+\texttt{<Parent>\_<Project>} (for example \texttt{ComplexGitSync\_gx4g}), so it
+never shares a branch with your project's own.
 
 \paragraph{Where the history lives.} \texttt{.cgitsync/lgr/}, one file per
 entry, appended to by every command that writes a State. Each entry records
