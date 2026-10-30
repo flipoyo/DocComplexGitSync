@@ -2224,8 +2224,13 @@ table prints a legend saying so.
 \label{sec:status-sync}
 It says how the branch a repository
 is on stands against the branch it tracks --- the one named in
-\texttt{UPSTREAM\_BRANCH}, which reads \texttt{-} when there is none. There
-are six values:
+\texttt{UPSTREAM\_BRANCH}, which reads \texttt{-} when there is none. When
+the branch tracks nothing but the remote holds a branch of the same name,
+\texttt{UPSTREAM\_BRANCH} shows that branch followed by
+\texttt{(same name)}, and the column is measured against it: a local branch
+made without tracking is not ``never pushed''. \texttt{status --json} gives
+the branch as \texttt{upstream\_branch} and \texttt{upstream\_configured:
+false}. There are six values:
 
 \begin{center}
 \begin{tabular}{lp{10.5cm}}
@@ -2242,8 +2247,8 @@ are six values:
                              safe; \texttt{pull --force} refuses to
                              run while this workspace's own \texttt{N}
                              commits exist nowhere else. \\
-\texttt{no-upstream}       & This branch was never pushed, so there is
-                             nothing to compare it to. Normal for a branch
+\texttt{no-upstream}       & The remote holds no branch of this name, so
+                             there is nothing to compare it to. Normal for a branch
                              you just made, and for a \texttt{private/local}
                              repository that only \texttt{push --private}
                              ever sends. \\
@@ -2258,6 +2263,14 @@ The last two are worth telling apart. \texttt{no-upstream} is a normal
 state of a branch nobody has pushed yet; \texttt{unknown} is a fault. They
 used to share the one word \texttt{unknown}, which made the column not
 worth reading --- an ordinary new branch looked exactly like a broken one.
+
+A branch that tracks nothing, and is \texttt{behind} or
+\texttt{diverged} from the remote branch of its name, is refused by
+\texttt{push} for the whole tree before anything is sent, naming the
+repository and the repair: \texttt{pull} when behind, and when diverged the
+\texttt{git -C <path> merge <remote>/<branch>} to run, then \texttt{push}
+again. \texttt{checkout} and \texttt{pull} make such a branch track its
+remote branch, writing the tracking configuration and moving no commit.
 
 \paragraph{\texttt{unmeasured} in the \texttt{summary} line.} The summary
 counts the \texttt{no-upstream} and \texttt{unknown} rows as
