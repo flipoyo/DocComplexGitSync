@@ -2127,6 +2127,20 @@ yet}, names the three commands that start a project, and exits \texttt{0}.
         somewhere else.
 \end{itemize}
 
+\paragraph{A \texttt{\$CGSHOME} that is not where you stand.} A shell that
+still exports an earlier workspace's \texttt{CGSHOME} makes every command
+work on that workspace while the output looks like the tree you are in.
+When \texttt{\$CGSHOME} alone chose the workspace and the current directory
+is not inside it, a command that only reads (\texttt{status},
+\texttt{branch list}, \ldots) prints the warning it always did; a command
+that writes (\texttt{add}, \texttt{commit}, \texttt{push},
+\texttt{pull}, \texttt{fetch}, \texttt{checkout}, \texttt{merge},
+\texttt{tag}, the \texttt{branch}, \texttt{release}, \texttt{memory} and
+\texttt{self-history} writes, \ldots) is refused before anything is
+touched. \texttt{--search-dir} (naming the workspace you mean), an explicit
+snapshot, or \texttt{unset CGSHOME} are the ways out; none of them is
+refused. The Python API is unchanged: a caller names its workspace.
+
 \paragraph{The \texttt{use\_case} field.} Every discovery line also says
 which of the two ways of running is in force: \texttt{nested} when the
 ComplexGitSync being executed lives inside the workspace it manages,
