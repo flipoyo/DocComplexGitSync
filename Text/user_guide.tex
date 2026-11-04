@@ -2714,6 +2714,22 @@ the file can then see the branch the tree lands on without knowing what
 \cgscli{}'s built-in default happens to be. Every \texttt{.cgs} shipped with
 ComplexGitSync does this, and a test enforces it.
 
+\subsubsection{A level tree waiting for its branch}
+
+A \texttt{.cgs} named \texttt{yyyy-xxx.cgs} opens project \texttt{yyyy} on
+branch \texttt{xxx}, falling back to \texttt{CGS-ALPHA}. When \texttt{xxx}
+does not exist yet, the root is cloned on the fallback and \emph{waits}: every
+private, writable repository still takes its branch from \texttt{xxx}
+(\texttt{yyyy\_xxx}), never from the fallback. ComplexGitSync itself, when such
+a tree mounts it, is always on \texttt{yyyy\_<branch>}, waiting or not, so
+that two projects never share one branch of the tool. The install names the
+command that ends the wait, creating every one of those branches on this disk
+and pushing nothing:
+
+\begin{verbatim}
+cgitsync branch create opx && cgitsync checkout opx
+\end{verbatim}
+
 \subsubsection{What \texttt{private} means}
 
 A repository is \texttt{private} when it is \textbf{shared with other
