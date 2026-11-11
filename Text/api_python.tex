@@ -255,6 +255,13 @@ client.load_release("beta")
 # force_access_protocol, as in initialise() and bootstrap(), overrides it,
 # in place or into a new workspace:
 client.load_release("beta", workspace="beta-look", force_access_protocol="https")
+
+# Every repository's version, through Pixi (a developer tree only; nothing is committed):
+for row in client.version_diagnose():          # a VersionRow each: verdict ready, init, task needed...
+    print(row.name, row.version, row.scheme, row.verdict)
+client.version_init(["tool"], version="0.1.0")  # pixi workspace version set, where there is none
+for move in client.version_bump("minor"):       # modified leaves first, the root last
+    print(move.name, move.old, "->", move.new)
 \end{lstlisting}
 
 \paragraph{Every one of these that reaches a remote folds the memory first.}

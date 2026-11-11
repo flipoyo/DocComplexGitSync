@@ -1122,6 +1122,65 @@ folds twice in one run --- once via its \texttt{push} step, once via
 the freeze step --- which is harmless: a fold with nothing new
 pending commits nothing and only re-sends the branch.
 
+\subsection{\texttt{version}: \texttt{diagnose}, \texttt{init}, \texttt{bump}}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync version diagnose [--json] [--gts <snapshot.gts>]
+$ pixi run cgitsync version init [REPOSITORY ...] [--version V] [--yes]
+$ pixi run cgitsync version bump [patch|minor|major] [--dry-run]
+\end{lstlisting}
+
+A project administered by \texttt{cgitsync} can version each of its
+repositories and bump them together, without an agent. Every subcommand
+works in a developer tree (DEV or OPX) only: a user tree holds no private
+repository, so it is refused before anything is read. The version of a
+repository is the one its own \texttt{pixi.toml} declares, whatever the
+language of the project; a \texttt{pyproject.toml} workspace is not read.
+
+\paragraph{\texttt{version diagnose}} reads every repository and writes
+nothing. One row per repository gives the manifest, the version as written,
+its scheme (\texttt{semver}, \texttt{semver-pre} with a suffix such as
+\texttt{-alpha}, \texttt{calendar} for \texttt{YYYY.XX}, \texttt{other}), how
+it is bumped (\texttt{task}: a \texttt{bump-version} task in the manifest;
+\texttt{pixi}: Pixi's own command will do), whether a \texttt{bump-build}
+task exists, how many other tracked files hold the version string, whether
+the repository is modified, and a verdict: \texttt{ready}; \texttt{init} (no
+version yet); \texttt{task needed} (the version is copied elsewhere, or is
+not SemVer, or the task's script is missing, so the project must declare or
+repair a \texttt{bump-version} task); \texttt{not versioned} (no
+\texttt{pixi.toml}); \texttt{private}; \texttt{other project} (another
+project's tool mounted here: bump it from its own tree); \texttt{no pixi}.
+A private repository, a repository with no \texttt{pixi.toml} and another
+project's tool are listed, and never initialised or bumped.
+
+\paragraph{\texttt{version init}} proposes, repository by repository, the
+version to install where a \texttt{pixi.toml} has none, and asks before each
+(Enter takes \texttt{0.1.0} or \texttt{--version}, \texttt{n} skips, a typed
+version is used). \texttt{--yes} asks nothing. It runs \texttt{pixi
+workspace version set}; it never edits a manifest itself and never commits.
+
+\paragraph{\texttt{version bump}} bumps each \emph{modified} repository (an
+uncommitted change, or a commit its upstream does not have), leaf first, and
+the root last, by \texttt{patch} unless told \texttt{minor} or \texttt{major};
+the root is always bumped, modified or not, since the level is checked on it; the level is a person's judgement, never the tool's. A repository's own
+\texttt{bump-version} task is run first, since it knows every file that
+repeats the version and every document that embeds it; Pixi's own bump is
+used only for plain SemVer that nothing else copies, and a calendar or other
+non-SemVer version is never passed to Pixi. Every command is dry-run before
+anything is written, and the root's version must move by exactly the level
+asked. A modified repository that is not \texttt{ready} refuses the whole
+bump, naming it and what fixes it. A failure while applying names what
+completed, what failed and what never ran; nothing is rolled back (the
+changes are uncommitted files). Nothing is committed, pushed or tagged: the
+next steps are \texttt{add} and \texttt{commit} with the new version in the
+message.
+
+\textbf{A \texttt{bump-version} task} meets this contract: it takes
+\texttt{major}, \texttt{minor} or \texttt{patch}; takes \texttt{--dry-run},
+writes nothing with it and fails when the real run would; is atomic (all its
+files or none); prints \texttt{old -> new} on its last line; and updates every
+document that embeds the version, PDFs included.
+
 \subsection{\texttt{submodules import}}
 
 \begin{lstlisting}[language=bash]
