@@ -2350,8 +2350,13 @@ branch, nothing checked out and nothing merged. A fast-forward is reported
 as one, which is usually why a repository looks untouched afterwards.
 \texttt{--into} never creates its target: a branch that is not there is as
 likely to be a typing mistake as a new branch, so it is named and the
-command stops. It cannot be combined with \texttt{--resolve}, which promises
-the opposite about a conflict.
+command stops. A target that only the remote has, as \texttt{origin/main}
+in a clone that never checked \texttt{main} out, is refused too, by name and
+with the \texttt{git branch} command that creates it from the remote in each
+repository; it is never taken for an unrelated history. Type the project
+branch (\texttt{main}), never \texttt{origin/main}: the command says so when
+you do. It cannot be combined with \texttt{--resolve}, which promises the
+opposite about a conflict.
 
 \texttt{checkout} warns when it is about to install a different build of the
 tool, and still performs the checkout --- looking at an older branch is
