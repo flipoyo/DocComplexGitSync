@@ -2409,7 +2409,12 @@ branch, nothing checked out and nothing merged. A fast-forward is reported
 as one, which is usually why a repository looks untouched afterwards.
 \texttt{--into} never creates its target: a branch that is not there is as
 likely to be a typing mistake as a new branch, so it is named and the
-command stops. A target that only the remote has, as \texttt{origin/main}
+command stops. The memory of a bootstrap tree, filed under
+\texttt{ComplexGitSync\_<project>}, and the \texttt{.self-history} it nests are
+named by that rule like every other repository; a memory behind the other
+fast-forwards, one with commits of its own keeps its side whole, and a memory
+with no branch to follow the project on refuses the merge before anything
+moves, naming the \texttt{memory branch} command that creates it. A target that only the remote has, as \texttt{origin/main}
 in a clone that never checked \texttt{main} out, is refused too, by name and
 with the \texttt{git branch} command that creates it from the remote in each
 repository; it is never taken for an unrelated history. Type the project
