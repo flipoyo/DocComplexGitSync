@@ -40,7 +40,7 @@ source for the import rules themselves.
 is *planned* — the ranked planning tickets, the archive of finished ones,
 and the owner's short tickets they come from — lives in
 `.agent/.local/.localSpec/DevTickets/`, a private mount that only the developer install
-(`examples/complexgitsync4dev.cgs`) brings in. It used to sit in the public
+(`examples/cgitsync-alpha.cgs`) brings in. It used to sit in the public
 repository as `AgentSpec/`; it moved so that installing the tool ships the
 tool, not the workshop. If you have the developer tree, start at
 `.agent/.local/.localSpec/DevTickets/README.md`; if you do not, nothing in this folder
