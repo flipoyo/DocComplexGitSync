@@ -678,6 +678,67 @@ reason: not cloned, no origin, or the fetch failed) for each repository,
 then a summary; exits non-zero if any fetch failed. \texttt{--private}
 narrows it to the writable configuration repositories.
 
+\subsection{\texttt{anonymise}}\label{sec:anonymous}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync anonymise [--cgs <file.cgs>] [--dry-run] [--delete-old] [--gts <snapshot.gts>]
+\end{lstlisting}
+
+\paragraph{The \texttt{anonymous} option.} A project's private/local
+branches live in repositories it shares with the owner's other projects
+(\texttt{.dev}, \texttt{.localSpec}, \texttt{.claude}, \texttt{.memory},
+\texttt{omniscience}), and each is named after the project. A project whose
+name is itself private can ask for an \emph{alias} instead, with an option
+in the \texttt{project} table of its \texttt{.cgs}:
+
+\begin{lstlisting}
+project = { name = "PATRIMOINE", default_branch = "main", anonymous = "sequence" }
+\end{lstlisting}
+
+The user never types the alias. \texttt{"sequence"} files the project under
+\texttt{anonymous-1}, \texttt{anonymous-2}, and so on, and reveals nothing
+about the name. \texttt{"hash"} files it under the first six hexadecimal
+digits of the SHA-256 of the name, with \texttt{-1}, \texttt{-2} added on a
+collision; anyone who suspects the name can compute it and confirm. Without
+the option nothing changes.
+
+The alias replaces the name wherever a shared repository is named or written:
+the branches (\texttt{<alias>} on \texttt{main}, \texttt{<alias>\_<branch>}
+otherwise, and \texttt{ComplexGitSync\_<alias>...} for a twin's memory), the
+project and repository names inside the States kept in the memory, the
+memory's commit messages, and the omniscience record, whose \texttt{os\_id} is
+then the id of the alias. A State records no machine path and no
+\texttt{.cgs} path for an anonymous project. The real name stays in the
+project's own \texttt{.cgs} and in its own repositories.
+
+\paragraph{Choosing the alias.} It is chosen at \texttt{bootstrap} and
+\texttt{initialise}, once, and recorded in the State. A candidate is the
+project's own when a branch it names exists in a shared repository and holds
+the project's \emph{claim}: a file \texttt{.cgitsync-alias} at the root of the
+alias branch, which holds the SHA-256 of the real name and is written when
+\texttt{branch create} or \texttt{memory branch} makes the branch. It is
+\emph{taken} when the branch exists with another claim, or none, and
+\emph{free} when no such branch exists. The first candidate that is free or
+the project's own, in every shared repository, wins, so every machine reaches
+the same alias with no local state. A project name that has the shape of an
+alias (\texttt{anonymous-<i>}, or six hexadecimal digits with an optional
+\texttt{-<i>}) is refused, and so is any key of the \texttt{project} table that
+\cgspkg{} does not know: a version that predates \texttt{anonymous} would
+ignore it and write the real name everywhere, which is the leak the option is
+for. \textbf{A \texttt{.cgs} that declares \texttt{anonymous} must not be
+bootstrapped by a \cgspkg{} older than the one that ships it.}
+
+\paragraph{Moving a tree that already shares its name.} \texttt{anonymise}
+reads the \texttt{.cgs} that now declares \texttt{anonymous} (\texttt{--cgs},
+by default the one the tree was built from), finds the branches of the shared
+repositories named after the project, and makes the alias branch for each at
+the same commit, with its claim, pushed. \texttt{--dry-run} lists the pairs
+and writes nothing. The old branches are kept. \texttt{--delete-old} also
+deletes each one, but only after a confirmation that names it, one branch at a
+time. \textbf{History is not rewritten:} the commits already written, and the
+States already in the memory, still hold the old name. Only the branch names
+change.
+
 \subsection{\texttt{branch close}}
 
 \begin{lstlisting}[language=bash]
