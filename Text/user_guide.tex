@@ -2789,10 +2789,9 @@ A \texttt{.cgs} named \texttt{yyyy-xxx.cgs} opens project \texttt{yyyy} on
 branch \texttt{xxx}, falling back to \texttt{CGS-ALPHA}. When \texttt{xxx}
 does not exist yet, the root is cloned on the fallback and \emph{waits}: every
 private, writable repository still takes its branch from \texttt{xxx}
-(\texttt{yyyy\_xxx}), never from the fallback. ComplexGitSync itself, when a
-tree mounts it as a project repository, is always on
-\texttt{yyyy\_<branch>}, in a level tree or any other, waiting or not, so
-that two projects never share one branch of the tool. The install names the
+(\texttt{yyyy\_xxx}), never from the fallback, and so does every project
+repository but the root, ComplexGitSync itself among them, so that two projects
+never share one branch of a library or of the tool. The install names the
 command that ends the wait, creating every one of those branches on this disk
 and pushing nothing:
 
@@ -2800,25 +2799,30 @@ and pushing nothing:
 cgitsync branch create opx && cgitsync checkout opx
 \end{verbatim}
 
-\subsubsection{A repository that is a project of its own}
+\subsubsection{Only the root is on your branch}
 
-A repository mounted in your tree that holds a \texttt{.cgs} of its own,
-naming another project (a \emph{Parent}), is shared with every project that
-mounts it. If it took your branch, two projects on \texttt{dev} would write
-to one branch of it. It is therefore on \texttt{<project>\_<branch>}
-(\texttt{<project>} on \texttt{main}), \emph{your} project's name and never
-its own, and so are the repositories its \texttt{.cgs} declares. A
-\texttt{.cgs} that names your own project is the same project split across
-repositories and keeps your branch, as does a repository with
-\texttt{nested\_config = "disabled"}. A \texttt{branch} or
-\texttt{default\_branch} you type on the Parent's entry wins.
+Your project's own repository, the root, is the only one on the branch you
+name. Every other repository that is not private is on
+\texttt{<project>\_<branch>} (\texttt{<project>} on \texttt{main}), \emph{your}
+project's name and never its own: a library, a repository that is a project
+of its own (a \emph{Parent}, one that holds a \texttt{.cgs} naming another
+project), and the repositories that \texttt{.cgs} declares. Such a repository is
+shared with every project that mounts it, and if it took your branch, two
+projects on \texttt{dev} would write to one branch of it. A \texttt{.cgs} that
+names your own project, and a repository with
+\texttt{nested\_config = "disabled"}, are on it too. A \texttt{branch} or
+\texttt{default\_branch} you type on a repository's entry wins, and so does a
+tag. A private, writable repository is on the same name; a private,
+read-only one stays on its own branch.
 
-Until that branch exists, the Parent lands on its \texttt{fallback\_branch},
+Until that branch exists, the repository lands on its \texttt{fallback\_branch},
 then \texttt{main}, and \cgscli{} says so: the install report and
 \texttt{status} name each one and the command that creates the branch on this
-disk, pushing nothing. \texttt{commit} and \texttt{push} refuse it meanwhile.
-A Parent already on your branch from before is reported, and never moved by
-itself.
+disk, pushing nothing. \texttt{commit} and \texttt{push} refuse it meanwhile,
+except in a tree that holds no private repository, which never commits and is
+told in one line. A repository already on your branch from before is reported,
+and never moved by itself; the branch the command creates starts at its tip, so
+no work is left behind.
 
 \begin{verbatim}
 cgitsync branch create dev && cgitsync checkout dev
