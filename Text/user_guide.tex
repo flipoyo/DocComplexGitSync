@@ -2816,17 +2816,36 @@ tag. A private, writable repository is on the same name; a private,
 read-only one stays on its own branch.
 
 Until that branch exists, the repository lands on its \texttt{fallback\_branch},
-then \texttt{main}, and \cgscli{} says so: the install report and
-\texttt{status} name each one and the command that creates the branch on this
-disk, pushing nothing. \texttt{commit} and \texttt{push} refuse it meanwhile,
-except in a tree that holds no private repository, which never commits and is
-told in one line. A repository already on your branch from before is reported,
-and never moved by itself; the branch the command creates starts at its tip, so
-no work is left behind.
+then \texttt{main}, and \cgscli{} says so. On the first install of a branch
+this is expected for every library at once, so the install ends with one block:
+the repositories still waiting, grouped by scope, the branch each waits for,
+and the one line that creates, checks out and publishes them all. A library, a
+nested Parent and a private, writable repository all take the same line, which
+names your bare branch (\texttt{dev}, never \texttt{demo\_dev}):
+\cgscli{} derives each repository's own name. The install itself creates and
+pushes nothing.
 
 \begin{verbatim}
-cgitsync branch create dev && cgitsync checkout dev
+warning: branch dev is new here: 2 repositories have no branch of their own
+yet, so each was cloned on its fallback branch. This is expected on the first
+install of a branch.
+  Do not commit to them until their branches exist: ...
+  project: lib (wait for 'demo_dev', cloned on 'main')
+  private/local: .localSpec (wait for 'demo_dev', cloned on 'main')
+to create, check out and publish every missing branch at once, run:
+  cgitsync branch create dev && cgitsync checkout dev && cgitsync push
 \end{verbatim}
+
+\texttt{status} lists each repository off its branch and then the same command
+once. \texttt{commit} and \texttt{push} refuse such a repository meanwhile,
+except in a tree that holds no private repository, which never commits: it is
+told with \texttt{info:} and without \texttt{push}. A repository already on
+your branch from before is reported, and never moved by itself; the branch the
+command creates starts at its tip, so no work is left behind. The run log
+records each waiting repository as a \texttt{branch\_missing} event, whose
+\texttt{scope} is \texttt{project} or \texttt{private/local} (\texttt{root}
+marks the root waiting on its level); earlier versions named it
+\texttt{private\_branch\_missing}.
 
 \subsubsection{What \texttt{private} means}
 
