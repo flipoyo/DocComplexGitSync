@@ -275,7 +275,8 @@ checked out.
 \paragraph{A standalone tree's memory is a twin's.} A tree \texttt{bootstrap}
 builds is a twin of its project, run by a \cgspkg{} outside it, so its
 memory belongs to \cgspkg{}: it is filed on \texttt{ComplexGitSync\_<project>}
-(\texttt{ComplexGitSync\_<project>\_<branch>} on a project branch), while the
+(\texttt{ComplexGitSync\_<project>\_<branch>} on a project branch; the whole rule is
+in \S\ref{sec:branch-naming-contract}), while the
 nested tree \texttt{initialise} builds keeps \texttt{<project>}. The two never
 write to the same memory branch. A \texttt{.gts} recorded in a nested tree
 still restores every repository at its commit, but its memory is cloned on the
@@ -689,7 +690,7 @@ project's \texttt{ancestors} branch, then renames it to
 \texttt{closed/<branch>} tree-wide, leaf-first, locally and on the remote. Each repository closes
 the branch it follows under that project branch: the same name in a
 project repository, \texttt{<project>\_<branch>} in a private/local one
-(so \texttt{branch close tmpPyPi} closes \texttt{ComplexGitSync\_tmpPyPi}
+(see \S\ref{sec:branch-naming-contract}; so \texttt{branch close tmpPyPi} closes \texttt{ComplexGitSync\_tmpPyPi}
 in \texttt{.memory}), and nothing in a private/distant one, which never
 follows the project and is reported as skipped. Requires \texttt{READY};
 the tree remains \texttt{READY} on success. Renames only: nothing is
@@ -1141,13 +1142,19 @@ language of the project; a \texttt{pyproject.toml} workspace is not read.
 nothing. One row per repository gives the manifest, the version as written,
 its scheme (\texttt{semver}, \texttt{semver-pre} with a suffix such as
 \texttt{-alpha}, \texttt{calendar} for \texttt{YYYY.XX}, \texttt{other}), how
-it is bumped (\texttt{task}: a \texttt{bump-version} task in the manifest;
+it is bumped (\texttt{task}: a \texttt{bump-version} task in the manifest, in
+\texttt{[tasks]} or in a \texttt{[feature.<name>.tasks]}, shown as
+\texttt{task (<env>)} when it is run with \texttt{pixi run -e <env>}, because
+only that environment has it;
 \texttt{pixi}: Pixi's own command will do), whether a \texttt{bump-build}
 task exists, how many other tracked files hold the version string, whether
 the repository is modified, and a verdict: \texttt{ready}; \texttt{init} (no
 version yet); \texttt{task needed} (the version is copied elsewhere, or is
 not SemVer, or the task's script is missing, so the project must declare or
-repair a \texttt{bump-version} task); \texttt{not versioned} (no
+repair a \texttt{bump-version} task); \texttt{not mounted} (the task's script
+is in a repository this tree declares but has not checked out, such as a
+private mount: check it out, then diagnose again; it refuses a bump like
+\texttt{task needed}); \texttt{not versioned} (no
 \texttt{pixi.toml}); \texttt{private}; \texttt{other project} (another
 project's tool mounted here: bump it from its own tree); \texttt{no pixi}.
 A private repository, a repository with no \texttt{pixi.toml} and another
@@ -1175,7 +1182,13 @@ changes are uncommitted files). Nothing is committed, pushed or tagged: the
 next steps are \texttt{add} and \texttt{commit} with the new version in the
 message.
 
-\textbf{A \texttt{bump-version} task} meets this contract: it takes
+\textbf{A \texttt{bump-version} task} may be declared in \texttt{[tasks]} or in
+a feature (\texttt{[feature.dev.tasks]}) that an environment of
+\texttt{[environments]} lists, in the list form or the table form. A task the
+default environment has is run as it is; any other is run in the first
+environment of \texttt{[environments]} that has it, with \texttt{-e}, and the
+\texttt{BUMP} column and the bump report name that environment. The task meets
+this contract: it takes
 \texttt{major}, \texttt{minor} or \texttt{patch}; takes \texttt{--dry-run},
 writes nothing with it and fails when the real run would; is atomic (all its
 files or none); prints \texttt{old -> new} on its last line; and updates every
@@ -2148,6 +2161,9 @@ stable is a new major version.
 Command names and documented flags & Stable within a major version. \\
 Exit codes & Stable within a major version. \\
 \texttt{--json} output & \textbf{Additive only}, as above. \\
+The branch-naming contract (\S\ref{sec:branch-naming-contract}) & Stable
+  within a major version: a change to the branch a repository is derived onto
+  is a major release. \\
 \texttt{.cgs} and \texttt{.gts} grammar & Versioned in the file, and the
   version is read on load. \\
 Python modules under \texttt{src/ComplexGitSync/} & \textbf{Not a public
@@ -2791,7 +2807,8 @@ does not exist yet, the root is cloned on the fallback and \emph{waits}: every
 private, writable repository still takes its branch from \texttt{xxx}
 (\texttt{yyyy\_xxx}), never from the fallback, and so does every project
 repository but the root, ComplexGitSync itself among them, so that two projects
-never share one branch of a library or of the tool. The install names the
+never share one branch of a library or of the tool
+(\S\ref{sec:branch-naming-contract} states the rule). The install names the
 command that ends the wait, creating every one of those branches on this disk
 and pushing nothing:
 
@@ -2801,6 +2818,7 @@ cgitsync branch create opx && cgitsync checkout opx
 
 \subsubsection{Only the root is on your branch}
 
+The whole rule is written once, in \S\ref{sec:branch-naming-contract}.
 Your project's own repository, the root, is the only one on the branch you
 name. Every other repository that is not private is on
 \texttt{<project>\_<branch>} (\texttt{<project>} on \texttt{main}), \emph{your}
@@ -2846,6 +2864,42 @@ records each waiting repository as a \texttt{branch\_missing} event, whose
 \texttt{scope} is \texttt{project} or \texttt{private/local} (\texttt{root}
 marks the root waiting on its level); earlier versions named it
 \texttt{private\_branch\_missing}.
+
+\subsubsection{The branch-naming contract}
+\label{sec:branch-naming-contract}
+
+This is the one statement of the rule that names every repository's branch, for
+anyone who clones a tree by hand and wants to land on the same branches
+with Git alone. Take project \texttt{demo} on branch \texttt{dev}:
+
+\begin{itemize}
+\item the root is on the bare branch, \texttt{dev};
+\item every other repository that is not private (a library, a nested Parent
+and the repositories its \texttt{.cgs} declares, a split of the same project,
+ComplexGitSync mounted by another project) is on \texttt{demo\_dev}, and on
+\texttt{demo} when the branch is \texttt{main};
+\item \texttt{demo} is the tree's project name: the \texttt{project.name} of
+the \texttt{.cgs}, or what the install derived it from;
+\item the separator is \texttt{\_}, which is why a project or branch name that
+holds one is refused where it is created;
+\item a private, writable repository is on \texttt{demo\_dev} too, and one under
+a nested Parent on \texttt{<Parent>\_demo\_dev}; a private, read-only one stays
+on its own branch;
+\item the memory is on \texttt{demo\_dev} in a nested tree and on
+\texttt{ComplexGitSync\_demo\_dev} in a standalone one, and
+\texttt{.self-history} follows the memory;
+\item a \texttt{branch} or \texttt{default\_branch} typed on an entry, and a tag,
+win over the rule;
+\item when the derived branch does not exist, the repository lands on its
+\texttt{fallback\_branch}, then \texttt{main}, and says so: the
+\texttt{branch\_missing} event of the run log, the block that ends the install
+and \texttt{status}.
+\end{itemize}
+
+\textbf{A change to this rule is a breaking change.} Anyone who followed it by
+hand, or built a script or a branch policy on it, finds their repositories on
+other branches, so a release that changes it is a major release and says so in
+the changelog.
 
 \subsubsection{What \texttt{private} means}
 
