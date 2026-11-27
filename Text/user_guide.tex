@@ -152,6 +152,21 @@ created (\texttt{--project}): \texttt{\_} separates the parts of a private
 branch name, so a new name uses \texttt{-}. An existing \texttt{.cgs} is never
 refused for it.
 
+Every dependency below the root whose folder already holds files is deleted and
+cloned again, after a check that none holds work that exists nowhere else. One
+entry is the exception: \textbf{the \cgscli{} that is running the command}.
+When a \texttt{.cgs} declares it (a nested project can list ComplexGitSync like
+any dependency, so the tool's version is in the tree's description and in its
+States), \texttt{initialise} adopts it where it is. It checks that the clone's
+\texttt{origin} names the declared repository, records its branch and commit, and
+never deletes, re-clones or moves it. A clone of another repository is refused by
+name before anything is deleted. If it is on a branch other than the one the tree
+derives for it, \texttt{initialise} says so and gives the \texttt{git checkout}
+line to run once the install is done; checking out the code that is running is how
+a half-switched tool happens. A project that keeps the tool on a fixed branch declares it
+\texttt{private = true} with that \texttt{default\_branch}, which leaves the tool off the
+derived \texttt{<project>\_<branch>} rule and so reports nothing when it is there.
+
 \begin{itemize}
   \item \texttt{.cgs} source: clones the workspace's dependencies.
     The optional \texttt{--output-path} controls
@@ -2187,9 +2202,30 @@ services = ["postgresql"]
 manifests = ["Cargo.lock"]
 \end{lstlisting}
 
-The root must name a configured repository (or \texttt{root}). Manifest
-contents remain in Git; the Environment record stores only tree-relative
-paths and digests.
+What each key adds, given that \cgspkg{} records the environment it runs in
+anyway:
+
+\begin{itemize}
+\item \texttt{tools} is a list of \emph{minimum versions}, not an
+environment. Each name is an executable \cgspkg{} probes, so a tool the tree
+needs appears in the record even when \cgspkg{} does not drive it (\texttt{pixi},
+for example). A tool that is missing or older than its minimum is drift:
+\texttt{env check} exits non-zero, and \texttt{initialise} and the tree commands
+warn without blocking.
+\item \texttt{manifests} \emph{adds} glob patterns to the built-in list:
+\texttt{pixi.toml}, \texttt{pixi.lock}, \texttt{pyproject.toml},
+\texttt{requirements*.txt}, \texttt{environment.yml}, \texttt{package.json},
+\texttt{Makefile} and \texttt{.tool-versions}. Write it only for a file the list
+does not already name (\texttt{Cargo.lock} above); repeating a built-in pattern
+changes nothing.
+\item \texttt{environment\_root} is a \emph{label}. It is recorded in the
+Environment record (\texttt{undeclared} when absent) and must name a configured
+repository, or \texttt{root}. It does not change where manifests are read, which
+is always the root repository's subtree.
+\end{itemize}
+
+Manifest contents remain in Git; the Environment record stores only
+tree-relative paths and digests.
 
 \subsection{\texttt{view-tree}}
 
@@ -3294,6 +3330,17 @@ the repository is available:
         never scanned for its own \texttt{.cgs}, since that would recurse ---
         so a root holding two \texttt{.cgs} files works fine until the day
         someone mounts it. The error names both files and how to resolve it.
+
+        \texttt{auto} reads \emph{only} the root. A repository that keeps its
+        spec in \texttt{.config/} (the layout of the projects that conform to the
+        agentic one) is therefore mounted as a plain repository, with none of what
+        its own spec declares. \cgscli{} does not guess: it warns at install, and
+        again in \texttt{status}, naming the files in \texttt{.config/} and the
+        spelling that mounts one, \texttt{nested\_config = ".config/<file>.cgs"},
+        or \texttt{"disabled"} to say a plain repository is meant. When \texttt{auto}
+        \emph{does} graft a root \texttt{.cgs}, the install names the file and how
+        many repositories it brought into the tree, so a spec you did not expect to
+        be read is visible.
   \item \texttt{disabled} does not inspect the repository for nested config.
   \item A relative path ending in \texttt{.cgs} loads that exact file inside
         the repository, failing if it does not exist. It may not escape the
