@@ -2889,12 +2889,34 @@ on its own branch;
 \texttt{ComplexGitSync\_demo\_dev} in a standalone one, and
 \texttt{.self-history} follows the memory;
 \item a \texttt{branch} or \texttt{default\_branch} typed on an entry, and a tag,
-win over the rule;
+win over the rule. Only what the \texttt{.cgs} types counts: the branch a tree
+last landed on is a record, and never pins a repository;
 \item when the derived branch does not exist, the repository lands on its
 \texttt{fallback\_branch}, then \texttt{main}, and says so: the
 \texttt{branch\_missing} event of the run log, the block that ends the install
 and \texttt{status}.
 \end{itemize}
+
+\textbf{Where a branch begins.} A derived branch that a repository does not have
+yet begins at the tip of the bare branch of the same name when the repository
+holds it, locally or on its remote. In the example, \texttt{demo\_dev} begins at
+\texttt{dev}. It is created with no upstream, so a later \texttt{push} creates
+\texttt{demo\_dev} and never writes to \texttt{dev}, and \texttt{branch create}
+and \texttt{checkout} each say so, one line per repository. A repository with
+no such branch begins on its current commit, as before.
+
+\textbf{A name nothing holds.} \texttt{checkout} still creates a name that exists
+nowhere, so \texttt{branch create <name>}, \texttt{checkout <name>} and
+\texttt{pull} work as they always did. Before it does, it looks at the branches
+the tree already has, after a fetch of each repository, and stops when the name
+is within two edits of one of them (one edit for a name of five characters or
+fewer, and a swap of two neighbouring letters counts as one): typing
+\texttt{data-encryupt} when \texttt{data-encrypt} exists is refused, naming the
+branch it may mean and the \texttt{branch create} line that makes the new name
+on purpose. Names that differ only in their digits, \texttt{hotfix-1} and
+\texttt{hotfix-2}, are never taken for a slip. After a \texttt{checkout} moves
+the root, the command also says when the root now holds another
+\cgscli{} version than the one that ran.
 
 \textbf{A change to this rule is a breaking change.} Anyone who followed it by
 hand, or built a script or a branch policy on it, finds their repositories on
