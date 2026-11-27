@@ -679,6 +679,67 @@ reason: not cloned, no origin, or the fetch failed) for each repository,
 then a summary; exits non-zero if any fetch failed. \texttt{--private}
 narrows it to the writable configuration repositories.
 
+\subsection{\texttt{anonymise}}\label{sec:anonymous}
+
+\begin{lstlisting}[language=bash]
+$ pixi run cgitsync anonymise [--cgs <file.cgs>] [--dry-run] [--delete-old] [--gts <snapshot.gts>]
+\end{lstlisting}
+
+\paragraph{The \texttt{anonymous} option.} A project's private/local
+branches live in repositories it shares with the owner's other projects
+(\texttt{.dev}, \texttt{.localSpec}, \texttt{.claude}, \texttt{.memory},
+\texttt{omniscience}), and each is named after the project. A project whose
+name is itself private can ask for an \emph{alias} instead, with an option
+in the \texttt{project} table of its \texttt{.cgs}:
+
+\begin{lstlisting}
+project = { name = "PATRIMOINE", default_branch = "main", anonymous = "sequence" }
+\end{lstlisting}
+
+The user never types the alias. \texttt{"sequence"} files the project under
+\texttt{anonymous-1}, \texttt{anonymous-2}, and so on, and reveals nothing
+about the name. \texttt{"hash"} files it under the first six hexadecimal
+digits of the SHA-256 of the name, with \texttt{-1}, \texttt{-2} added on a
+collision; anyone who suspects the name can compute it and confirm. Without
+the option nothing changes.
+
+The alias replaces the name wherever a shared repository is named or written:
+the branches (\texttt{<alias>} on \texttt{main}, \texttt{<alias>\_<branch>}
+otherwise, and \texttt{ComplexGitSync\_<alias>...} for a twin's memory), the
+project and repository names inside the States kept in the memory, the
+memory's commit messages, and the omniscience record, whose \texttt{os\_id} is
+then the id of the alias. A State records no machine path and no
+\texttt{.cgs} path for an anonymous project. The real name stays in the
+project's own \texttt{.cgs} and in its own repositories.
+
+\paragraph{Choosing the alias.} It is chosen at \texttt{bootstrap} and
+\texttt{initialise}, once, and recorded in the State. A candidate is the
+project's own when a branch it names exists in a shared repository and holds
+the project's \emph{claim}: a file \texttt{.cgitsync-alias} at the root of the
+alias branch, which holds the SHA-256 of the real name and is written when
+\texttt{branch create} or \texttt{memory branch} makes the branch. It is
+\emph{taken} when the branch exists with another claim, or none, and
+\emph{free} when no such branch exists. The first candidate that is free or
+the project's own, in every shared repository, wins, so every machine reaches
+the same alias with no local state. A project name that has the shape of an
+alias (\texttt{anonymous-<i>}, or six hexadecimal digits with an optional
+\texttt{-<i>}) is refused, and so is any key of the \texttt{project} table that
+\cgspkg{} does not know: a version that predates \texttt{anonymous} would
+ignore it and write the real name everywhere, which is the leak the option is
+for. \textbf{A \texttt{.cgs} that declares \texttt{anonymous} must not be
+bootstrapped by a \cgspkg{} older than the one that ships it.}
+
+\paragraph{Moving a tree that already shares its name.} \texttt{anonymise}
+reads the \texttt{.cgs} that now declares \texttt{anonymous} (\texttt{--cgs},
+by default the one the tree was built from), finds the branches of the shared
+repositories named after the project, and makes the alias branch for each at
+the same commit, with its claim, pushed. \texttt{--dry-run} lists the pairs
+and writes nothing. The old branches are kept. \texttt{--delete-old} also
+deletes each one, but only after a confirmation that names it, one branch at a
+time. \textbf{History is not rewritten:} the commits already written, and the
+States already in the memory, still hold the old name. Only the branch names
+change.
+
 \subsection{\texttt{branch close}}
 
 \begin{lstlisting}[language=bash]
@@ -919,6 +980,67 @@ name. Nothing is forced, and no State or ledger entry is written, so the
 ledger never records an attempt. Fix the cause and run the same command
 again: \texttt{beta} is already level with its remote and is reported as
 such, and the others go on. A script reads the same lines.
+
+\subsection{Encrypted repositories (\texttt{git-crypt})}\label{sec:encrypted-repos}
+
+A repository can keep some of its files encrypted with \texttt{git-crypt}:
+its \texttt{.gitattributes} says \texttt{data/** filter=git-crypt
+diff=git-crypt}, and the files under \texttt{data/} are ciphertext on the
+provider. \cgspkg{} works with such a repository as with any other:
+\texttt{bootstrap} without the key, \texttt{status}, \texttt{add},
+\texttt{commit}, \texttt{push} and \texttt{release freeze} all run, in a
+tree whether it was unlocked or not.
+
+\paragraph{What \cgspkg{} does not do.} It never unlocks a repository, never
+reads or writes a key and never runs \texttt{git-crypt}. Unlocking is the
+business of the project that uses the encryption. A tree whose clones were
+never unlocked (a second workspace, a CI runner, an agent kept away from the
+data) holds ciphertext on disk and still works.
+
+\paragraph{What it does.} The danger of such a tree is one a hook cannot
+cover, because hooks are not cloned. Git applies the encryption filter only
+after \texttt{git-crypt unlock}, so in a clone that was never unlocked a
+\emph{new} file under an encrypted path is committed in clear. \cgspkg{}
+reads three facts from Git alone: the \texttt{filter} attribute of a path,
+whether the clone has the \texttt{git-crypt} filter configured, and the
+first bytes of a stored file, which are \texttt{\textbackslash 0GITCRYPT}
+when it is encrypted.
+
+\begin{itemize}
+  \item \texttt{commit} refuses when a staged file under an encrypted path is
+    not encrypted. The check runs after staging, on the index, before any
+    repository is committed, so one refusal leaves the whole tree
+    uncommitted. The message names the repository, the files, and the two
+    ways out: run \texttt{git-crypt unlock} with the key, or unstage the file
+    (\texttt{git restore --staged <path>}). \texttt{release freeze} is
+    checked the same way.
+  \item \texttt{push} refuses when a commit it would send holds such a file in
+    clear, which catches a commit made with plain \texttt{git commit}. Every
+    commit the push adds is read, not only the last one: a file committed in
+    clear and removed again later is still in the history that would leave.
+  \item There is no flag to override either refusal. A file that should be in
+    clear belongs outside the encrypted pattern in \texttt{.gitattributes}.
+  \item \texttt{status} shows a \texttt{CRYPT} column (see
+    \texttt{status} below), and \texttt{bootstrap} and \texttt{initialise}
+    end with one line on stderr naming the repositories that are encrypted
+    and locked.
+\end{itemize}
+
+Only \texttt{git-crypt} is recognised, through its \texttt{filter}
+attribute. A file that merely looks like data is never refused: the
+attribute decides.
+
+\paragraph{Merging an encrypted file.} Git has no way to merge the
+ciphertext of two edits of one file, so a conflict on an encrypted file is a
+binary conflict, whether the clone is unlocked or not. \texttt{merge} refuses,
+names the file and moves nothing. \texttt{merge --resolve} stops at that
+repository, names the file as an \emph{encrypted file} (a path whose
+\texttt{.gitattributes} asks for git-crypt, even when an unlocked clone shows
+it as plain text with no conflict markers) and opens no merge tool. It says how
+to choose a side by hand: \texttt{git checkout --ours -- <path>} or
+\texttt{--theirs}, then \texttt{git add <path>}, then
+\texttt{cgitsync merge --resolve <branch>} again. \cgscli{} runs no
+\texttt{git-crypt} and installs no merge driver.
 
 \subsection{\texttt{tag}}
 
@@ -2393,6 +2515,32 @@ worth knowing:
 Not worth chasing to a clean reading on purpose: a memory that never
 showed this for a moment would not be recording what \texttt{memory push}
 just did.
+
+\paragraph{The \texttt{CRYPT} column.} It appears, as the last column, only
+when some repository of the tree asks for \texttt{git-crypt} in its
+\texttt{.gitattributes}; a tree with none prints the table it always did.
+Each row reads \texttt{-} for a repository without encrypted paths, and for
+one with them:
+
+\begin{center}
+\begin{tabular}{lp{10cm}}
+\textbf{Shown} & \textbf{Means} \\
+\hline
+\texttt{unlocked} & The clone has the \texttt{git-crypt} filter configured:
+                    files are decrypted on disk and encrypted when
+                    committed. \\
+\texttt{locked}   & The clone has not: files under the encrypted paths are
+                    ciphertext on disk, and a new one is refused at
+                    \texttt{commit} and \texttt{push}
+                    (\S\ref{sec:encrypted-repos}). \\
+\end{tabular}
+\end{center}
+
+In \texttt{status --json} every repository carries a \texttt{crypt} field:
+\texttt{null}, \texttt{"locked"} or \texttt{"unlocked"}. A row is
+\texttt{clean} and \texttt{synced} whether the clone is locked or not, so
+this column is the only way to tell the two apart. The table prints a legend
+when the column is there.
 
 \subsection{\texttt{merge}}
 

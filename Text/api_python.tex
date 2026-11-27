@@ -994,6 +994,10 @@ payload["profile"]                  # "user" or "dev" (client.registry.profile)
 payload["os_id"]                    # OperatingSpace(client.registry).os_id, or None
 payload["summary"]["repos"]         # how many repositories it holds
 payload["repositories"][0]["sync"]  # per repository, as the table shows it
+payload["repositories"][0]["crypt"] # None, "locked" or "unlocked" (git-crypt)
+
+# An anonymous project: move its shared branches onto the alias its .cgs asks for.
+report = client.anonymise("project.cgs", dry_run=True)   # AnonymiseReport: alias, moves, created, deleted, kept
 
 chain = json.loads(client.verify_json("/path/to/CGSHOME"))
 chain["status"]                     # "clean" or "findings"
